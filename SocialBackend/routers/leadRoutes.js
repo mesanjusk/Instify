@@ -1,13 +1,21 @@
 const express = require('express');
 const router = express.Router();
+const { body } = require('express-validator');
+const validate = require('../middleware/validate');
 const leadController = require('../controllers/leadController');
 
-router.post('/', leadController.createLead);
-
+router.post('/',
+  [
+    body('institute_uuid').notEmpty().withMessage('institute_uuid is required'),
+    body('student_uuid').notEmpty().withMessage('student_uuid is required'),
+  ],
+  validate,
+  leadController.createLead
+);
 
 router.get('/', leadController.getLeads);
 router.get('/:uuid', leadController.getLead);
 router.put('/:uuid', leadController.updateLeadStatus);
-router.put('/:uuid/edit', leadController.editLead); 
+router.put('/:uuid/edit', leadController.editLead);
 
 module.exports = router;

@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const whatsappRoutes = require('./routes/whatsappRoutes');
+const { initCronJobs } = require('./services/cronService');
 
 dotenv.config();
 
@@ -20,6 +21,7 @@ mongoose.connect(process.env.MONGO_URI, {
   useUnifiedTopology: true,
 }).then(() => {
   console.log('✅ Connected to MongoDB');
+  initCronJobs();
 }).catch((err) => {
   console.error('❌ MongoDB connection error:', err.message);
 });
@@ -65,6 +67,10 @@ app.use('/api/attendance', require('./routers/attendanceRoutes'));
 app.use('/api/dashboard-stats', require('./routers/dashboardStats'));
 app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/whatsapp', require('./modules/whatsapp/whatsapp.routes'));
+app.use('/api/baileys', require('./routers/baileysRoutes'));
+app.use('/api/upi', require('./routers/upiRoutes'));
+app.use('/api/csv-import', require('./routers/csvImportRoutes'));
+app.use('/api/record', require('./routers/recordRoutes'));
 
 
 // ✅ 404 fallback
