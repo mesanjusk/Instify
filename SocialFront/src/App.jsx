@@ -40,6 +40,10 @@ import Fees from './pages/Fees';
 import ToolsPanel from './pages/ToolsPanel';
 import AllTransaction3 from './reports/allTransaction3';
 import WhatsAppIntegrationSettingsPage from './modules/whatsapp/pages/WhatsAppIntegrationSettingsPage';
+import BaileysWhatsApp from './pages/BaileysWhatsApp';
+import UpiPayment from './pages/UpiPayment';
+import CsvImport from './pages/CsvImport';
+import CanvasEditor from './pages/CanvasEditor';
 
 export default function App() {
   return (
@@ -86,7 +90,11 @@ export default function App() {
         <Route path="allExams" element={<AllExams />} />
         <Route path="fees" element={<Fees />} />
         <Route path="tools" element={<ToolsPanel />} />
-        <Route path="allTransaction3" element={< AllTransaction3 />} />
+        <Route path="allTransaction3" element={<AllTransaction3 />} />
+        <Route path="whatsapp-personal" element={<BaileysWhatsApp />} />
+        <Route path="upi-payment" element={<UpiPayment />} />
+        <Route path="csv-import" element={<CsvImport />} />
+        <Route path="canvas-editor" element={<CanvasEditor />} />
       </Route>
 
       {/* 🧭 Fallback */}

@@ -20,6 +20,9 @@ import {
   FiDollarSign,
   FiRepeat,
   FiMoreHorizontal,
+  FiUpload,
+  FiMessageCircle,
+  FiEdit,
 } from "react-icons/fi";
 
 const Navbar = () => {
@@ -158,9 +161,18 @@ useEffect(() => {
       icon: FiRepeat,
       items: [
         { label: "WhatsApp Integration", path: `/${currentUsername}/dashboard/centers/${localStorage.getItem('institute_uuid') || ''}/whatsapp` },
+        { label: "WhatsApp (Personal QR)", path: `/${currentUsername}/whatsapp-personal` },
+        { label: "UPI Payment", path: `/${currentUsername}/upi-payment` },
       ],
     },
-   
+    {
+      group: "Tools",
+      icon: FiEdit,
+      items: [
+        { label: "Canvas Editor", path: `/${currentUsername}/canvas-editor` },
+        { label: "CSV Import", path: `/${currentUsername}/csv-import` },
+      ],
+    },
   ];
 
   const toggleGroup = (groupName) => {
