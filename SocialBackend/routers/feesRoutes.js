@@ -1,25 +1,23 @@
 const express = require('express');
 const router = express.Router();
+const { body } = require('express-validator');
+const validate = require('../middleware/validate');
 const feesController = require('../controllers/feesController');
 
-// Optional: Middleware for authentication if needed
-// const { protect } = require('../middleware/authMiddleware');
+router.post('/',
+  [
+    body('institute_uuid').notEmpty().withMessage('institute_uuid is required'),
+    body('student_uuid').notEmpty().withMessage('student_uuid is required'),
+    body('fees').isNumeric().withMessage('fees must be a number'),
+    body('total').isNumeric().withMessage('total must be a number'),
+  ],
+  validate,
+  feesController.createFees
+);
 
-// ======= Fees Routes =======
-
-// Create Fees Record
-router.post('/', /* protect, */ feesController.createFees);
-
-// Get All Fees Records (with optional institute_uuid filtering)
-router.get('/', /* protect, */ feesController.getFees);
-
-// Get Single Fees Record by UUID
-router.get('/:uuid', /* protect, */ feesController.getFee);
-
-// Update Fees Record by UUID
-router.put('/:uuid', /* protect, */ feesController.updateFees);
-
-// Get Fees by Admission UUID
+router.get('/', feesController.getFees);
 router.get('/admission/:admission_uuid', feesController.getFeesByAdmissionUuid);
+router.get('/:uuid', feesController.getFee);
+router.put('/:uuid', feesController.updateFees);
 
 module.exports = router;

@@ -171,6 +171,7 @@ useEffect(() => {
       items: [
         { label: "Canvas Editor", path: `/${currentUsername}/canvas-editor` },
         { label: "CSV Import", path: `/${currentUsername}/csv-import` },
+        { label: "Bulk Download (ZIP)", path: `/${currentUsername}/bulk-download` },
       ],
     },
   ];

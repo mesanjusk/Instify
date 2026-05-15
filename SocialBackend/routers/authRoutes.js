@@ -3,12 +3,12 @@ const { v4: uuid } = require('uuid');
 const User = require('../models/User');
 const jwt = require("jsonwebtoken");
 const Institute = require('../models/institute');
-
 const bcrypt = require('bcryptjs');
+const { body } = require('express-validator');
+const validate = require('../middleware/validate');
 
 require('dotenv').config();
 const JWT_SECRET = process.env.JWT_SECRET;
-
 
 const router = express.Router();
 const otpStore = {};
@@ -23,7 +23,13 @@ function generateOTP() {
 
 // ✅ Admin login by center code
 // ✅ Admin login by center code
-router.post('/institute/login', async (req, res) => {
+router.post('/institute/login',
+  [
+    body('center_code').notEmpty().withMessage('center_code is required'),
+    body('password').notEmpty().withMessage('password is required'),
+  ],
+  validate,
+  async (req, res) => {
   try {
     const { center_code, password } = req.body;
 
@@ -58,7 +64,13 @@ router.post('/institute/login', async (req, res) => {
 });
 
 // ✅ General user login with JWT
-router.post('/user/login', async (req, res) => {
+router.post('/user/login',
+  [
+    body('username').notEmpty().withMessage('username is required'),
+    body('password').notEmpty().withMessage('password is required'),
+  ],
+  validate,
+  async (req, res) => {
   try {
     const { username, password } = req.body;
 
@@ -165,7 +177,16 @@ router.post('/institute/reset-password/:id', async (req, res) => {
 });
 
 // ✅ Register new user under institute
-router.post('/register', async (req, res) => {
+router.post('/register',
+  [
+    body('name').notEmpty().withMessage('name is required'),
+    body('mobile').notEmpty().withMessage('mobile is required'),
+    body('password').isLength({ min: 6 }).withMessage('password must be at least 6 characters'),
+    body('role').notEmpty().withMessage('role is required'),
+    body('institute_uuid').notEmpty().withMessage('institute_uuid is required'),
+  ],
+  validate,
+  async (req, res) => {
   const { name, password, mobile, role, institute_uuid } = req.body;
 
   if (!institute_uuid) {

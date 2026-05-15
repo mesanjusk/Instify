@@ -44,6 +44,7 @@ import BaileysWhatsApp from './pages/BaileysWhatsApp';
 import UpiPayment from './pages/UpiPayment';
 import CsvImport from './pages/CsvImport';
 import CanvasEditor from './pages/CanvasEditor';
+import BulkDownload from './pages/BulkDownload';
 
 export default function App() {
   return (
@@ -95,6 +96,7 @@ export default function App() {
         <Route path="upi-payment" element={<UpiPayment />} />
         <Route path="csv-import" element={<CsvImport />} />
         <Route path="canvas-editor" element={<CanvasEditor />} />
+        <Route path="bulk-download" element={<BulkDownload />} />
       </Route>
 
       {/* 🧭 Fallback */}
