@@ -76,7 +76,7 @@ export default function Footer() {
             <path d="M9 15h3l8.5 -8.5a1.5 1.5 0 0 0 -3 -3l-8.5 8.5v3" />  
             <line x1="16" y1="5" x2="19" y2="8" />
           </svg>
-          <span className="text-xs">Outstanding</span>
+          <span className="text-xs">Outstanding.</span>
         </button>
       </div>
     </div>
