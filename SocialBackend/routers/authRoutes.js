@@ -6,6 +6,8 @@ const Institute = require('../models/institute');
 const bcrypt = require('bcryptjs');
 const { body } = require('express-validator');
 const validate = require('../middleware/validate');
+const { generateMagicToken, verifyMagicToken, buildMagicLink } = require('../utils/magicLink');
+const baileysService = require('../services/baileysService');
 
 require('dotenv').config();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -290,6 +292,102 @@ router.put('/:id', async (req, res) => {
   } catch (err) {
     console.error('Error updating user:', err);
     res.status(500).json({ success: false, message: 'Error updating user', error: err.message });
+  }
+});
+
+// ─── Magic Link ────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/auth/magic-link/send
+ * Generates a one-click login token and sends it via WhatsApp (Baileys).
+ * Body: { userId?, mobile, instituteId }
+ */
+router.post('/magic-link/send', async (req, res) => {
+  try {
+    const { userId, mobile, instituteId } = req.body;
+    if (!mobile || !instituteId) {
+      return res.status(400).json({ success: false, message: 'mobile and instituteId are required' });
+    }
+
+    let user = null;
+    if (userId) {
+      user = await User.findById(userId);
+    } else {
+      user = await User.findOne({ mobile, institute_uuid: instituteId });
+    }
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const expiry = ['student'].includes(user.role) ? '30d' : '48h';
+    const token = generateMagicToken({
+      userId: user._id.toString(),
+      role: user.role,
+      institute_uuid: user.institute_uuid,
+      username: user.login_username,
+    }, expiry);
+
+    const link = buildMagicLink(token);
+    const message =
+      `Hello ${user.name},\n` +
+      `Your Instify account is ready.\n\n` +
+      `Click to access your dashboard:\n${link}\n\n` +
+      `(Link valid for ${expiry === '30d' ? '30 days' : '48 hours'})\n– Instify`;
+
+    const to = mobile.replace(/\D/g, '');
+    await baileysService.sendText(instituteId, to, message);
+
+    res.json({ success: true, message: 'Magic link sent via WhatsApp' });
+  } catch (err) {
+    console.error('Magic link send error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * GET /api/auth/magic-link/verify/:token
+ * Validates a magic link token and returns session data for auto-login.
+ */
+router.get('/magic-link/verify/:token', async (req, res) => {
+  try {
+    const payload = verifyMagicToken(req.params.token);
+
+    const user = await User.findById(payload.userId);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const institute = await Institute.findOne({ institute_uuid: user.institute_uuid });
+    if (!institute) return res.status(404).json({ success: false, message: 'Institute not found' });
+
+    user.last_login_at = new Date();
+    await user.save();
+
+    // Issue a full session JWT
+    const sessionToken = jwt.sign(
+      { user_id: user._id, user_uuid: user.user_uuid, role: user.role, institute_uuid: user.institute_uuid },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      success: true,
+      token: sessionToken,
+      user: {
+        id: user._id,
+        name: user.name,
+        role: user.role,
+        username: user.login_username,
+      },
+      institute: {
+        id: institute._id,
+        uuid: institute.institute_uuid,
+        name: institute.institute_title,
+        theme_color: institute.theme?.color || '4f46e5',
+      },
+    });
+  } catch (err) {
+    const expired = err.name === 'TokenExpiredError';
+    res.status(401).json({ success: false, message: expired ? 'Link has expired. Please request a new one.' : 'Invalid link.' });
   }
 });
 

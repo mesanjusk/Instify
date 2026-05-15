@@ -8,6 +8,22 @@ const path = require('path');
 const fs = require('fs');
 const QRCode = require('qrcode');
 
+// Per-institute message counter for rate limiting (max 20 msgs/min)
+const rateLimiter = new Map(); // instituteId → { count, resetAt }
+
+function checkRateLimit(instituteId) {
+  const now = Date.now();
+  const bucket = rateLimiter.get(instituteId) || { count: 0, resetAt: now + 60000 };
+  if (now > bucket.resetAt) { bucket.count = 0; bucket.resetAt = now + 60000; }
+  if (bucket.count >= 20) throw new Error('Rate limit reached — max 20 messages per minute. Please slow down.');
+  bucket.count++;
+  rateLimiter.set(instituteId, bucket);
+}
+
+function randomDelay(minMs = 2000, maxMs = 4000) {
+  return new Promise(r => setTimeout(r, minMs + Math.random() * (maxMs - minMs)));
+}
+
 const SESSION_DIR = path.join(__dirname, '../baileys_sessions');
 if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
 
@@ -101,6 +117,7 @@ async function sendText(instituteId, to, message) {
   if (!session || session.status !== 'connected') {
     throw new Error('WhatsApp session not connected for this institute');
   }
+  checkRateLimit(instituteId);
   const jid = to.replace(/\D/g, '') + '@s.whatsapp.net';
   await session.sock.sendMessage(jid, { text: message });
 }
@@ -120,8 +137,13 @@ async function sendBulk(instituteId, numbers, message) {
       results.push({ number, success: true });
     } catch (err) {
       results.push({ number, success: false, error: err.message });
+      // On rate limit, pause for the rest of the minute
+      if (err.message.includes('Rate limit')) {
+        await new Promise(r => setTimeout(r, 62000));
+      }
     }
-    await new Promise(r => setTimeout(r, 1500));
+    // Human-like delay between messages (2–4s)
+    await randomDelay(2000, 4000);
   }
   return results;
 }

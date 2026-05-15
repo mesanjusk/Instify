@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import MagicLogin from './pages/MagicLogin';
 
 import DashboardLayout from './layouts/DashboardLayout';
 import Dashboard from './pages/Dashboard';
@@ -98,6 +99,9 @@ export default function App() {
         <Route path="canvas-editor" element={<CanvasEditor />} />
         <Route path="bulk-download" element={<BulkDownload />} />
       </Route>
+
+      {/* 🔗 Magic link auto-login */}
+      <Route path="/access/:token" element={<MagicLogin />} />
 
       {/* 🧭 Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
