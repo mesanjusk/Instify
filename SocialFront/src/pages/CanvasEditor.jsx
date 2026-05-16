@@ -5,6 +5,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Alert, Box, Button, Card, CardContent, CardMedia, Chip, CircularProgress,
   Dialog, DialogActions, DialogContent, DialogTitle, IconButton,
@@ -30,6 +31,7 @@ import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 import LayersIcon from '@mui/icons-material/Layers';
 import HomeIcon from '@mui/icons-material/Home';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import PrintIcon from '@mui/icons-material/Print';
@@ -293,6 +295,9 @@ function TemplateTile({ tpl, selected, onClick }) {
 
 /* ─── Main component ──────────────────────────────────────────── */
 export default function DocumentMaker() {
+  const navigate = useNavigate();
+  const { username } = useParams();
+
   const canvasRef      = useRef(null);
   const fabricRef      = useRef(null);
   const containerRef   = useRef(null);
@@ -456,7 +461,7 @@ export default function DocumentMaker() {
 
   const updateScale = useCallback(() => {
     if (!containerRef.current || !fabricRef.current) return;
-    const pad = 24;
+    const pad = 12;
     const cw = containerRef.current.clientWidth  - pad * 2;
     const ch = containerRef.current.clientHeight - pad * 2;
     const fw = fabricRef.current.width;
@@ -948,13 +953,14 @@ export default function DocumentMaker() {
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#f8fafc' }}>
 
         {/* Header */}
-        <Box sx={{ px: 2, pt: 2, pb: 1, bgcolor: '#f8fafc', flexShrink: 0 }}>
-          <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
-            <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '1.1rem' }}>Document Maker</Typography>
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <Chip size="small" label="Pro" sx={{ bgcolor: '#7c3aed22', color: '#7c3aed', fontSize: '0.65rem', height: 22, fontWeight: 600 }} />
-            </Stack>
-          </Stack>
+        <Box sx={{ px: 1.5, pt: 1, pb: 1, bgcolor: '#ffffff', borderBottom: '1px solid #e2e8f0', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <IconButton size="small" onClick={() => navigate(`/${username}`)} sx={{ color: '#64748b' }}>
+            <ArrowBackIosNewIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+          <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '1rem', flex: 1 }}>Document Maker</Typography>
+          <Chip size="small" label="Pro" sx={{ bgcolor: '#7c3aed22', color: '#7c3aed', fontSize: '0.65rem', height: 22, fontWeight: 600 }} />
+        </Box>
+        <Box sx={{ px: 2, pt: 1.5, pb: 1, bgcolor: '#f8fafc', flexShrink: 0 }}>
           {/* Search */}
           <TextField
             value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
@@ -1226,7 +1232,7 @@ export default function DocumentMaker() {
         sx={{
           flex: 1, minHeight: 0,   // minHeight:0 lets flex child shrink below content size
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          overflow: 'hidden', p: '12px',
+          overflow: 'hidden', p: '6px',
           '& canvas': { display: 'block' },
         }}
       >

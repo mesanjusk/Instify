@@ -94,11 +94,11 @@ export default function App() {
         path="/:username/section/canvas"
         element={
           <PrivateRoute>
-            <SectionLayout title="Document Maker" subtitle="ID cards · Certificates · Results" color="#7c3aed">
+            <Box sx={{ height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               <Suspense fallback={<PageLoader />}>
                 <CanvasEditor />
               </Suspense>
-            </SectionLayout>
+            </Box>
           </PrivateRoute>
         }
       />
