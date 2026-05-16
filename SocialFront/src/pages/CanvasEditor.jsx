@@ -6,7 +6,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Alert, Box, Button, Chip, CircularProgress, IconButton,
+  Alert, Box, Button, Card, CardContent, CardMedia, Chip, CircularProgress,
+  Dialog, DialogActions, DialogContent, DialogTitle, IconButton,
   MenuItem, Select, Slider, Stack, Tab, Tabs, TextField,
   Tooltip, Typography, InputAdornment,
 } from '@mui/material';
@@ -22,6 +23,8 @@ import DownloadIcon from '@mui/icons-material/Download';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import FolderZipIcon from '@mui/icons-material/FolderZip';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import DeleteIcon from '@mui/icons-material/Delete';
+import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 import LayersIcon from '@mui/icons-material/Layers';
@@ -255,11 +258,12 @@ function TemplateTile({ tpl, selected, onClick }) {
 
 /* ─── Main component ──────────────────────────────────────────── */
 export default function DocumentMaker() {
-  const canvasRef    = useRef(null);
-  const fabricRef    = useRef(null);
-  const containerRef = useRef(null);
-  const fileInputRef = useRef(null);
-  const sigInputRef  = useRef(null);
+  const canvasRef      = useRef(null);
+  const fabricRef      = useRef(null);
+  const containerRef   = useRef(null);
+  const fileInputRef   = useRef(null);
+  const sigInputRef    = useRef(null);
+  const uploadInputRef = useRef(null);
 
   const [view,         setView]         = useState('home');   // 'home' | 'editor'
   const [homeNav,      setHomeNav]      = useState(0);        // 0=Create 1=Designs 2=Templates 3=More
@@ -289,6 +293,17 @@ export default function DocumentMaker() {
   const [students,     setStudents]     = useState([]);
 
   const instituteName = localStorage.getItem('institute_title') || 'Your Institute';
+  const instituteId = localStorage.getItem('institute_uuid') || '';
+  const isAdmin = ['admin', 'superadmin'].includes(localStorage.getItem('role') || '');
+
+  // Custom templates
+  const [customTemplates, setCustomTemplates] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [uploadDialog, setUploadDialog] = useState(false);
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadName, setUploadName] = useState('');
+  const [uploadDocType, setUploadDocType] = useState('other');
+  const [uploading, setUploading] = useState(false);
 
   function showAlert(type, text) { setAlert({ type, text }); setTimeout(() => setAlert(null), 4000); }
 
@@ -299,9 +314,88 @@ export default function DocumentMaker() {
     setScale(cw < fw ? cw / fw : 1);
   }, []);
 
+  async function loadCustomTemplates() {
+    if (!instituteId) return;
+    setLoadingTemplates(true);
+    try {
+      const r = await apiClient.get(`/api/custom-templates?institute_uuid=${instituteId}`);
+      setCustomTemplates(Array.isArray(r.data?.result) ? r.data.result : []);
+    } catch { /* silently ignore */ } finally {
+      setLoadingTemplates(false);
+    }
+  }
+
+  async function handleUpload() {
+    if (!uploadFile || !uploadName.trim()) return showAlert('error', 'Name and image required');
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append('image', uploadFile);
+      form.append('institute_uuid', instituteId);
+      form.append('name', uploadName.trim());
+      form.append('docType', uploadDocType);
+      form.append('created_by', localStorage.getItem('user_uuid') || '');
+      await apiClient.post('/api/custom-templates/upload', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+      showAlert('success', 'Template uploaded!');
+      setUploadDialog(false);
+      setUploadFile(null);
+      setUploadName('');
+      setUploadDocType('other');
+      loadCustomTemplates();
+    } catch (err) {
+      showAlert('error', 'Upload failed: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function handleDeleteTemplate(uuid) {
+    try {
+      await apiClient.delete(`/api/custom-templates/${uuid}`);
+      setCustomTemplates(prev => prev.filter(t => t.template_uuid !== uuid));
+      showAlert('success', 'Template deleted');
+    } catch {
+      showAlert('error', 'Delete failed');
+    }
+  }
+
+  async function handleUseCustomTemplate(imageUrl) {
+    openEditor(docType, 0);
+    setTimeout(async () => {
+      if (!fabricRef.current) return;
+      const { fabric } = await getFabric();
+      fabric.Image.fromURL(imageUrl, (img) => {
+        if (!fabricRef.current) return;
+        const { w, h } = DOC_TYPES.find(d => d.key === docType)?.dims || { w: 794, h: 562 };
+        img.scaleToWidth(w);
+        fabricRef.current.setBackgroundImage(img, fabricRef.current.renderAll.bind(fabricRef.current));
+      }, { crossOrigin: 'anonymous' });
+    }, 400);
+  }
+
   async function initCanvas(type, tplIdx) {
     const { fabric } = await getFabric();
     const tpl = (TEMPLATES[type] || [])[tplIdx] || TEMPLATES[type][0];
+
+  // Load custom template image as canvas background
+  async function handleUseTemplate(imageUrl) {
+    if (!canvasRef.current) return;
+    if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
+    setReady(false);
+    try {
+      const { fabric } = await getFabric();
+      const img = await new Promise((res, rej) => fabric.Image.fromURL(imageUrl, (i) => i ? res(i) : rej(new Error('Image load failed')), { crossOrigin: 'anonymous' }));
+      const iw = img.width || 794;
+      const ih = img.height || 562;
+      const canvas = new fabric.Canvas(canvasRef.current, { width: iw, height: ih, selection: true });
+      canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), { scaleX: 1, scaleY: 1 });
+      fabricRef.current = canvas;
+      setReady(true);
+    } catch (err) {
+      showAlert('error', 'Could not load template: ' + err.message);
+    }
+  }
+
     if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
     if (!canvasRef.current) return;
     const { w, h } = DOC_TYPES.find(d => d.key === type).dims;
@@ -542,6 +636,7 @@ export default function DocumentMaker() {
       .then(r => setBatches(Array.isArray(r.data?.result) ? r.data.result : []))
       .catch(() => {});
     loadSavedDesigns();
+    loadCustomTemplates();
     apiClient.get(`/api/students?institute_uuid=${uuid}`)
       .then(r => setStudents(Array.isArray(r.data?.result) ? r.data.result : []))
       .catch(() => {});
@@ -685,9 +780,92 @@ export default function DocumentMaker() {
                   </Box>
                 </Box>
               ))}
+
+              {/* Custom / admin-uploaded templates */}
+              <Box sx={{ mt: 1 }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
+                  <Typography sx={{ color: '#e2e8f0', fontWeight: 600, fontSize: '0.85rem' }}>Your Custom Templates</Typography>
+                  {isAdmin && (
+                    <Button
+                      size="small"
+                      startIcon={<AddPhotoAlternateIcon sx={{ fontSize: 14 }} />}
+                      onClick={() => setUploadDialog(true)}
+                      sx={{ bgcolor: '#7c3aed33', color: '#a78bfa', textTransform: 'none', fontSize: '0.7rem', px: 1, py: 0.25, borderRadius: 1.5, '&:hover': { bgcolor: '#7c3aed55' } }}
+                    >
+                      Upload
+                    </Button>
+                  )}
+                </Stack>
+                {loadingTemplates ? (
+                  <CircularProgress size={18} sx={{ display: 'block', mx: 'auto' }} />
+                ) : customTemplates.length === 0 ? (
+                  <Typography sx={{ color: '#475569', fontSize: '0.75rem', textAlign: 'center', py: 2 }}>
+                    {isAdmin ? 'Upload your own template images to use them here.' : 'No custom templates yet.'}
+                  </Typography>
+                ) : (
+                  <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', pb: 1, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
+                    {customTemplates.map(ct => (
+                      <Box key={ct.template_uuid} sx={{ position: 'relative', flexShrink: 0 }}>
+                        <Box
+                          onClick={() => handleUseCustomTemplate(ct.imageUrl)}
+                          sx={{ width: 96, cursor: 'pointer', borderRadius: 2, overflow: 'hidden', border: '1px solid #2a2a3e', '&:hover': { border: '1px solid #7c3aed55' } }}
+                        >
+                          <Box sx={{ height: 64, overflow: 'hidden' }}>
+                            <img src={ct.thumbUrl || ct.imageUrl} alt={ct.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          </Box>
+                          <Box sx={{ bgcolor: '#1e1e2e', p: 0.75 }}>
+                            <Typography sx={{ color: '#e2e8f0', fontSize: '0.65rem', fontWeight: 500 }} noWrap>{ct.name}</Typography>
+                          </Box>
+                        </Box>
+                        {isAdmin && (
+                          <Tooltip title="Delete">
+                            <IconButton
+                              size="small"
+                              onClick={e => { e.stopPropagation(); handleDeleteTemplate(ct.template_uuid); }}
+                              sx={{ position: 'absolute', top: 2, right: 2, bgcolor: 'rgba(0,0,0,0.6)', color: '#fff', width: 18, height: 18, '&:hover': { bgcolor: '#ef4444' } }}
+                            >
+                              <DeleteIcon sx={{ fontSize: 11 }} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+              </Box>
             </Box>
           )}
         </Box>
+
+        {/* Upload Template Dialog */}
+        <input ref={uploadInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setUploadFile(e.target.files?.[0] || null)} />
+        <Dialog open={uploadDialog} onClose={() => setUploadDialog(false)} maxWidth="xs" fullWidth>
+          <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem' }}>Upload Custom Template</DialogTitle>
+          <DialogContent>
+            <Stack spacing={2} sx={{ pt: 1 }}>
+              <TextField label="Template Name" value={uploadName} onChange={e => setUploadName(e.target.value)} fullWidth size="small" placeholder="e.g. Blue ID Card 2025" />
+              <Select value={uploadDocType} onChange={e => setUploadDocType(e.target.value)} size="small" fullWidth>
+                <MenuItem value="id_card">ID Card</MenuItem>
+                <MenuItem value="certificate">Certificate</MenuItem>
+                <MenuItem value="result">Result / Mark Sheet</MenuItem>
+                <MenuItem value="admit_card">Admit Card</MenuItem>
+                <MenuItem value="other">Other</MenuItem>
+              </Select>
+              <Button variant="outlined" fullWidth startIcon={<AddPhotoAlternateIcon />} onClick={() => uploadInputRef.current?.click()} sx={{ textTransform: 'none' }}>
+                {uploadFile ? uploadFile.name : 'Choose Image (max 10MB)'}
+              </Button>
+              {uploadFile && <Box component="img" src={URL.createObjectURL(uploadFile)} alt="preview" sx={{ width: '100%', maxHeight: 160, objectFit: 'contain', borderRadius: 1, border: '1px solid #e2e8f0' }} />}
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setUploadDialog(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
+            <Button variant="contained" onClick={handleUpload} disabled={uploading || !uploadFile || !uploadName.trim()}
+              startIcon={uploading ? <CircularProgress size={14} color="inherit" /> : null}
+              sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' }, textTransform: 'none' }}>
+              {uploading ? 'Uploading…' : 'Upload'}
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* Bottom nav */}
         <Box sx={{ bgcolor: '#1e1e2e', borderTop: '1px solid #2a2a3e', display: 'flex', flexShrink: 0 }}>

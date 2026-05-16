@@ -1,18 +1,14 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Alert, Avatar, Box, Chip, CircularProgress, Divider, Fab,
-  IconButton, InputAdornment, LinearProgress, MenuItem,
-  Select, Snackbar, Stack, Switch, TextField, Tooltip,
-  Typography, Button, FormControlLabel,
+  Alert, Avatar, Box, Button, Chip, CircularProgress, Divider, Fab,
+  IconButton, InputAdornment, LinearProgress, ListItemIcon, ListItemText,
+  Menu, MenuItem, Select, Snackbar, Stack, Switch, TextField, Typography,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import AddIcon from '@mui/icons-material/Add';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
-import UpdateIcon from '@mui/icons-material/Update';
-import GroupsIcon from '@mui/icons-material/Groups';
-import CallIcon from '@mui/icons-material/Call';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import SendIcon from '@mui/icons-material/Send';
@@ -25,100 +21,96 @@ import CheckIcon from '@mui/icons-material/Check';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import PushPinIcon from '@mui/icons-material/PushPin';
 import SettingsIcon from '@mui/icons-material/Settings';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import QrCodeIcon from '@mui/icons-material/QrCode';
+import PhoneIcon from '@mui/icons-material/Phone';
+import VideocamIcon from '@mui/icons-material/Videocam';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import { useApp } from '../context/AppContext';
 import apiClient from '../apiClient';
 
-const WA_GREEN = '#075E54';
-const WA_LIGHT = '#25d366';
-const WA_BG    = '#111b21';
+/* ── theme ───────────────────────────────────────────────────── */
+const WA_GREEN   = '#075E54';
+const WA_LIGHT   = '#25d366';
+const WA_BG      = '#111b21';
 const WA_SURFACE = '#202c33';
-const WA_CARD  = '#202c33';
-const WA_TEXT  = '#e9edef';
-const WA_MUTED = '#8696a0';
+const WA_TEXT    = '#e9edef';
+const WA_MUTED   = '#8696a0';
 const WA_DIVIDER = '#2a3942';
+const WA_BUBBLE_OUT = '#005c4b';
+const WA_BUBBLE_IN  = '#202c33';
 
 const FILTERS = ['All', 'Unread', 'Favourites', 'Groups'];
 
 const AUTOMATION_JOBS = [
-  {
-    key: 'followup',
-    label: 'Follow-up Reminders',
-    description: 'Daily 9:00 AM — reminds leads with follow-up scheduled today',
-    preview: 'Hello [Name], this is a reminder for your follow-up today regarding the [Course] enquiry. – Instify',
-  },
-  {
-    key: 'fees',
-    label: 'Fee Due Alerts',
-    description: 'Daily 10:00 AM — alerts students with overdue or upcoming fee instalments',
-    preview: 'Dear [Name], your fee instalment of ₹[Amount] was due on [Date]. – Instify',
-  },
-  {
-    key: 'birthday',
-    label: 'Birthday Wishes',
-    description: 'Daily 8:00 AM — sends birthday greetings to students',
-    preview: '🎂 Happy Birthday, [Name]! Wishing you a wonderful day. – Instify Team',
-  },
-  {
-    key: 'magic_link',
-    label: 'Magic Access Links',
-    description: 'Sends a one-click login link when a teacher or student is created',
-    preview: 'Hello [Name], your Instify account is ready. Click to access: [LINK] – Instify',
-  },
+  { key: 'followup',   label: 'Follow-up Reminders',  description: 'Daily 9:00 AM — leads with follow-up today', preview: 'Hello {{name}}, reminder for follow-up today regarding {{course}}. – Instify' },
+  { key: 'fees',       label: 'Fee Due Alerts',        description: 'Daily 10:00 AM — overdue fee instalments',   preview: 'Dear {{name}}, fee of ₹{{amount}} due on {{date}}. Balance: ₹{{balance}}. – Instify' },
+  { key: 'birthday',   label: 'Birthday Wishes',       description: 'Daily 8:00 AM — birthday greetings',         preview: '🎂 Happy Birthday, {{name}}! – Instify Team' },
+  { key: 'magic_link', label: 'Magic Access Links',    description: 'On new user creation — one-click login',      preview: 'Hello {{name}}, access your account: {{link}} – Instify' },
 ];
 
-const MOCK_CHATS = [
-  { id: 1, name: 'Rahul Sharma', last: 'Fee reminder sent successfully', time: '10:32 AM', unread: 0, pinned: true, avatar: 'R', status: 'read' },
-  { id: 2, name: 'Priya Patel', last: 'Birthday wish delivered', time: '8:00 AM', unread: 2, pinned: false, avatar: 'P', status: 'delivered' },
-  { id: 3, name: 'Amit Kumar', last: 'Magic link sent', time: 'Yesterday', unread: 0, pinned: false, avatar: 'A', status: 'read' },
-  { id: 4, name: 'Sneha Joshi', last: 'Follow-up reminder sent', time: 'Yesterday', unread: 1, pinned: false, avatar: 'S', status: 'delivered' },
-  { id: 5, name: 'Vikram Singh', last: 'Exam admit card shared', time: 'Mon', unread: 0, pinned: false, avatar: 'V', status: 'sent' },
-  { id: 6, name: 'Kavya Nair', last: 'Fee reminder sent', time: 'Sun', unread: 0, pinned: false, avatar: 'K', status: 'read' },
-];
+const fieldSx = {
+  '& .MuiOutlinedInput-root': {
+    bgcolor: WA_SURFACE, color: WA_TEXT,
+    '& fieldset': { borderColor: WA_DIVIDER },
+    '&:hover fieldset': { borderColor: WA_MUTED },
+    '&.Mui-focused fieldset': { borderColor: WA_LIGHT },
+  },
+  '& .MuiInputBase-input::placeholder': { color: WA_MUTED, opacity: 1 },
+};
 
-function NavItem({ icon, label, active, onClick }) {
-  return (
-    <Box
-      onClick={onClick}
-      sx={{
-        flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-        gap: 0.3, py: 1, cursor: 'pointer',
-        color: active ? WA_LIGHT : WA_MUTED,
-        '&:hover': { color: WA_TEXT },
-        transition: 'color 0.15s',
-      }}
-    >
-      {icon}
-      <Typography sx={{ fontSize: '0.65rem', fontWeight: active ? 700 : 400 }}>{label}</Typography>
-    </Box>
-  );
+/* ── helpers ─────────────────────────────────────────────────── */
+function avatarColor(jid = '') {
+  const colors = ['#1a6b52','#4a2d6b','#1a4a6b','#6b1a1a','#4a6b1a','#6b4a1a'];
+  let h = 0; for (const c of jid) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
+  return colors[h % colors.length];
 }
 
-function ChatRow({ chat }) {
+function fmtTime(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = now - d;
+  if (diff < 86400000 && now.getDate() === d.getDate())
+    return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+  if (diff < 7 * 86400000)
+    return d.toLocaleDateString('en-IN', { weekday: 'short' });
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit' });
+}
+
+function fmtBubbleTime(ts) {
+  if (!ts) return '';
+  return new Date(ts).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+}
+
+/* ── Chat list row ───────────────────────────────────────────── */
+function ChatRow({ chat, onClick }) {
+  const name = chat._id;
   return (
-    <Box sx={{
+    <Box onClick={onClick} sx={{
       display: 'flex', alignItems: 'center', px: 2, py: 1.25, gap: 1.5,
-      cursor: 'pointer', '&:hover': { bgcolor: WA_SURFACE },
+      cursor: 'pointer', '&:hover': { bgcolor: '#2a3942' },
       borderBottom: `1px solid ${WA_DIVIDER}`,
     }}>
-      <Avatar sx={{ bgcolor: `hsl(${chat.id * 60}, 50%, 35%)`, width: 50, height: 50, fontSize: '1.1rem', fontWeight: 700, flexShrink: 0 }}>
-        {chat.avatar}
+      <Avatar sx={{ bgcolor: avatarColor(chat._id), width: 50, height: 50, fontSize: '1.1rem', fontWeight: 700, flexShrink: 0 }}>
+        {(chat._id || '?')[0].toUpperCase()}
       </Avatar>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            {chat.pinned && <PushPinIcon sx={{ fontSize: 12, color: WA_MUTED, transform: 'rotate(45deg)' }} />}
-            <Typography sx={{ color: WA_TEXT, fontWeight: 500, fontSize: '0.9rem' }} noWrap>{chat.name}</Typography>
-          </Stack>
+          <Typography sx={{ color: WA_TEXT, fontWeight: 500, fontSize: '0.9rem' }} noWrap>
+            +{name}
+          </Typography>
           <Typography sx={{ color: chat.unread > 0 ? WA_LIGHT : WA_MUTED, fontSize: '0.7rem', flexShrink: 0 }}>
-            {chat.time}
+            {fmtTime(chat.lastTime)}
           </Typography>
         </Stack>
         <Stack direction="row" justifyContent="space-between" alignItems="center" mt={0.3}>
           <Stack direction="row" alignItems="center" spacing={0.5} sx={{ minWidth: 0 }}>
-            {chat.status === 'read' && <DoneAllIcon sx={{ fontSize: 14, color: '#53bdeb', flexShrink: 0 }} />}
-            {chat.status === 'delivered' && <DoneAllIcon sx={{ fontSize: 14, color: WA_MUTED, flexShrink: 0 }} />}
-            {chat.status === 'sent' && <CheckIcon sx={{ fontSize: 14, color: WA_MUTED, flexShrink: 0 }} />}
-            <Typography sx={{ color: WA_MUTED, fontSize: '0.8rem' }} noWrap>{chat.last}</Typography>
+            {chat.fromMe && <DoneAllIcon sx={{ fontSize: 14, color: '#53bdeb', flexShrink: 0 }} />}
+            <Typography sx={{ color: WA_MUTED, fontSize: '0.8rem' }} noWrap>{chat.lastMessage || '…'}</Typography>
           </Stack>
           {chat.unread > 0 && (
             <Box sx={{ bgcolor: WA_LIGHT, borderRadius: '50%', minWidth: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -131,43 +123,54 @@ function ChatRow({ chat }) {
   );
 }
 
-/* ── Panel views ───────────────────────────────────────────── */
+/* ── Message bubble ──────────────────────────────────────────── */
+function Bubble({ msg }) {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: msg.fromMe ? 'flex-end' : 'flex-start', mb: 0.5, px: 2 }}>
+      <Box sx={{
+        maxWidth: '72%', bgcolor: msg.fromMe ? WA_BUBBLE_OUT : WA_BUBBLE_IN,
+        borderRadius: msg.fromMe ? '8px 0 8px 8px' : '0 8px 8px 8px',
+        px: 1.5, py: 1,
+        boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
+      }}>
+        <Typography sx={{ color: WA_TEXT, fontSize: '0.875rem', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+          {msg.message}
+        </Typography>
+        <Stack direction="row" justifyContent="flex-end" spacing={0.5} alignItems="center" mt={0.25}>
+          <Typography sx={{ color: WA_MUTED, fontSize: '0.65rem' }}>{fmtBubbleTime(msg.createdAt)}</Typography>
+          {msg.fromMe && <DoneAllIcon sx={{ fontSize: 12, color: msg.status === 'read' ? '#53bdeb' : WA_MUTED }} />}
+        </Stack>
+      </Box>
+    </Box>
+  );
+}
 
+/* ── Connection panel ────────────────────────────────────────── */
 function ConnectionPanel({ status, qr, loading, isConnected, onConnect, onDisconnect }) {
   return (
     <Box sx={{ p: 3, color: WA_TEXT }}>
-      <Typography variant="body2" sx={{ color: WA_MUTED, mb: 2 }}>
-        Connect your institute's personal WhatsApp by scanning the QR code. Messages are sent with a 2–4s delay to stay within WhatsApp's safe usage limits.
+      <Typography sx={{ color: WA_MUTED, fontSize: '0.875rem', mb: 2 }}>
+        Connect your institute's personal WhatsApp. Messages sent with 2–4s delays for policy compliance.
       </Typography>
-
       {loading && <LinearProgress sx={{ mb: 2, borderRadius: 1, bgcolor: WA_DIVIDER, '& .MuiLinearProgress-bar': { bgcolor: WA_LIGHT } }} />}
-
       {qr && (
         <Box textAlign="center" my={2.5}>
-          <img src={qr} alt="WhatsApp QR Code" width={220} style={{ borderRadius: 12, border: `1px solid ${WA_DIVIDER}` }} />
-          <Typography variant="caption" display="block" mt={1} sx={{ color: WA_MUTED }}>
-            Open WhatsApp → Linked Devices → Link a Device → Scan QR
+          <img src={qr} alt="WhatsApp QR" width={220} style={{ borderRadius: 12, border: `1px solid ${WA_DIVIDER}` }} />
+          <Typography sx={{ color: WA_MUTED, fontSize: '0.75rem', mt: 1 }}>
+            WhatsApp → Linked Devices → Link a Device → Scan
           </Typography>
         </Box>
       )}
-
       {isConnected && (
         <Box sx={{ bgcolor: '#1a3a2a', border: '1px solid #15803d55', borderRadius: 2, p: 2, mb: 2 }}>
-          <Typography variant="body2" sx={{ color: '#4ade80', fontWeight: 600 }}>
-            ✓ WhatsApp connected. Automation is active.
-          </Typography>
+          <Typography sx={{ color: '#4ade80', fontWeight: 600, fontSize: '0.875rem' }}>✓ WhatsApp connected. Automation active.</Typography>
         </Box>
       )}
-
       <Stack direction="row" spacing={2}>
         {!isConnected && (
-          <Button
-            variant="contained"
-            startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <WhatsAppIcon />}
-            onClick={onConnect}
-            disabled={loading}
-            sx={{ bgcolor: WA_LIGHT, color: '#fff', '&:hover': { bgcolor: '#1ebe57' }, '&:disabled': { bgcolor: WA_DIVIDER } }}
-          >
+          <Button variant="contained" startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <WhatsAppIcon />}
+            onClick={onConnect} disabled={loading}
+            sx={{ bgcolor: WA_LIGHT, '&:hover': { bgcolor: '#1ebe57' }, '&:disabled': { bgcolor: WA_DIVIDER } }}>
             {status === 'not_started' ? 'Connect WhatsApp' : 'Reconnect'}
           </Button>
         )}
@@ -182,9 +185,10 @@ function ConnectionPanel({ status, qr, loading, isConnected, onConnect, onDiscon
   );
 }
 
+/* ── Automation panel ────────────────────────────────────────── */
 function AutomationPanel({ automation, isConnected, onToggle, instituteId }) {
   const [templates, setTemplates] = useState({});
-  const [editing, setEditing]     = useState(null); // key being edited
+  const [editing, setEditing]     = useState(null);
   const [editBody, setEditBody]   = useState('');
   const [saving, setSaving]       = useState(false);
   const [snack, setSnack]         = useState(null);
@@ -192,32 +196,26 @@ function AutomationPanel({ automation, isConnected, onToggle, instituteId }) {
   useEffect(() => {
     if (!instituteId) return;
     apiClient.get(`/api/message-templates?institute_uuid=${instituteId}`)
-      .then(r => {
-        const map = {};
-        (r.data?.result || []).forEach(t => { map[t.key] = t; });
-        setTemplates(map);
-      })
+      .then(r => { const m = {}; (r.data?.result || []).forEach(t => { m[t.key] = t; }); setTemplates(m); })
       .catch(() => {});
   }, [instituteId]);
 
-  async function saveTemplate(key) {
+  async function saveTpl(key) {
     setSaving(true);
     try {
       await apiClient.put(`/api/message-templates/${key}`, { institute_uuid: instituteId, body: editBody });
-      setTemplates(prev => ({ ...prev, [key]: { ...prev[key], body: editBody, isCustom: true } }));
+      setTemplates(p => ({ ...p, [key]: { ...p[key], body: editBody, isCustom: true } }));
       setSnack({ type: 'success', text: 'Template saved!' });
       setEditing(null);
     } catch { setSnack({ type: 'error', text: 'Save failed' }); }
     finally { setSaving(false); }
   }
 
-  async function resetTemplate(key) {
+  async function resetTpl(key) {
     try {
       await apiClient.delete(`/api/message-templates/${key}?institute_uuid=${instituteId}`);
-      const res = await apiClient.get(`/api/message-templates?institute_uuid=${instituteId}`);
-      const map = {};
-      (res.data?.result || []).forEach(t => { map[t.key] = t; });
-      setTemplates(map);
+      const r = await apiClient.get(`/api/message-templates?institute_uuid=${instituteId}`);
+      const m = {}; (r.data?.result || []).forEach(t => { m[t.key] = t; }); setTemplates(m);
       setSnack({ type: 'success', text: 'Reset to default' });
     } catch { setSnack({ type: 'error', text: 'Reset failed' }); }
   }
@@ -229,37 +227,30 @@ function AutomationPanel({ automation, isConnected, onToggle, instituteId }) {
       </Snackbar>
       {!isConnected && (
         <Box sx={{ bgcolor: '#2d2000', border: '1px solid #f59e0b55', borderRadius: 2, p: 1.5, mb: 2 }}>
-          <Typography variant="caption" sx={{ color: '#fbbf24' }}>Connect WhatsApp first to activate automation.</Typography>
+          <Typography sx={{ color: '#fbbf24', fontSize: '0.8rem' }}>Connect WhatsApp first.</Typography>
         </Box>
       )}
       <Stack spacing={1.5}>
-        {AUTOMATION_JOBS.map((job) => (
-          <Box key={job.key} sx={{
-            bgcolor: WA_SURFACE, borderRadius: 2, p: 2,
-            border: `1px solid ${automation[job.key] ? WA_LIGHT + '44' : WA_DIVIDER}`,
-          }}>
+        {AUTOMATION_JOBS.map(job => (
+          <Box key={job.key} sx={{ bgcolor: WA_SURFACE, borderRadius: 2, p: 2, border: `1px solid ${automation[job.key] ? WA_LIGHT + '44' : WA_DIVIDER}` }}>
             <Stack direction="row" alignItems="flex-start" spacing={2}>
               <Box sx={{ flex: 1 }}>
                 <Typography sx={{ color: WA_TEXT, fontWeight: 600, fontSize: '0.85rem' }}>{job.label}</Typography>
                 <Typography sx={{ color: WA_MUTED, fontSize: '0.75rem', mt: 0.3 }}>{job.description}</Typography>
-
                 {editing === job.key ? (
                   <Stack sx={{ mt: 1 }} spacing={1}>
-                    <TextField
-                      multiline rows={4} size="small" value={editBody}
-                      onChange={e => setEditBody(e.target.value)}
+                    <TextField multiline rows={4} size="small" value={editBody} onChange={e => setEditBody(e.target.value)}
                       placeholder="Use {{name}}, {{date}}, {{course}}, {{amount}}, {{balance}}, {{link}}"
-                      sx={{ ...fieldSx, '& .MuiOutlinedInput-root': { ...fieldSx['& .MuiOutlinedInput-root'], fontSize: '0.78rem' } }}
-                    />
+                      sx={{ ...fieldSx, '& textarea': { fontSize: '0.78rem' } }} />
                     <Typography sx={{ color: WA_MUTED, fontSize: '0.65rem' }}>Variables: {'{{name}} {{date}} {{course}} {{amount}} {{balance}} {{link}}'}</Typography>
                     <Stack direction="row" spacing={1}>
-                      <Button size="small" onClick={() => saveTemplate(job.key)} disabled={saving}
+                      <Button size="small" onClick={() => saveTpl(job.key)} disabled={saving}
                         sx={{ bgcolor: WA_LIGHT, color: '#fff', '&:hover': { bgcolor: '#1ebe57' }, fontSize: '0.72rem' }}>
                         {saving ? 'Saving…' : 'Save'}
                       </Button>
                       <Button size="small" onClick={() => setEditing(null)} sx={{ color: WA_MUTED, fontSize: '0.72rem' }}>Cancel</Button>
                       {templates[job.key]?.isCustom && (
-                        <Button size="small" color="error" onClick={() => resetTemplate(job.key)} sx={{ fontSize: '0.72rem' }}>Reset</Button>
+                        <Button size="small" color="error" onClick={() => resetTpl(job.key)} sx={{ fontSize: '0.72rem' }}>Reset</Button>
                       )}
                     </Stack>
                   </Stack>
@@ -270,19 +261,13 @@ function AutomationPanel({ automation, isConnected, onToggle, instituteId }) {
                       "{templates[job.key]?.body || job.preview}"
                     </Typography>
                     <Typography sx={{ color: WA_LIGHT, fontSize: '0.62rem', mt: 0.5 }}>
-                      {templates[job.key]?.isCustom ? '✎ Custom template — tap to edit' : '✎ Tap to customise'}
+                      {templates[job.key]?.isCustom ? '✎ Custom — tap to edit' : '✎ Tap to customise'}
                     </Typography>
                   </Box>
                 )}
               </Box>
-              <Switch
-                checked={automation[job.key]}
-                onChange={() => onToggle(job.key)}
-                sx={{
-                  '& .MuiSwitch-switchBase.Mui-checked': { color: WA_LIGHT },
-                  '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: WA_LIGHT },
-                }}
-              />
+              <Switch checked={automation[job.key]} onChange={() => onToggle(job.key)}
+                sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: WA_LIGHT }, '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { bgcolor: WA_LIGHT } }} />
             </Stack>
           </Box>
         ))}
@@ -291,97 +276,58 @@ function AutomationPanel({ automation, isConnected, onToggle, instituteId }) {
   );
 }
 
+/* ── Broadcast panel ─────────────────────────────────────────── */
 function BroadcastPanel({ isConnected, instituteId }) {
-  const [toNumber, setToNumber]   = useState('');
-  const [message, setMessage]     = useState('');
-  const [sending, setSending]     = useState(false);
-  const [bulkNums, setBulkNums]   = useState('');
-  const [bulkMsg, setBulkMsg]     = useState('');
-  const [bulkSending, setBulkSending] = useState(false);
-  const [bulkResults, setBulkResults] = useState(null);
-  const [snack, setSnack]         = useState(null);
+  const [to, setTo] = useState(''); const [msg, setMsg] = useState(''); const [sending, setSending] = useState(false);
+  const [bulkNums, setBulkNums] = useState(''); const [bulkMsg, setBulkMsg] = useState('');
+  const [bulkSending, setBulkSending] = useState(false); const [bulkRes, setBulkRes] = useState(null);
+  const [snack, setSnack] = useState(null);
 
   async function sendSingle() {
-    if (!toNumber || !message) return setSnack({ type: 'error', text: 'Enter phone number and message' });
+    if (!to || !msg) return setSnack({ type: 'error', text: 'Enter number and message' });
     setSending(true);
-    try {
-      await apiClient.post('/api/baileys/send-text', { instituteId, to: toNumber, message });
-      setSnack({ type: 'success', text: 'Message sent!' });
-      setToNumber(''); setMessage('');
-    } catch (err) {
-      setSnack({ type: 'error', text: err.response?.data?.message || 'Send failed' });
-    } finally { setSending(false); }
+    try { await apiClient.post('/api/baileys/send-text', { instituteId, to, message: msg }); setSnack({ type: 'success', text: 'Sent!' }); setTo(''); setMsg(''); }
+    catch (err) { setSnack({ type: 'error', text: err.response?.data?.message || 'Failed' }); }
+    finally { setSending(false); }
   }
 
   async function sendBulk() {
     const numbers = bulkNums.split(/[\n,]+/).map(n => n.trim()).filter(Boolean);
     if (!numbers.length || !bulkMsg) return setSnack({ type: 'error', text: 'Enter numbers and message' });
-    setBulkSending(true); setBulkResults(null);
+    setBulkSending(true); setBulkRes(null);
     try {
       const res = await apiClient.post('/api/baileys/send-bulk', { instituteId, numbers, message: bulkMsg });
-      setBulkResults(res.data);
-      setSnack({ type: 'success', text: `Sent: ${res.data.sent} | Failed: ${res.data.failed}` });
-    } catch (err) {
-      setSnack({ type: 'error', text: err.response?.data?.message || 'Broadcast failed' });
-    } finally { setBulkSending(false); }
+      setBulkRes(res.data); setSnack({ type: 'success', text: `Sent: ${res.data.sent} | Failed: ${res.data.failed}` });
+    } catch (err) { setSnack({ type: 'error', text: err.response?.data?.message || 'Failed' }); }
+    finally { setBulkSending(false); }
   }
 
   return (
     <Box sx={{ p: 2 }}>
-      <Snackbar open={!!snack} autoHideDuration={4000} onClose={() => setSnack(null)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+      <Snackbar open={!!snack} autoHideDuration={4000} onClose={() => setSnack(null)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
         <Alert severity={snack?.type || 'info'} onClose={() => setSnack(null)}>{snack?.text}</Alert>
       </Snackbar>
-
-      <Typography sx={{ color: WA_TEXT, fontWeight: 600, fontSize: '0.85rem', mb: 0.5 }}>Single Message</Typography>
+      <Typography sx={{ color: WA_TEXT, fontWeight: 600, fontSize: '0.85rem', mb: 1 }}>Single Message</Typography>
       <Stack spacing={1.5} mb={3}>
-        <TextField
-          placeholder="Phone with country code (e.g. 919876543210)"
-          value={toNumber} onChange={e => setToNumber(e.target.value)}
-          fullWidth disabled={!isConnected} size="small"
-          sx={fieldSx}
-        />
-        <TextField
-          placeholder="Message"
-          value={message} onChange={e => setMessage(e.target.value)}
-          multiline rows={3} fullWidth disabled={!isConnected} size="small"
-          sx={fieldSx}
-        />
-        <Button
-          variant="contained"
-          startIcon={sending ? <CircularProgress size={14} color="inherit" /> : <SendIcon />}
-          onClick={sendSingle} disabled={sending || !isConnected}
-          sx={{ bgcolor: WA_LIGHT, '&:hover': { bgcolor: '#1ebe57' }, alignSelf: 'flex-start' }}
-        >
-          Send
-        </Button>
+        <TextField placeholder="Phone with country code (919876543210)" value={to} onChange={e => setTo(e.target.value)} fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
+        <TextField placeholder="Message" value={msg} onChange={e => setMsg(e.target.value)} multiline rows={3} fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
+        <Button variant="contained" startIcon={sending ? <CircularProgress size={14} color="inherit" /> : <SendIcon />} onClick={sendSingle} disabled={sending || !isConnected}
+          sx={{ bgcolor: WA_LIGHT, '&:hover': { bgcolor: '#1ebe57' }, alignSelf: 'flex-start' }}>Send</Button>
       </Stack>
-
       <Divider sx={{ borderColor: WA_DIVIDER, my: 2 }} />
-
-      <Typography sx={{ color: WA_TEXT, fontWeight: 600, fontSize: '0.85rem', mb: 0.3 }}>Bulk Broadcast</Typography>
-      <Typography sx={{ color: WA_MUTED, fontSize: '0.72rem', mb: 1.5 }}>
-        One number per line. Sent with 2–4s delays. Only enrolled users.
-      </Typography>
+      <Typography sx={{ color: WA_TEXT, fontWeight: 600, fontSize: '0.85rem', mb: 0.5 }}>Bulk Broadcast</Typography>
+      <Typography sx={{ color: WA_MUTED, fontSize: '0.72rem', mb: 1.5 }}>One number per line. 2–4s delay between messages. Only enrolled users.</Typography>
       <Stack spacing={1.5}>
-        <TextField placeholder="Numbers (one per line)" value={bulkNums} onChange={e => setBulkNums(e.target.value)}
-          multiline rows={4} fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
-        <TextField placeholder="Message" value={bulkMsg} onChange={e => setBulkMsg(e.target.value)}
-          multiline rows={3} fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
+        <TextField placeholder="Numbers (one per line)" value={bulkNums} onChange={e => setBulkNums(e.target.value)} multiline rows={4} fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
+        <TextField placeholder="Message" value={bulkMsg} onChange={e => setBulkMsg(e.target.value)} multiline rows={3} fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
         {bulkSending && <LinearProgress sx={{ borderRadius: 1, bgcolor: WA_DIVIDER, '& .MuiLinearProgress-bar': { bgcolor: WA_LIGHT } }} />}
-        <Button
-          variant="contained" color="secondary"
-          startIcon={bulkSending ? <CircularProgress size={14} color="inherit" /> : <BroadcastOnPersonalIcon />}
-          onClick={sendBulk} disabled={bulkSending || !isConnected}
-          sx={{ alignSelf: 'flex-start' }}
-        >
+        <Button variant="contained" color="secondary" startIcon={bulkSending ? <CircularProgress size={14} color="inherit" /> : <BroadcastOnPersonalIcon />}
+          onClick={sendBulk} disabled={bulkSending || !isConnected} sx={{ alignSelf: 'flex-start' }}>
           {bulkSending ? 'Sending…' : 'Broadcast'}
         </Button>
-        {bulkResults && (
+        {bulkRes && (
           <Box sx={{ bgcolor: WA_SURFACE, borderRadius: 2, p: 1.5, borderLeft: `3px solid ${WA_LIGHT}` }}>
-            <Typography sx={{ color: WA_TEXT, fontSize: '0.8rem' }}>
-              ✓ Sent: {bulkResults.sent} &nbsp;|&nbsp; ✗ Failed: {bulkResults.failed}
-            </Typography>
+            <Typography sx={{ color: WA_TEXT, fontSize: '0.8rem' }}>✓ Sent: {bulkRes.sent} &nbsp;|&nbsp; ✗ Failed: {bulkRes.failed}</Typography>
           </Box>
         )}
       </Stack>
@@ -389,54 +335,35 @@ function BroadcastPanel({ isConnected, instituteId }) {
   );
 }
 
+/* ── Magic links panel ───────────────────────────────────────── */
 function MagicLinksPanel({ isConnected, instituteId }) {
-  const [mobile, setMobile]     = useState('');
-  const [userId, setUserId]     = useState('');
-  const [sending, setSending]   = useState(false);
-  const [snack, setSnack]       = useState(null);
+  const [mobile, setMobile] = useState(''); const [userId, setUserId] = useState('');
+  const [sending, setSending] = useState(false); const [snack, setSnack] = useState(null);
 
   async function send() {
     if (!mobile) return setSnack({ type: 'error', text: 'Enter mobile number' });
     setSending(true);
-    try {
-      await apiClient.post('/api/auth/magic-link/send', { userId: userId || undefined, mobile, instituteId });
-      setSnack({ type: 'success', text: 'Magic link sent via WhatsApp!' });
-      setMobile(''); setUserId('');
-    } catch (err) {
-      setSnack({ type: 'error', text: err.response?.data?.message || 'Failed' });
-    } finally { setSending(false); }
+    try { await apiClient.post('/api/auth/magic-link/send', { userId: userId || undefined, mobile, instituteId }); setSnack({ type: 'success', text: 'Magic link sent!' }); setMobile(''); setUserId(''); }
+    catch (err) { setSnack({ type: 'error', text: err.response?.data?.message || 'Failed' }); }
+    finally { setSending(false); }
   }
 
   return (
     <Box sx={{ p: 2 }}>
-      <Snackbar open={!!snack} autoHideDuration={4000} onClose={() => setSnack(null)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+      <Snackbar open={!!snack} autoHideDuration={4000} onClose={() => setSnack(null)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
         <Alert severity={snack?.type || 'info'} onClose={() => setSnack(null)}>{snack?.text}</Alert>
       </Snackbar>
-
       <Box sx={{ bgcolor: '#1a2530', border: `1px solid #53bdeb44`, borderRadius: 2, p: 1.5, mb: 2.5 }}>
         <Typography sx={{ color: '#53bdeb', fontSize: '0.78rem' }}>
-          A secure JWT link (48h) is sent via WhatsApp. The recipient clicks → auto-login → their dashboard. Sent automatically when you create a new user.
+          A secure JWT link (48h) is sent via WhatsApp. The recipient clicks → auto-login → their dashboard. Sent automatically on new user creation.
         </Typography>
       </Box>
-
-      {!isConnected && (
-        <Box sx={{ bgcolor: '#2d2000', border: '1px solid #f59e0b55', borderRadius: 2, p: 1.5, mb: 2 }}>
-          <Typography variant="caption" sx={{ color: '#fbbf24' }}>Connect WhatsApp first.</Typography>
-        </Box>
-      )}
-
+      {!isConnected && <Box sx={{ bgcolor: '#2d2000', border: '1px solid #f59e0b55', borderRadius: 2, p: 1.5, mb: 2 }}><Typography sx={{ color: '#fbbf24', fontSize: '0.8rem' }}>Connect WhatsApp first.</Typography></Box>}
       <Stack spacing={1.5}>
-        <TextField placeholder="User ID (optional)" value={userId} onChange={e => setUserId(e.target.value)}
-          fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
-        <TextField placeholder="Mobile with country code (919876543210)" value={mobile} onChange={e => setMobile(e.target.value)}
-          fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
-        <Button
-          variant="contained"
-          startIcon={sending ? <CircularProgress size={14} color="inherit" /> : <LinkIcon />}
-          onClick={send} disabled={sending || !isConnected}
-          sx={{ bgcolor: WA_LIGHT, '&:hover': { bgcolor: '#1ebe57' }, alignSelf: 'flex-start' }}
-        >
+        <TextField placeholder="User ID (optional)" value={userId} onChange={e => setUserId(e.target.value)} fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
+        <TextField placeholder="Mobile with country code (919876543210)" value={mobile} onChange={e => setMobile(e.target.value)} fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
+        <Button variant="contained" startIcon={sending ? <CircularProgress size={14} color="inherit" /> : <LinkIcon />} onClick={send} disabled={sending || !isConnected}
+          sx={{ bgcolor: WA_LIGHT, '&:hover': { bgcolor: '#1ebe57' }, alignSelf: 'flex-start' }}>
           {sending ? 'Sending…' : 'Send Magic Link'}
         </Button>
       </Stack>
@@ -444,30 +371,42 @@ function MagicLinksPanel({ isConnected, instituteId }) {
   );
 }
 
-const fieldSx = {
-  '& .MuiOutlinedInput-root': {
-    bgcolor: WA_SURFACE,
-    color: WA_TEXT,
-    '& fieldset': { borderColor: WA_DIVIDER },
-    '&:hover fieldset': { borderColor: WA_MUTED },
-    '&.Mui-focused fieldset': { borderColor: WA_LIGHT },
-  },
-  '& .MuiInputBase-input::placeholder': { color: WA_MUTED, opacity: 1 },
-};
+/* ── Nav item ────────────────────────────────────────────────── */
+function NavItem({ icon, label, active, onClick }) {
+  return (
+    <Box onClick={onClick} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3, py: 1, cursor: 'pointer', color: active ? WA_LIGHT : WA_MUTED, '&:hover': { color: WA_TEXT }, transition: 'color 0.15s' }}>
+      {icon}
+      <Typography sx={{ fontSize: '0.65rem', fontWeight: active ? 700 : 400 }}>{label}</Typography>
+    </Box>
+  );
+}
 
-/* ── Main component ──────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════
+   MAIN COMPONENT
+═══════════════════════════════════════════════════════════════ */
 export default function BaileysWhatsApp() {
   const { institute } = useApp();
   const instituteId = institute?.institute_uuid || localStorage.getItem('institute_uuid') || '';
 
-  const [nav, setNav]       = useState(0); // 0=Chats 1=Automation 2=Broadcast 3=Settings
-  const [filter, setFilter] = useState(0);
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('not_started');
-  const [qr, setQr]         = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [snack, setSnack]   = useState(null);
-  const [panel, setPanel]   = useState(null); // null | 'connect' | 'automation' | 'broadcast' | 'magic'
+  const [nav, setNav]             = useState(0);
+  const [filter, setFilter]       = useState(0);
+  const [search, setSearch]       = useState('');
+  const [status, setStatus]       = useState('not_started');
+  const [qr, setQr]               = useState(null);
+  const [loading, setLoading]     = useState(false);
+  const [snack, setSnack]         = useState(null);
+  const [panel, setPanel]         = useState(null);
+  const [chats, setChats]         = useState([]);
+  const [chatsLoading, setChatsLoading] = useState(false);
+  const [selectedChat, setSelectedChat] = useState(null); // jid string
+  const [messages, setMessages]   = useState([]);
+  const [msgLoading, setMsgLoading] = useState(false);
+  const [sendMsg, setSendMsg]     = useState('');
+  const [sending, setSending]     = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState(null);
+  const [chatMenuAnchor, setChatMenuAnchor] = useState(null);
+  const messagesEndRef = useRef(null);
+  const pollRef        = useRef(null);
 
   const storageKey = `automation_${instituteId}`;
   const [automation, setAutomation] = useState(() => {
@@ -484,6 +423,69 @@ export default function BaileysWhatsApp() {
     localStorage.setItem(storageKey, JSON.stringify(next));
   }
 
+  /* Load chat list */
+  const loadChats = useCallback(async () => {
+    if (!instituteId) return;
+    setChatsLoading(true);
+    try {
+      const res = await apiClient.get(`/api/baileys/chats/${instituteId}`);
+      setChats(res.data?.result || []);
+    } catch { setChats([]); }
+    finally { setChatsLoading(false); }
+  }, [instituteId]);
+
+  /* Load messages for selected chat */
+  const loadMessages = useCallback(async (jid) => {
+    if (!jid || !instituteId) return;
+    setMsgLoading(true);
+    try {
+      const res = await apiClient.get(`/api/baileys/messages/${instituteId}/${jid}`);
+      setMessages(res.data?.result || []);
+    } catch { setMessages([]); }
+    finally { setMsgLoading(false); }
+  }, [instituteId]);
+
+  /* Open a chat */
+  function openChat(jid) {
+    setSelectedChat(jid);
+    setMessages([]);
+    loadMessages(jid);
+    // Poll for new messages every 5s while chat is open
+    if (pollRef.current) clearInterval(pollRef.current);
+    pollRef.current = setInterval(() => loadMessages(jid), 5000);
+  }
+
+  function closeChat() {
+    setSelectedChat(null);
+    if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null; }
+    loadChats(); // refresh unread counts
+  }
+
+  /* Send message from chat screen */
+  async function sendFromChat() {
+    if (!sendMsg.trim() || !selectedChat) return;
+    setSending(true);
+    const text = sendMsg.trim();
+    setSendMsg('');
+    try {
+      await apiClient.post('/api/baileys/send-text', { instituteId, to: selectedChat, message: text });
+      await loadMessages(selectedChat);
+    } catch (err) {
+      setSnack({ type: 'error', text: err.response?.data?.message || 'Send failed' });
+      setSendMsg(text);
+    } finally { setSending(false); }
+  }
+
+  /* Delete chat */
+  async function deleteChat(jid) {
+    try {
+      await apiClient.delete(`/api/baileys/messages/${instituteId}/${jid}`);
+      closeChat();
+      loadChats();
+    } catch { setSnack({ type: 'error', text: 'Delete failed' }); }
+  }
+
+  /* Connection */
   function startSession() {
     if (!instituteId) return;
     if (esRef.current) esRef.current.close();
@@ -491,11 +493,11 @@ export default function BaileysWhatsApp() {
     const baseUrl = import.meta.env.VITE_BASE_URL || '';
     const es = new EventSource(`${baseUrl}/api/baileys/session/${instituteId}/qr`);
     esRef.current = es;
-    es.addEventListener('qr', (e) => { setQr(JSON.parse(e.data).qr); setLoading(false); });
-    es.addEventListener('status', (e) => {
+    es.addEventListener('qr', e => { setQr(JSON.parse(e.data).qr); setLoading(false); });
+    es.addEventListener('status', e => {
       const d = JSON.parse(e.data);
       setStatus(d.status);
-      if (d.status === 'connected') { setQr(null); setLoading(false); es.close(); setSnack({ type: 'success', text: 'WhatsApp connected!' }); }
+      if (d.status === 'connected') { setQr(null); setLoading(false); es.close(); setSnack({ type: 'success', text: 'WhatsApp connected!' }); loadChats(); }
       if (d.status === 'disconnected' || d.status === 'logged_out') setLoading(false);
     });
     es.onerror = () => setLoading(false);
@@ -513,28 +515,32 @@ export default function BaileysWhatsApp() {
   useEffect(() => {
     if (!instituteId) return;
     apiClient.get(`/api/baileys/session/${instituteId}/status`)
-      .then(r => setStatus(r.data?.status || 'not_started'))
+      .then(r => { setStatus(r.data?.status || 'not_started'); if (r.data?.status === 'connected') loadChats(); })
       .catch(() => {});
-    return () => { if (esRef.current) esRef.current.close(); };
+    return () => {
+      if (esRef.current) esRef.current.close();
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
   }, [instituteId]);
 
-  const filteredChats = MOCK_CHATS.filter(c => {
-    if (search && !c.name.toLowerCase().includes(search.toLowerCase())) return false;
+  // Scroll messages to bottom
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  // Filter chats
+  const filteredChats = chats.filter(c => {
+    if (search && !c._id.includes(search.replace(/\D/g, ''))) return false;
     if (filter === 1) return c.unread > 0;
-    if (filter === 2) return c.pinned;
     return true;
   });
 
-  /* If a sub-panel is open, render it with a back header */
+  /* ── Sub-panel view (connect / automation / broadcast / magic) ── */
   if (panel) {
-    const panelTitle = { connect: 'Connection', automation: 'Automation', broadcast: 'Broadcast', magic: 'Magic Links' }[panel];
+    const titles = { connect: 'Connection', automation: 'Automation & Templates', broadcast: 'Broadcast', magic: 'Magic Links' };
     return (
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: WA_BG }}>
         <Box sx={{ bgcolor: WA_GREEN, px: 2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
-          <IconButton onClick={() => setPanel(null)} sx={{ color: WA_TEXT, p: 0.5 }}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography sx={{ color: WA_TEXT, fontWeight: 600, fontSize: '1rem' }}>{panelTitle}</Typography>
+          <IconButton onClick={() => setPanel(null)} sx={{ color: WA_TEXT, p: 0.5 }}><ArrowBackIcon /></IconButton>
+          <Typography sx={{ color: WA_TEXT, fontWeight: 600, fontSize: '1rem' }}>{titles[panel]}</Typography>
         </Box>
         <Box sx={{ flex: 1, overflowY: 'auto' }}>
           {panel === 'connect' && <ConnectionPanel status={status} qr={qr} loading={loading} isConnected={isConnected} onConnect={startSession} onDisconnect={disconnect} />}
@@ -546,61 +552,112 @@ export default function BaileysWhatsApp() {
     );
   }
 
+  /* ── Chat / conversation screen ───────────────────────────── */
+  if (selectedChat) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#0b141a' }}>
+        {/* Chat header */}
+        <Box sx={{ bgcolor: WA_SURFACE, px: 1.5, py: 1, display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0, borderBottom: `1px solid ${WA_DIVIDER}` }}>
+          <IconButton onClick={closeChat} sx={{ color: WA_TEXT, p: 0.5 }}><ArrowBackIcon /></IconButton>
+          <Avatar sx={{ bgcolor: avatarColor(selectedChat), width: 38, height: 38, fontSize: '0.9rem', fontWeight: 700 }}>
+            {selectedChat[0]?.toUpperCase()}
+          </Avatar>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{ color: WA_TEXT, fontWeight: 600, fontSize: '0.925rem' }} noWrap>+{selectedChat}</Typography>
+            <Typography sx={{ color: WA_MUTED, fontSize: '0.72rem' }}>{isConnected ? 'WhatsApp contact' : 'Not connected'}</Typography>
+          </Box>
+          <IconButton sx={{ color: WA_MUTED }}><PhoneIcon fontSize="small" /></IconButton>
+          <IconButton sx={{ color: WA_MUTED }}><VideocamIcon fontSize="small" /></IconButton>
+          <IconButton sx={{ color: WA_MUTED }} onClick={e => setChatMenuAnchor(e.currentTarget)}><MoreVertIcon fontSize="small" /></IconButton>
+        </Box>
+
+        {/* Chat context menu */}
+        <Menu anchorEl={chatMenuAnchor} open={!!chatMenuAnchor} onClose={() => setChatMenuAnchor(null)}
+          PaperProps={{ sx: { bgcolor: '#233138', color: WA_TEXT, minWidth: 180 } }}>
+          <MenuItem onClick={() => { setChatMenuAnchor(null); setPanel('broadcast'); setSelectedChat(null); }}>
+            <ListItemIcon><SendIcon sx={{ color: WA_MUTED, fontSize: 18 }} /></ListItemIcon>
+            <ListItemText>Send New Message</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={() => { setChatMenuAnchor(null); deleteChat(selectedChat); }} sx={{ color: '#ef4444' }}>
+            <ListItemIcon><DeleteOutlineIcon sx={{ color: '#ef4444', fontSize: 18 }} /></ListItemIcon>
+            <ListItemText>Clear Chat</ListItemText>
+          </MenuItem>
+        </Menu>
+
+        {/* Messages area */}
+        <Box sx={{ flex: 1, overflowY: 'auto', py: 1, backgroundImage: 'radial-gradient(circle at 1px 1px, #1a2530 1px, transparent 0)', backgroundSize: '24px 24px' }}>
+          {msgLoading && <Box textAlign="center" pt={3}><CircularProgress size={24} sx={{ color: WA_LIGHT }} /></Box>}
+          {!msgLoading && messages.length === 0 && (
+            <Box sx={{ textAlign: 'center', pt: 6 }}>
+              <Typography sx={{ color: WA_MUTED, fontSize: '0.875rem' }}>No messages yet</Typography>
+              <Typography sx={{ color: WA_MUTED, fontSize: '0.75rem', mt: 0.5 }}>Send a message to start the conversation</Typography>
+            </Box>
+          )}
+          {messages.map((m, i) => <Bubble key={m._id || i} msg={m} />)}
+          <div ref={messagesEndRef} />
+        </Box>
+
+        {/* Input bar */}
+        <Box sx={{ bgcolor: WA_SURFACE, px: 1.5, py: 1, display: 'flex', alignItems: 'flex-end', gap: 1, flexShrink: 0 }}>
+          <TextField
+            value={sendMsg} onChange={e => setSendMsg(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendFromChat(); } }}
+            placeholder="Message" multiline maxRows={5} fullWidth
+            disabled={!isConnected}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                bgcolor: '#2a3942', color: WA_TEXT, borderRadius: 3,
+                '& fieldset': { border: 'none' },
+              },
+              '& .MuiInputBase-input::placeholder': { color: WA_MUTED, opacity: 1 },
+            }}
+          />
+          <IconButton
+            onClick={sendFromChat}
+            disabled={!sendMsg.trim() || !isConnected || sending}
+            sx={{ bgcolor: WA_LIGHT, color: '#fff', '&:hover': { bgcolor: '#1ebe57' }, '&:disabled': { bgcolor: WA_DIVIDER }, flexShrink: 0, width: 44, height: 44 }}>
+            {sending ? <CircularProgress size={18} color="inherit" /> : <SendIcon fontSize="small" />}
+          </IconButton>
+        </Box>
+      </Box>
+    );
+  }
+
+  /* ── Main home screen ────────────────────────────────────────── */
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: WA_BG }}>
-      <Snackbar open={!!snack} autoHideDuration={4000} onClose={() => setSnack(null)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+      <Snackbar open={!!snack} autoHideDuration={4000} onClose={() => setSnack(null)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
         <Alert severity={snack?.type || 'info'} onClose={() => setSnack(null)}>{snack?.text}</Alert>
       </Snackbar>
 
-      {/* ── Header ─────────────────────────────────────────────── */}
+      {/* ── Header ───────────────────────────────────────────── */}
       {nav === 0 && (
         <Box sx={{ bgcolor: WA_GREEN, px: 2, pt: 2, pb: 1, flexShrink: 0 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
             <Typography sx={{ color: WA_TEXT, fontWeight: 700, fontSize: '1.25rem' }}>WhatsApp</Typography>
-            <Stack direction="row" spacing={0.5}>
-              <Chip
-                size="small"
-                label={isConnected ? '● Connected' : '○ Offline'}
-                sx={{ bgcolor: isConnected ? '#15803d44' : '#ffffff22', color: isConnected ? '#4ade80' : WA_MUTED, fontSize: '0.65rem', height: 22 }}
-              />
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <Chip size="small" label={isConnected ? '● Connected' : '○ Offline'}
+                sx={{ bgcolor: isConnected ? '#15803d44' : '#ffffff22', color: isConnected ? '#4ade80' : WA_MUTED, fontSize: '0.65rem', height: 22 }} />
               <IconButton sx={{ color: WA_TEXT, p: 0.75 }} size="small"><CameraAltIcon fontSize="small" /></IconButton>
-              <IconButton sx={{ color: WA_TEXT, p: 0.75 }} size="small"><MoreVertIcon fontSize="small" /></IconButton>
+              {/* 3-dot menu */}
+              <IconButton sx={{ color: WA_TEXT, p: 0.75 }} size="small" onClick={e => setMenuAnchor(e.currentTarget)}>
+                <MoreVertIcon fontSize="small" />
+              </IconButton>
             </Stack>
           </Stack>
+
           {/* Search */}
-          <TextField
-            value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Ask Meta AI or Search"
-            size="small" fullWidth
-            InputProps={{
-              startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: WA_MUTED, fontSize: 18 }} /></InputAdornment>,
-            }}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                bgcolor: '#1f2c33', borderRadius: 3, color: WA_TEXT,
-                '& fieldset': { border: 'none' },
-              },
-              '& .MuiInputBase-input::placeholder': { color: WA_MUTED, opacity: 1 },
-              mb: 1,
-            }}
+          <TextField value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Ask Meta AI or Search" size="small" fullWidth
+            InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: WA_MUTED, fontSize: 18 }} /></InputAdornment> }}
+            sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#1f2c33', borderRadius: 3, color: WA_TEXT, '& fieldset': { border: 'none' } }, '& .MuiInputBase-input::placeholder': { color: WA_MUTED, opacity: 1 }, mb: 1 }}
           />
+
           {/* Filter pills */}
           <Stack direction="row" spacing={1} sx={{ overflowX: 'auto', pb: 0.5, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
             {FILTERS.map((f, i) => (
-              <Chip
-                key={f} label={f} size="small"
-                onClick={() => setFilter(i)}
-                sx={{
-                  bgcolor: filter === i ? WA_LIGHT : '#1f2c33',
-                  color: filter === i ? '#fff' : WA_MUTED,
-                  fontWeight: filter === i ? 700 : 400,
-                  fontSize: '0.72rem',
-                  flexShrink: 0,
-                  cursor: 'pointer',
-                  '&:hover': { bgcolor: filter === i ? WA_LIGHT : '#2a3942' },
-                }}
-              />
+              <Chip key={f} label={f} size="small" onClick={() => setFilter(i)}
+                sx={{ bgcolor: filter === i ? WA_LIGHT : '#1f2c33', color: filter === i ? '#fff' : WA_MUTED, fontWeight: filter === i ? 700 : 400, fontSize: '0.72rem', flexShrink: 0, cursor: 'pointer' }} />
             ))}
           </Stack>
         </Box>
@@ -614,38 +671,68 @@ export default function BaileysWhatsApp() {
         </Box>
       )}
 
-      {/* ── Body ───────────────────────────────────────────────── */}
+      {/* 3-dot dropdown menu */}
+      <Menu anchorEl={menuAnchor} open={!!menuAnchor} onClose={() => setMenuAnchor(null)}
+        PaperProps={{ sx: { bgcolor: '#233138', color: WA_TEXT, minWidth: 200 } }}>
+        <MenuItem onClick={() => { setMenuAnchor(null); setPanel('broadcast'); }}>
+          <ListItemIcon><AddIcon sx={{ color: WA_MUTED, fontSize: 18 }} /></ListItemIcon>
+          <ListItemText>New Message</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => { setMenuAnchor(null); loadChats(); }}>
+          <ListItemIcon><AutorenewIcon sx={{ color: WA_MUTED, fontSize: 18 }} /></ListItemIcon>
+          <ListItemText>Refresh Chats</ListItemText>
+        </MenuItem>
+        <Divider sx={{ borderColor: WA_DIVIDER }} />
+        <MenuItem onClick={() => { setMenuAnchor(null); setPanel('connect'); }}>
+          <ListItemIcon><QrCodeIcon sx={{ color: WA_MUTED, fontSize: 18 }} /></ListItemIcon>
+          <ListItemText>Linked Devices / QR</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => { setMenuAnchor(null); setPanel('automation'); }}>
+          <ListItemIcon><AutorenewIcon sx={{ color: WA_MUTED, fontSize: 18 }} /></ListItemIcon>
+          <ListItemText>Automation & Templates</ListItemText>
+        </MenuItem>
+        <MenuItem onClick={() => { setMenuAnchor(null); setPanel('magic'); }}>
+          <ListItemIcon><LinkIcon sx={{ color: WA_MUTED, fontSize: 18 }} /></ListItemIcon>
+          <ListItemText>Magic Links</ListItemText>
+        </MenuItem>
+        <Divider sx={{ borderColor: WA_DIVIDER }} />
+        <MenuItem onClick={() => { setMenuAnchor(null); setNav(3); }}>
+          <ListItemIcon><SettingsIcon sx={{ color: WA_MUTED, fontSize: 18 }} /></ListItemIcon>
+          <ListItemText>Settings</ListItemText>
+        </MenuItem>
+      </Menu>
+
+      {/* ── Body ─────────────────────────────────────────────── */}
       <Box sx={{ flex: 1, overflowY: 'auto' }}>
 
         {/* Chats tab */}
         {nav === 0 && (
           <>
             {/* Archived row */}
-            <Box sx={{
-              display: 'flex', alignItems: 'center', px: 2, py: 1.25, gap: 2,
-              bgcolor: WA_SURFACE, borderBottom: `1px solid ${WA_DIVIDER}`, cursor: 'pointer',
-              '&:hover': { bgcolor: '#2a3942' },
-            }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 1.25, gap: 2, bgcolor: WA_SURFACE, borderBottom: `1px solid ${WA_DIVIDER}`, cursor: 'pointer', '&:hover': { bgcolor: '#2a3942' } }}>
               <ArchiveIcon sx={{ color: WA_LIGHT, fontSize: 22 }} />
               <Typography sx={{ color: WA_TEXT, fontWeight: 500, fontSize: '0.9rem', flex: 1 }}>Archived</Typography>
-              <Chip size="small" label="3" sx={{ bgcolor: WA_LIGHT + '33', color: WA_LIGHT, fontSize: '0.65rem', height: 20 }} />
             </Box>
 
-            {/* Pinned chats */}
-            {filteredChats.filter(c => c.pinned).map(c => <ChatRow key={c.id} chat={c} />)}
+            {chatsLoading && <Box textAlign="center" pt={3}><CircularProgress size={24} sx={{ color: WA_LIGHT }} /></Box>}
 
-            {filteredChats.filter(c => !c.pinned).length > 0 && (
-              <Box sx={{ px: 2, py: 0.75, bgcolor: WA_BG }}>
-                <Typography sx={{ color: WA_MUTED, fontSize: '0.7rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Recent</Typography>
-              </Box>
-            )}
-            {filteredChats.filter(c => !c.pinned).map(c => <ChatRow key={c.id} chat={c} />)}
-
-            {filteredChats.length === 0 && (
+            {!chatsLoading && filteredChats.length === 0 && (
               <Box sx={{ textAlign: 'center', py: 6 }}>
-                <Typography sx={{ color: WA_MUTED, fontSize: '0.9rem' }}>No chats found</Typography>
+                <WhatsAppIcon sx={{ fontSize: 48, color: WA_DIVIDER, mb: 1.5 }} />
+                <Typography sx={{ color: WA_TEXT, fontWeight: 600, mb: 0.5 }}>No chats yet</Typography>
+                <Typography sx={{ color: WA_MUTED, fontSize: '0.8rem', mb: 2 }}>
+                  {isConnected ? 'Messages you send will appear here.' : 'Connect WhatsApp to see your chats.'}
+                </Typography>
+                {!isConnected && (
+                  <Button variant="contained" size="small" startIcon={<WhatsAppIcon />} onClick={() => setPanel('connect')}
+                    sx={{ bgcolor: WA_LIGHT, '&:hover': { bgcolor: '#1ebe57' } }}>
+                    Connect WhatsApp
+                  </Button>
+                )}
               </Box>
             )}
+
+            {filteredChats.map(c => <ChatRow key={c._id} chat={c} onClick={() => openChat(c._id)} />)}
           </>
         )}
 
@@ -658,20 +745,9 @@ export default function BaileysWhatsApp() {
                 { label: 'Automation & Templates', desc: `${Object.values(automation).filter(Boolean).length} of ${AUTOMATION_JOBS.length} active`, icon: <AutorenewIcon />, action: () => setPanel('automation') },
                 { label: 'Broadcast Messages', desc: 'Send to individuals or bulk', icon: <BroadcastOnPersonalIcon />, action: () => setPanel('broadcast') },
                 { label: 'Magic Links', desc: 'One-click login via WhatsApp', icon: <LinkIcon />, action: () => setPanel('magic') },
-              ].map((item) => (
-                <Box
-                  key={item.label}
-                  onClick={item.action}
-                  sx={{
-                    display: 'flex', alignItems: 'center', gap: 2,
-                    bgcolor: WA_SURFACE, borderRadius: 2, p: 2, cursor: 'pointer',
-                    border: `1px solid ${WA_DIVIDER}`,
-                    '&:hover': { border: `1px solid ${WA_LIGHT}44` },
-                  }}
-                >
-                  <Box sx={{ width: 44, height: 44, borderRadius: '50%', bgcolor: `${WA_LIGHT}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: item.color || WA_LIGHT, flexShrink: 0 }}>
-                    {item.icon}
-                  </Box>
+              ].map(item => (
+                <Box key={item.label} onClick={item.action} sx={{ display: 'flex', alignItems: 'center', gap: 2, bgcolor: WA_SURFACE, borderRadius: 2, p: 2, cursor: 'pointer', border: `1px solid ${WA_DIVIDER}`, '&:hover': { border: `1px solid ${WA_LIGHT}44` } }}>
+                  <Box sx={{ width: 44, height: 44, borderRadius: '50%', bgcolor: `${WA_LIGHT}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: item.color || WA_LIGHT, flexShrink: 0 }}>{item.icon}</Box>
                   <Box sx={{ flex: 1 }}>
                     <Typography sx={{ color: WA_TEXT, fontWeight: 600, fontSize: '0.875rem' }}>{item.label}</Typography>
                     <Typography sx={{ color: WA_MUTED, fontSize: '0.75rem' }}>{item.desc}</Typography>
@@ -689,65 +765,48 @@ export default function BaileysWhatsApp() {
         {/* Settings tab */}
         {nav === 3 && (
           <Box sx={{ p: 2 }}>
-            <Box sx={{
-              display: 'flex', alignItems: 'center', gap: 2, bgcolor: WA_SURFACE, borderRadius: 2, p: 2,
-              border: `1px solid ${WA_DIVIDER}`, mb: 2,
-            }}>
-              <Avatar sx={{ bgcolor: WA_LIGHT, width: 56, height: 56 }}>
-                <WhatsAppIcon />
-              </Avatar>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, bgcolor: WA_SURFACE, borderRadius: 2, p: 2, border: `1px solid ${WA_DIVIDER}`, mb: 2 }}>
+              <Avatar sx={{ bgcolor: WA_LIGHT, width: 56, height: 56 }}><WhatsAppIcon /></Avatar>
               <Box>
                 <Typography sx={{ color: WA_TEXT, fontWeight: 600 }}>{institute?.institute_name || 'Your Institute'}</Typography>
-                <Typography sx={{ color: WA_MUTED, fontSize: '0.8rem' }}>
-                  {isConnected ? '● Connected' : '○ Not Connected'}
-                </Typography>
+                <Typography sx={{ color: WA_MUTED, fontSize: '0.8rem' }}>{isConnected ? '● WhatsApp Connected' : '○ Not Connected'}</Typography>
               </Box>
             </Box>
 
             <Stack spacing={1}>
               {[
-                { label: 'Connection Settings', icon: <WhatsAppIcon />, action: () => setPanel('connect') },
-                { label: 'Automation', icon: <AutorenewIcon />, action: () => setPanel('automation') },
+                { label: 'Linked Devices / QR Code', icon: <QrCodeIcon />, action: () => setPanel('connect') },
+                { label: 'Automation & Templates', icon: <AutorenewIcon />, action: () => setPanel('automation') },
+                { label: 'Broadcast Messages', icon: <BroadcastOnPersonalIcon />, action: () => setPanel('broadcast') },
                 { label: 'Magic Link Settings', icon: <LinkIcon />, action: () => setPanel('magic') },
               ].map(item => (
-                <Box key={item.label} onClick={item.action} sx={{
-                  display: 'flex', alignItems: 'center', gap: 2,
-                  bgcolor: WA_SURFACE, borderRadius: 2, p: 1.75, cursor: 'pointer',
-                  border: `1px solid ${WA_DIVIDER}`,
-                  '&:hover': { border: `1px solid ${WA_MUTED}` },
-                }}>
+                <Box key={item.label} onClick={item.action} sx={{ display: 'flex', alignItems: 'center', gap: 2, bgcolor: WA_SURFACE, borderRadius: 2, p: 1.75, cursor: 'pointer', border: `1px solid ${WA_DIVIDER}`, '&:hover': { border: `1px solid ${WA_MUTED}` } }}>
                   <Box sx={{ color: WA_MUTED }}>{item.icon}</Box>
                   <Typography sx={{ color: WA_TEXT, fontSize: '0.875rem', flex: 1 }}>{item.label}</Typography>
                   <Typography sx={{ color: WA_MUTED }}>›</Typography>
                 </Box>
               ))}
             </Stack>
+
+            <Box sx={{ mt: 3, p: 2, bgcolor: WA_SURFACE, borderRadius: 2, border: `1px solid ${WA_DIVIDER}` }}>
+              <Typography sx={{ color: WA_MUTED, fontSize: '0.75rem', mb: 1 }}>Rate Limiting</Typography>
+              <Typography sx={{ color: WA_TEXT, fontSize: '0.8rem' }}>Max 20 messages / minute · 2–4s delay between messages · Only enrolled users</Typography>
+            </Box>
           </Box>
         )}
       </Box>
 
-      {/* ── FAB ────────────────────────────────────────────────── */}
+      {/* ── FAB ──────────────────────────────────────────────── */}
       {nav === 0 && (
-        <Fab
-          size="medium"
-          onClick={() => setPanel('broadcast')}
-          sx={{
-            position: 'absolute', bottom: 76, right: 16,
-            bgcolor: WA_LIGHT, color: '#fff',
-            '&:hover': { bgcolor: '#1ebe57' },
-            boxShadow: '0 4px 16px rgba(37,211,102,0.4)',
-          }}
-        >
+        <Fab size="medium" onClick={() => setPanel('broadcast')}
+          sx={{ position: 'absolute', bottom: 76, right: 16, bgcolor: WA_LIGHT, color: '#fff', '&:hover': { bgcolor: '#1ebe57' }, boxShadow: '0 4px 16px rgba(37,211,102,0.4)' }}>
           <AddIcon />
         </Fab>
       )}
 
-      {/* ── Bottom Nav ─────────────────────────────────────────── */}
-      <Box sx={{
-        bgcolor: WA_SURFACE, borderTop: `1px solid ${WA_DIVIDER}`,
-        display: 'flex', flexShrink: 0,
-      }}>
-        <NavItem icon={<ChatBubbleOutlineIcon fontSize="small" />} label="Chats" active={nav === 0} onClick={() => setNav(0)} />
+      {/* ── Bottom Nav ───────────────────────────────────────── */}
+      <Box sx={{ bgcolor: WA_SURFACE, borderTop: `1px solid ${WA_DIVIDER}`, display: 'flex', flexShrink: 0 }}>
+        <NavItem icon={<ChatBubbleOutlineIcon fontSize="small" />} label="Chats" active={nav === 0} onClick={() => { setNav(0); if (isConnected) loadChats(); }} />
         <NavItem icon={<AutorenewIcon fontSize="small" />} label="Automation" active={nav === 1} onClick={() => setNav(1)} />
         <NavItem icon={<BroadcastOnPersonalIcon fontSize="small" />} label="Broadcast" active={nav === 2} onClick={() => setNav(2)} />
         <NavItem icon={<SettingsIcon fontSize="small" />} label="Settings" active={nav === 3} onClick={() => setNav(3)} />

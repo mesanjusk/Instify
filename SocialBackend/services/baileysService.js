@@ -1,21 +1,21 @@
 /**
  * Baileys WhatsApp Service
  * Manages per-institute QR-scan WhatsApp sessions.
- * Uses dynamic import because @whiskeysockets/baileys is ESM-only.
+ * Saves all messages (in/out) to MongoDB for real chat history.
  */
 
 const path = require('path');
 const fs = require('fs');
 const QRCode = require('qrcode');
+const Message = require('../repositories/Message');
 
-// Per-institute message counter for rate limiting (max 20 msgs/min)
-const rateLimiter = new Map(); // instituteId → { count, resetAt }
+const rateLimiter = new Map();
 
 function checkRateLimit(instituteId) {
   const now = Date.now();
   const bucket = rateLimiter.get(instituteId) || { count: 0, resetAt: now + 60000 };
   if (now > bucket.resetAt) { bucket.count = 0; bucket.resetAt = now + 60000; }
-  if (bucket.count >= 20) throw new Error('Rate limit reached — max 20 messages per minute. Please slow down.');
+  if (bucket.count >= 20) throw new Error('Rate limit reached — max 20 messages per minute.');
   bucket.count++;
   rateLimiter.set(instituteId, bucket);
 }
@@ -30,7 +30,6 @@ if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
 /** Map<instituteId, { sock, status, qrDataUrl }> */
 const sessions = new Map();
 
-/** Load Baileys ESM modules once */
 async function getBaileys() {
   const mod = await import('@whiskeysockets/baileys');
   return {
@@ -40,12 +39,34 @@ async function getBaileys() {
   };
 }
 
-/**
- * Start or reconnect a Baileys session.
- * @param {string} instituteId
- * @param {(qrDataUrl: string) => void} onQR
- * @param {(status: string) => void} onStatus
- */
+function normaliseJid(jid = '') {
+  return jid.split('@')[0].replace(/\D/g, '');
+}
+
+async function saveMessage(institute_uuid, jid, msg, fromMe) {
+  try {
+    const text =
+      msg?.conversation ||
+      msg?.extendedTextMessage?.text ||
+      msg?.imageMessage?.caption ||
+      '';
+    if (!text && !msg?.imageMessage) return;
+
+    const number = normaliseJid(jid);
+    await Message.create({
+      institute_uuid,
+      jid: number,
+      fromMe,
+      sender: fromMe ? institute_uuid : number,
+      receiver: fromMe ? number : institute_uuid,
+      message: text,
+      type: msg?.imageMessage ? 'image' : 'text',
+    });
+  } catch (err) {
+    console.error('[Baileys] saveMessage error:', err.message);
+  }
+}
+
 async function startSession(instituteId, onQR, onStatus) {
   const { makeWASocket, useMultiFileAuthState, DisconnectReason } = await getBaileys();
 
@@ -83,10 +104,8 @@ async function startSession(instituteId, onQR, onStatus) {
     if (connection === 'close') {
       const code = lastDisconnect?.error?.output?.statusCode;
       const loggedOut = code === DisconnectReason.loggedOut;
-
       if (entry) entry.status = loggedOut ? 'logged_out' : 'disconnected';
       onStatus && onStatus(loggedOut ? 'logged_out' : 'disconnected');
-
       if (!loggedOut) {
         console.log(`[Baileys] Reconnecting ${instituteId} in 5s…`);
         setTimeout(() => startSession(instituteId, onQR, onStatus), 5000);
@@ -94,41 +113,40 @@ async function startSession(instituteId, onQR, onStatus) {
     }
 
     if (connection === 'open') {
-      if (entry) {
-        entry.status = 'connected';
-        entry.qrDataUrl = null;
-      }
+      if (entry) { entry.status = 'connected'; entry.qrDataUrl = null; }
       onStatus && onStatus('connected');
       console.log(`[Baileys] ${instituteId} connected`);
     }
   });
 
   sock.ev.on('creds.update', saveCreds);
+
+  // Save all incoming messages to DB
+  sock.ev.on('messages.upsert', async ({ messages, type }) => {
+    if (type !== 'notify') return;
+    for (const m of messages) {
+      if (!m.message) continue;
+      const jid = m.key.remoteJid;
+      if (!jid || jid.endsWith('@g.us')) continue; // skip groups for now
+      await saveMessage(instituteId, jid, m.message, m.key.fromMe);
+    }
+  });
 }
 
-/**
- * Send a text message.
- * @param {string} instituteId
- * @param {string} to  Phone number with country code (no +)
- * @param {string} message
- */
 async function sendText(instituteId, to, message) {
   const session = sessions.get(instituteId);
   if (!session || session.status !== 'connected') {
     throw new Error('WhatsApp session not connected for this institute');
   }
   checkRateLimit(instituteId);
-  const jid = to.replace(/\D/g, '') + '@s.whatsapp.net';
+  const number = to.replace(/\D/g, '');
+  const jid = number + '@s.whatsapp.net';
   await session.sock.sendMessage(jid, { text: message });
+
+  // Persist outgoing message
+  await saveMessage(instituteId, jid, { conversation: message }, true);
 }
 
-/**
- * Send bulk messages with a 1.5s delay between each.
- * @param {string} instituteId
- * @param {string[]} numbers
- * @param {string} message
- * @returns {Promise<Array<{number, success, error?}>>}
- */
 async function sendBulk(instituteId, numbers, message) {
   const results = [];
   for (const number of numbers) {
@@ -137,41 +155,29 @@ async function sendBulk(instituteId, numbers, message) {
       results.push({ number, success: true });
     } catch (err) {
       results.push({ number, success: false, error: err.message });
-      // On rate limit, pause for the rest of the minute
       if (err.message.includes('Rate limit')) {
         await new Promise(r => setTimeout(r, 62000));
       }
     }
-    // Human-like delay between messages (2–4s)
     await randomDelay(2000, 4000);
   }
   return results;
 }
 
-/**
- * Disconnect and delete session files.
- * @param {string} instituteId
- */
 async function disconnectSession(instituteId) {
   const session = sessions.get(instituteId);
   if (session?.sock) {
-    try { await session.sock.logout(); } catch (_) { /* ignore */ }
+    try { await session.sock.logout(); } catch (_) {}
   }
   sessions.delete(instituteId);
-
   const sessionPath = path.join(SESSION_DIR, instituteId);
   if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
 }
 
-/**
- * @param {string} instituteId
- * @returns {'not_started'|'connecting'|'qr'|'connected'|'disconnected'|'logged_out'}
- */
 function getStatus(instituteId) {
   return sessions.get(instituteId)?.status ?? 'not_started';
 }
 
-/** Get the last generated QR data URL for polling fallback. */
 function getLastQR(instituteId) {
   return sessions.get(instituteId)?.qrDataUrl ?? null;
 }
