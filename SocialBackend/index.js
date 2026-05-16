@@ -71,6 +71,11 @@ app.use('/api/baileys', require('./routers/baileysRoutes'));
 app.use('/api/upi', require('./routers/upiRoutes'));
 app.use('/api/csv-import', require('./routers/csvImportRoutes'));
 app.use('/api/record', require('./routers/recordRoutes'));
+app.use('/api/designs', require('./routers/designRoutes'));
+app.use('/api/employees', require('./routers/employeeRoutes'));
+app.use('/api/message-templates', require('./routers/messageTemplateRoutes'));
+app.use('/api/reports', require('./routers/reportsRoutes'));
+app.use('/api/custom-templates', require('./routers/customTemplateRoutes'));
 
 
 // ✅ 404 fallback
