@@ -53,6 +53,17 @@ function normaliseJid(jid = '') {
   return jid.split('@')[0].replace(/\D/g, '');
 }
 
+/** Resolve the actual WhatsApp JID for a phone number via onWhatsApp() */
+async function resolveJid(sock, number) {
+  try {
+    const [result] = await sock.onWhatsApp(number + '@s.whatsapp.net');
+    if (result?.exists && result.jid) return result.jid;
+  } catch (e) {
+    console.error('[Baileys] onWhatsApp resolve error:', e.message);
+  }
+  return number + '@s.whatsapp.net';
+}
+
 /* ── Session persistence helpers ────────────────────────────── */
 
 async function backupSession(instituteId, sessionPath) {
@@ -273,7 +284,7 @@ async function sendText(instituteId, to, message) {
   }
   checkRateLimit(instituteId);
   const number = to.replace(/\D/g, '');
-  const jid = number + '@s.whatsapp.net';
+  const jid = await resolveJid(session.sock, number);
   await session.sock.sendMessage(jid, { text: message });
   await saveMessage(instituteId, jid, { conversation: message }, true);
 }
@@ -285,7 +296,7 @@ async function sendMedia(instituteId, to, buffer, mimeType, fileName, caption) {
   }
   checkRateLimit(instituteId);
   const number = to.replace(/\D/g, '');
-  const jid = number + '@s.whatsapp.net';
+  const jid = await resolveJid(session.sock, number);
 
   let msgObj;
   if (mimeType.startsWith('image/')) {
