@@ -82,11 +82,11 @@ export default function App() {
         path="/:username/section/whatsapp"
         element={
           <PrivateRoute>
-            <SectionLayout title="WhatsApp Bot" subtitle="Automation & messaging" color="#075E54">
+            <Box sx={{ height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               <Suspense fallback={<PageLoader />}>
                 <BaileysWhatsApp />
               </Suspense>
-            </SectionLayout>
+            </Box>
           </PrivateRoute>
         }
       />

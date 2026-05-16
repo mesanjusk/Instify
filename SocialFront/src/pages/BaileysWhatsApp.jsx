@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   Alert, Avatar, Box, Button, Chip, CircularProgress, Divider, Fab,
   IconButton, InputAdornment, LinearProgress, ListItemIcon, ListItemText,
   Menu, MenuItem, Select, Snackbar, Stack, Switch, TextField, Typography,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import AddIcon from '@mui/icons-material/Add';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
@@ -16,7 +16,6 @@ import LinkOffIcon from '@mui/icons-material/LinkOff';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import BroadcastOnPersonalIcon from '@mui/icons-material/BroadcastOnPersonal';
 import LinkIcon from '@mui/icons-material/Link';
-import ArchiveIcon from '@mui/icons-material/Archive';
 import CheckIcon from '@mui/icons-material/Check';
 import DoneAllIcon from '@mui/icons-material/DoneAll';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -31,6 +30,7 @@ import HeadphonesIcon from '@mui/icons-material/Headphones';
 import DownloadIcon from '@mui/icons-material/Download';
 import CloseIcon from '@mui/icons-material/Close';
 import WifiOffIcon from '@mui/icons-material/WifiOff';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import { useApp } from '../context/AppContext';
 import apiClient from '../apiClient';
 import { saveChats, loadChatsCache, saveMessages, loadMessagesCache } from '../utils/offlineDB';
@@ -499,6 +499,8 @@ function NavItem({ icon, label, active, onClick }) {
    MAIN COMPONENT
 ═══════════════════════════════════════════════════════════════ */
 export default function BaileysWhatsApp() {
+  const navigate = useNavigate();
+  const { username } = useParams();
   const { institute } = useApp();
   const instituteId = institute?.institute_uuid || localStorage.getItem('institute_uuid') || '';
 
@@ -868,11 +870,15 @@ export default function BaileysWhatsApp() {
       {nav === 0 && (
         <Box sx={{ bgcolor: WA_GREEN, px: 2, pt: 2, pb: 1, flexShrink: 0 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
-            <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '1.25rem' }}>WhatsApp</Typography>
+            <Stack direction="row" alignItems="center" spacing={0.5}>
+              <IconButton size="small" onClick={() => navigate(`/${username}`)} sx={{ color: 'rgba(255,255,255,0.85)', p: 0.5 }}>
+                <ArrowBackIosNewIcon sx={{ fontSize: 16 }} />
+              </IconButton>
+              <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '1.25rem' }}>WhatsApp</Typography>
+            </Stack>
             <Stack direction="row" spacing={0.5} alignItems="center">
               <Chip size="small" label={isConnected ? '● Connected' : '○ Offline'}
                 sx={{ bgcolor: isConnected ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)', color: isConnected ? '#dcfce7' : 'rgba(255,255,255,0.7)', fontSize: '0.65rem', height: 22 }} />
-              <IconButton sx={{ color: 'rgba(255,255,255,0.85)', p: 0.75 }} size="small"><CameraAltIcon fontSize="small" /></IconButton>
               <IconButton sx={{ color: 'rgba(255,255,255,0.85)', p: 0.75 }} size="small" onClick={e => setMenuAnchor(e.currentTarget)}>
                 <MoreVertIcon fontSize="small" />
               </IconButton>
@@ -897,8 +903,11 @@ export default function BaileysWhatsApp() {
       )}
 
       {nav !== 0 && (
-        <Box sx={{ bgcolor: WA_GREEN, px: 2, py: 1.75, flexShrink: 0 }}>
-          <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '1.25rem' }}>
+        <Box sx={{ bgcolor: WA_GREEN, px: 1.5, py: 1.25, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <IconButton size="small" onClick={() => setNav(0)} sx={{ color: 'rgba(255,255,255,0.85)', p: 0.5 }}>
+            <ArrowBackIosNewIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+          <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '1.1rem' }}>
             {nav === 1 ? 'Automation' : nav === 2 ? 'Broadcast' : 'Settings'}
           </Typography>
         </Box>
@@ -943,11 +952,6 @@ export default function BaileysWhatsApp() {
         {/* Chats tab */}
         {nav === 0 && (
           <>
-            {/* Archived row */}
-            <Box sx={{ display: 'flex', alignItems: 'center', px: 2, py: 1.25, gap: 2, bgcolor: WA_SURFACE, borderBottom: `1px solid ${WA_DIVIDER}`, cursor: 'pointer', '&:hover': { bgcolor: '#f5f6f6' } }}>
-              <ArchiveIcon sx={{ color: WA_GREEN, fontSize: 22 }} />
-              <Typography sx={{ color: WA_TEXT, fontWeight: 500, fontSize: '0.9rem', flex: 1 }}>Archived</Typography>
-            </Box>
 
             {chatsLoading && <Box textAlign="center" pt={3}><CircularProgress size={24} sx={{ color: WA_GREEN }} /></Box>}
 

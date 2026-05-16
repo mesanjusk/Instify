@@ -43,6 +43,26 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import ViewModuleIcon from '@mui/icons-material/ViewModule';
 import AppsIcon from '@mui/icons-material/Apps';
+import UndoIcon from '@mui/icons-material/Undo';
+import RedoIcon from '@mui/icons-material/Redo';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import SwapVertIcon from '@mui/icons-material/SwapVert';
+import RotateRightIcon from '@mui/icons-material/RotateRight';
+import WbSunnyIcon from '@mui/icons-material/WbSunny';
+import TonalityIcon from '@mui/icons-material/Tonality';
+import ChangeHistoryIcon from '@mui/icons-material/ChangeHistory';
+import HorizontalRuleIcon from '@mui/icons-material/HorizontalRule';
+import AlignHorizontalLeftIcon from '@mui/icons-material/AlignHorizontalLeft';
+import AlignHorizontalCenterIcon from '@mui/icons-material/AlignHorizontalCenter';
+import AlignHorizontalRightIcon from '@mui/icons-material/AlignHorizontalRight';
+import AlignVerticalTopIcon from '@mui/icons-material/AlignVerticalTop';
+import AlignVerticalCenterIcon from '@mui/icons-material/AlignVerticalCenter';
+import AlignVerticalBottomIcon from '@mui/icons-material/AlignVerticalBottom';
+import FlipToFrontIcon from '@mui/icons-material/FlipToFront';
+import FlipToBackIcon from '@mui/icons-material/FlipToBack';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import jsPDF from 'jspdf';
 import JSZip from 'jszip';
 import apiClient from '../apiClient';
@@ -349,6 +369,9 @@ export default function DocumentMaker() {
   const suppressDirtyRef = useRef(false);
   const carouselStatesRef = useRef({});
   const initParamsRef    = useRef(null);   // { type, tplIdx } set by openEditor/switchTemplate
+  const historyRef     = useRef([]);
+  const historyIdxRef  = useRef(-1);
+  const skipHistoryRef = useRef(false);
   const [pageSetup,       setPageSetup]       = useState(null);
   const [tempSetup,       setTempSetup]       = useState(null);
   const [pageSetupDialog, setPageSetupDialog] = useState(false);
@@ -361,7 +384,118 @@ export default function DocumentMaker() {
   const [carouselIdx,     setCarouselIdx]     = useState(0);
   const [carouselFields,  setCarouselFields]  = useState({ name: '', rollNo: '', course: '', batch: '' });
 
+  // New Canva features state
+  const [fontFamily,   setFontFamily]   = useState('Arial');
+  const [letterSp,     setLetterSp]     = useState(0);
+  const [objOpacity,   setObjOpacity]   = useState(1);
+  const [objAngle,     setObjAngle]     = useState(0);
+  const [bgColor,      setBgColor]      = useState('#ffffff');
+  const [imgBright,    setImgBright]    = useState(0);
+  const [imgContrast,  setImgContrast]  = useState(0);
+  const [canUndo,      setCanUndo]      = useState(false);
+  const [canRedo,      setCanRedo]      = useState(false);
+
   function showAlert(type, text) { setAlert({ type, text }); setTimeout(() => setAlert(null), 4000); }
+
+  /* ── History (undo / redo) ─────────────────────────────────── */
+  function pushHistory() {
+    if (!fabricRef.current || skipHistoryRef.current || suppressDirtyRef.current) return;
+    const json = JSON.stringify(fabricRef.current.toJSON());
+    historyRef.current = historyRef.current.slice(0, historyIdxRef.current + 1);
+    historyRef.current.push(json);
+    if (historyRef.current.length > 40) historyRef.current.shift();
+    historyIdxRef.current = historyRef.current.length - 1;
+    setCanUndo(historyIdxRef.current > 0);
+    setCanRedo(false);
+  }
+
+  async function undo() {
+    if (!fabricRef.current || historyIdxRef.current <= 0) return;
+    historyIdxRef.current--;
+    skipHistoryRef.current = true;
+    await new Promise(r => fabricRef.current.loadFromJSON(JSON.parse(historyRef.current[historyIdxRef.current]), r));
+    fabricRef.current.renderAll();
+    skipHistoryRef.current = false;
+    setCanUndo(historyIdxRef.current > 0);
+    setCanRedo(true);
+    setSelectedObj(null);
+    setIsDirty(true);
+  }
+
+  async function redo() {
+    if (!fabricRef.current || historyIdxRef.current >= historyRef.current.length - 1) return;
+    historyIdxRef.current++;
+    skipHistoryRef.current = true;
+    await new Promise(r => fabricRef.current.loadFromJSON(JSON.parse(historyRef.current[historyIdxRef.current]), r));
+    fabricRef.current.renderAll();
+    skipHistoryRef.current = false;
+    setCanUndo(true);
+    setCanRedo(historyIdxRef.current < historyRef.current.length - 1);
+    setSelectedObj(null);
+    setIsDirty(true);
+  }
+
+  /* ── Object helpers ────────────────────────────────────────── */
+  function applyObjProp(prop, value) {
+    const obj = fabricRef.current?.getActiveObject();
+    if (!obj) return;
+    obj.set(prop, value); fabricRef.current.renderAll();
+  }
+
+  function alignObj(dir) {
+    const obj = fabricRef.current?.getActiveObject();
+    const fc = fabricRef.current;
+    if (!obj || !fc) return;
+    switch (dir) {
+      case 'left':    obj.set('left', 0); break;
+      case 'hcenter': obj.set('left', (fc.width - obj.getScaledWidth()) / 2); break;
+      case 'right':   obj.set('left', fc.width - obj.getScaledWidth()); break;
+      case 'top':     obj.set('top', 0); break;
+      case 'vcenter': obj.set('top', (fc.height - obj.getScaledHeight()) / 2); break;
+      case 'bottom':  obj.set('top', fc.height - obj.getScaledHeight()); break;
+      default: break;
+    }
+    obj.setCoords(); fc.renderAll(); pushHistory();
+  }
+
+  function applyLayer(dir) {
+    const obj = fabricRef.current?.getActiveObject();
+    const fc = fabricRef.current;
+    if (!obj || !fc) return;
+    if (dir === 'front') fc.bringToFront(obj);
+    else if (dir === 'up') fc.bringForward(obj);
+    else if (dir === 'down') fc.sendBackwards(obj);
+    else fc.sendToBack(obj);
+    fc.renderAll(); pushHistory();
+  }
+
+  function duplicateObj() {
+    const obj = fabricRef.current?.getActiveObject();
+    const fc = fabricRef.current;
+    if (!obj || !fc) return;
+    obj.clone(cloned => {
+      cloned.set({ left: (obj.left || 0) + 12, top: (obj.top || 0) + 12, evented: true });
+      fc.add(cloned); fc.setActiveObject(cloned); fc.renderAll(); pushHistory();
+    });
+  }
+
+  function setCanvasBg(color) {
+    const fc = fabricRef.current;
+    if (!fc) return;
+    fc.backgroundColor = color; fc.renderAll();
+    setBgColor(color); setIsDirty(true); pushHistory();
+  }
+
+  function applyImageFilter(type, value) {
+    const obj = fabricRef.current?.getActiveObject();
+    if (!obj || obj.type !== 'image') return;
+    const fab = fabricModule?.fabric;
+    if (!fab) return;
+    obj.filters = (obj.filters || []).filter(f => f.type !== type);
+    if (type === 'Brightness' && value !== 0) obj.filters.push(new fab.Image.filters.Brightness({ brightness: value }));
+    if (type === 'Contrast'   && value !== 0) obj.filters.push(new fab.Image.filters.Contrast({ contrast: value }));
+    obj.applyFilters(); fabricRef.current.renderAll();
+  }
 
   async function drawMGuides(fc, setup) {
     if (!fc || !setup) return;
@@ -534,9 +668,9 @@ export default function DocumentMaker() {
     fc.on('selection:created', handleSelect);
     fc.on('selection:updated', handleSelect);
     fc.on('selection:cleared', () => setSelectedObj(null));
-    fc.on('object:added',    () => { if (!suppressDirtyRef.current) setIsDirty(true); });
-    fc.on('object:modified', () => { if (!suppressDirtyRef.current) setIsDirty(true); });
-    fc.on('object:removed',  () => { if (!suppressDirtyRef.current) setIsDirty(true); });
+    fc.on('object:added',    () => { if (!suppressDirtyRef.current) { setIsDirty(true); pushHistory(); } });
+    fc.on('object:modified', () => { if (!suppressDirtyRef.current) { setIsDirty(true); pushHistory(); } });
+    fc.on('object:removed',  () => { if (!suppressDirtyRef.current) { setIsDirty(true); pushHistory(); } });
   }
 
   // tplIdx = null  → blank white canvas (default when opening from home)
@@ -566,6 +700,10 @@ export default function DocumentMaker() {
       }
       suppressDirtyRef.current = false;
       setIsDirty(false);
+      historyRef.current = [JSON.stringify(fc.toJSON())];
+      historyIdxRef.current = 0;
+      setCanUndo(false); setCanRedo(false);
+      setBgColor(typeof fc.backgroundColor === 'string' ? fc.backgroundColor : '#ffffff');
       setReady(true);
       setTimeout(updateScale, 50);
     } catch (err) {
@@ -600,11 +738,22 @@ export default function DocumentMaker() {
     const obj = e.selected?.[0];
     if (!obj) return;
     setSelectedObj(obj);
+    setObjOpacity(obj.opacity !== undefined ? obj.opacity : 1);
+    setObjAngle(Math.round(obj.angle || 0));
     if (obj.type === 'i-text' || obj.type === 'text') {
       setFontSize(obj.fontSize || 14);
       setFontColor(obj.fill || '#1e293b');
       setIsBold(obj.fontWeight === 'bold');
       setIsItalic(obj.fontStyle === 'italic');
+      setFontFamily(obj.fontFamily || 'Arial');
+      setLetterSp(Math.round(obj.charSpacing || 0));
+      setToolTab(2);
+    } else if (obj.type === 'image') {
+      const bright = obj.filters?.find(f => f.type === 'Brightness')?.brightness ?? 0;
+      const cont   = obj.filters?.find(f => f.type === 'Contrast')?.contrast ?? 0;
+      setImgBright(bright); setImgContrast(cont);
+      setToolTab(2);
+    } else {
       setToolTab(2);
     }
   }
@@ -747,10 +896,12 @@ export default function DocumentMaker() {
   async function addShape(shape) {
     const { fabric } = await getFabric();
     const fc = fabricRef.current; if (!fc) return;
-    const obj = shape === 'rect'
-      ? new fabric.Rect({ left: 60, top: 60, width: 100, height: 60, fill: '#e0e7ff', stroke: '#4f46e5', strokeWidth: 1.5, rx: 4, ry: 4 })
-      : new fabric.Circle({ left: 60, top: 60, radius: 40, fill: '#e0e7ff', stroke: '#4f46e5', strokeWidth: 1.5 });
-    fc.add(obj); fc.setActiveObject(obj); fc.renderAll();
+    let obj;
+    if (shape === 'rect')     obj = new fabric.Rect({ left: 60, top: 60, width: 100, height: 60, fill: '#e0e7ff', stroke: '#4f46e5', strokeWidth: 1.5, rx: 4, ry: 4 });
+    else if (shape === 'circle')   obj = new fabric.Circle({ left: 60, top: 60, radius: 40, fill: '#e0e7ff', stroke: '#4f46e5', strokeWidth: 1.5 });
+    else if (shape === 'triangle') obj = new fabric.Triangle({ left: 60, top: 60, width: 80, height: 80, fill: '#e0e7ff', stroke: '#4f46e5', strokeWidth: 1.5 });
+    else if (shape === 'line')     obj = new fabric.Line([0, 0, 150, 0], { left: 60, top: 80, stroke: '#1e293b', strokeWidth: 2 });
+    if (obj) { fc.add(obj); fc.setActiveObject(obj); fc.renderAll(); }
   }
 
   async function addSignatureLine() {
@@ -1183,6 +1334,16 @@ export default function DocumentMaker() {
         <IconButton onClick={handleBack} size="small" sx={{ color: '#64748b' }}>
           <HomeIcon fontSize="small" />
         </IconButton>
+        <Tooltip title="Undo"><span>
+          <IconButton size="small" onClick={undo} disabled={!canUndo} sx={{ color: '#64748b', '&.Mui-disabled': { opacity: 0.3 } }}>
+            <UndoIcon fontSize="small" />
+          </IconButton>
+        </span></Tooltip>
+        <Tooltip title="Redo"><span>
+          <IconButton size="small" onClick={redo} disabled={!canRedo} sx={{ color: '#64748b', '&.Mui-disabled': { opacity: 0.3 } }}>
+            <RedoIcon fontSize="small" />
+          </IconButton>
+        </span></Tooltip>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography sx={{ color: '#1e293b', fontWeight: 600, fontSize: '0.825rem' }} noWrap>
             {currentDT?.label}
@@ -1294,6 +1455,8 @@ export default function DocumentMaker() {
                 { label: 'Sig Line',  icon: <DrawIcon fontSize="small" />,             action: addSignatureLine },
                 { label: 'Rectangle', icon: <LayersIcon fontSize="small" />,           action: () => addShape('rect') },
                 { label: 'Circle',    icon: <LayersIcon fontSize="small" />,           action: () => addShape('circle') },
+                { label: 'Triangle',  icon: <ChangeHistoryIcon fontSize="small" />,    action: () => addShape('triangle') },
+                { label: 'Line',      icon: <HorizontalRuleIcon fontSize="small" />,   action: () => addShape('line') },
               ].map(({ label, icon, action }) => (
                 <Box key={label} onClick={action} sx={{
                   flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -1310,47 +1473,156 @@ export default function DocumentMaker() {
 
           {/* Edit tab */}
           {toolTab === 2 && (
-            selectedObj ? (
-              <Stack spacing={1.5}>
-                {(selectedObj.type === 'i-text' || selectedObj.type === 'text') && (
-                  <>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Typography sx={{ fontSize: '0.72rem', color: '#64748b', flexShrink: 0 }}>Size</Typography>
-                      <Slider
-                        value={fontSize} min={8} max={80} size="small"
-                        onChange={(_, v) => { setFontSize(v); applyFontProp('fontSize', v); }}
-                        sx={{ flex: 1, color: '#7c3aed' }}
-                      />
-                      <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', minWidth: 24 }}>{fontSize}</Typography>
-                    </Stack>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Typography sx={{ fontSize: '0.72rem', color: '#64748b' }}>Color</Typography>
-                      <input type="color" value={fontColor}
-                        onChange={e => { setFontColor(e.target.value); applyFontProp('fill', e.target.value); }}
-                        style={{ width: 32, height: 26, border: 'none', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'none' }}
-                      />
-                      <Tooltip title="Bold">
-                        <IconButton size="small" onClick={() => { const v = !isBold; setIsBold(v); applyFontProp('fontWeight', v ? 'bold' : 'normal'); }}
-                          sx={{ bgcolor: isBold ? '#7c3aed' : '#f1f5f9', color: isBold ? '#fff' : '#64748b', border: '1px solid #e2e8f0' }}>
-                          <FormatBoldIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Italic">
-                        <IconButton size="small" onClick={() => { const v = !isItalic; setIsItalic(v); applyFontProp('fontStyle', v ? 'italic' : 'normal'); }}
-                          sx={{ bgcolor: isItalic ? '#7c3aed' : '#f1f5f9', color: isItalic ? '#fff' : '#64748b', border: '1px solid #e2e8f0' }}>
-                          <FormatItalicIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
-                  </>
-                )}
-                <Button size="small" variant="outlined" color="error" startIcon={<DeleteOutlineIcon />} onClick={deleteSelected} sx={{ alignSelf: 'flex-start', borderColor: '#ef444466', color: '#ef4444' }}>
-                  Delete
-                </Button>
+            <Stack spacing={0.75}>
+              {/* BG color — always visible */}
+              <Stack direction="row" alignItems="center" gap={1}>
+                <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 32 }}>BG Color</Typography>
+                <input type="color" value={bgColor} onChange={e => setCanvasBg(e.target.value)}
+                  style={{ width: 28, height: 22, border: 'none', borderRadius: 4, cursor: 'pointer', padding: 0 }} />
               </Stack>
-            ) : (
-              <Typography sx={{ fontSize: '0.78rem', color: '#64748b' }}>Tap an element on the canvas to edit it.</Typography>
-            )
+
+              {selectedObj ? (<>
+                {/* Opacity */}
+                <Stack direction="row" alignItems="center" gap={1}>
+                  <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 32 }}>Opacity</Typography>
+                  <Slider value={Math.round(objOpacity * 100)} min={0} max={100} size="small"
+                    onChange={(_, v) => { const n = v / 100; setObjOpacity(n); applyObjProp('opacity', n); }}
+                    sx={{ flex: 1, color: '#7c3aed', py: 0.5 }} />
+                  <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 22 }}>{Math.round(objOpacity * 100)}%</Typography>
+                </Stack>
+
+                {/* Rotate */}
+                <Stack direction="row" alignItems="center" gap={1}>
+                  <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 32 }}>Rotate</Typography>
+                  <Slider value={objAngle} min={0} max={360} size="small"
+                    onChange={(_, v) => { setObjAngle(v); applyObjProp('angle', v); }}
+                    sx={{ flex: 1, color: '#7c3aed', py: 0.5 }} />
+                  <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 22 }}>{objAngle}°</Typography>
+                </Stack>
+
+                {/* Actions: flip / duplicate / delete */}
+                <Stack direction="row" gap={0.5}>
+                  {[
+                    { label: 'Flip H',  icon: <SwapHorizIcon sx={{ fontSize: 13 }} />,      action: () => { applyObjProp('flipX', !selectedObj.flipX); } },
+                    { label: 'Flip V',  icon: <SwapVertIcon sx={{ fontSize: 13 }} />,        action: () => { applyObjProp('flipY', !selectedObj.flipY); } },
+                    { label: 'Copy',    icon: <ContentCopyIcon sx={{ fontSize: 13 }} />,     action: duplicateObj },
+                    { label: 'Delete',  icon: <DeleteOutlineIcon sx={{ fontSize: 13 }} />,   action: deleteSelected, red: true },
+                  ].map(({ label, icon, action, red }) => (
+                    <Box key={label} onClick={action} sx={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.2,
+                      cursor: 'pointer', px: 0.75, py: 0.4, borderRadius: 1.5, border: '1px solid #e2e8f0',
+                      bgcolor: red ? '#fff0f0' : '#f8fafc', minWidth: 40,
+                      '&:active': { opacity: 0.7 },
+                    }}>
+                      <Box sx={{ color: red ? '#ef4444' : '#7c3aed' }}>{icon}</Box>
+                      <Typography sx={{ fontSize: '0.56rem', color: red ? '#ef4444' : '#64748b' }}>{label}</Typography>
+                    </Box>
+                  ))}
+                </Stack>
+
+                {/* Alignment */}
+                <Stack direction="row" gap={0.4} alignItems="center">
+                  <Typography sx={{ fontSize: '0.58rem', color: '#94a3b8', mr: 0.25 }}>Align</Typography>
+                  {[
+                    { title: 'Left',     icon: <AlignHorizontalLeftIcon sx={{ fontSize: 13 }} />,   dir: 'left' },
+                    { title: 'H Center', icon: <AlignHorizontalCenterIcon sx={{ fontSize: 13 }} />, dir: 'hcenter' },
+                    { title: 'Right',    icon: <AlignHorizontalRightIcon sx={{ fontSize: 13 }} />,  dir: 'right' },
+                    { title: 'Top',      icon: <AlignVerticalTopIcon sx={{ fontSize: 13 }} />,      dir: 'top' },
+                    { title: 'V Center', icon: <AlignVerticalCenterIcon sx={{ fontSize: 13 }} />,   dir: 'vcenter' },
+                    { title: 'Bottom',   icon: <AlignVerticalBottomIcon sx={{ fontSize: 13 }} />,   dir: 'bottom' },
+                  ].map(({ title, icon, dir }) => (
+                    <Tooltip key={dir} title={title}>
+                      <IconButton size="small" onClick={() => alignObj(dir)}
+                        sx={{ p: 0.35, border: '1px solid #e2e8f0', borderRadius: 1, color: '#7c3aed', bgcolor: '#f8fafc' }}>
+                        {icon}
+                      </IconButton>
+                    </Tooltip>
+                  ))}
+                </Stack>
+
+                {/* Layer */}
+                <Stack direction="row" gap={0.4} alignItems="center">
+                  <Typography sx={{ fontSize: '0.58rem', color: '#94a3b8', mr: 0.25 }}>Layer</Typography>
+                  {[
+                    { title: 'To Front',  icon: <FlipToFrontIcon sx={{ fontSize: 13 }} />,   dir: 'front' },
+                    { title: 'Forward',   icon: <ArrowUpwardIcon sx={{ fontSize: 13 }} />,    dir: 'up' },
+                    { title: 'Backward',  icon: <ArrowDownwardIcon sx={{ fontSize: 13 }} />,  dir: 'down' },
+                    { title: 'To Back',   icon: <FlipToBackIcon sx={{ fontSize: 13 }} />,    dir: 'back' },
+                  ].map(({ title, icon, dir }) => (
+                    <Tooltip key={dir} title={title}>
+                      <IconButton size="small" onClick={() => applyLayer(dir)}
+                        sx={{ p: 0.35, border: '1px solid #e2e8f0', borderRadius: 1, color: '#64748b', bgcolor: '#f8fafc' }}>
+                        {icon}
+                      </IconButton>
+                    </Tooltip>
+                  ))}
+                </Stack>
+
+                {/* Text controls */}
+                {(selectedObj.type === 'i-text' || selectedObj.type === 'text') && (<>
+                  <Stack direction="row" alignItems="center" gap={1}>
+                    <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 32 }}>Font</Typography>
+                    <Select value={fontFamily} size="small" onChange={e => { setFontFamily(e.target.value); applyFontProp('fontFamily', e.target.value); }}
+                      sx={{ flex: 1, fontSize: '0.7rem', '& .MuiSelect-select': { py: 0.3, px: 1 } }}>
+                      {['Arial','Georgia','Times New Roman','Verdana','Courier New','Impact','Trebuchet MS','Comic Sans MS'].map(f => (
+                        <MenuItem key={f} value={f} sx={{ fontSize: '0.75rem', fontFamily: f }}>{f}</MenuItem>
+                      ))}
+                    </Select>
+                  </Stack>
+                  <Stack direction="row" alignItems="center" gap={1}>
+                    <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 32 }}>Size</Typography>
+                    <Slider value={fontSize} min={8} max={120} size="small"
+                      onChange={(_, v) => { setFontSize(v); applyFontProp('fontSize', v); }}
+                      sx={{ flex: 1, color: '#7c3aed', py: 0.5 }} />
+                    <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{fontSize}</Typography>
+                  </Stack>
+                  <Stack direction="row" alignItems="center" gap={1}>
+                    <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 32 }}>Style</Typography>
+                    <input type="color" value={fontColor} onChange={e => { setFontColor(e.target.value); applyFontProp('fill', e.target.value); }}
+                      style={{ width: 26, height: 22, border: 'none', borderRadius: 4, cursor: 'pointer', padding: 0 }} />
+                    <Tooltip title="Bold">
+                      <IconButton size="small" onClick={() => { const v = !isBold; setIsBold(v); applyFontProp('fontWeight', v ? 'bold' : 'normal'); }}
+                        sx={{ bgcolor: isBold ? '#7c3aed' : '#f1f5f9', color: isBold ? '#fff' : '#64748b', border: '1px solid #e2e8f0', p: 0.4 }}>
+                        <FormatBoldIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Italic">
+                      <IconButton size="small" onClick={() => { const v = !isItalic; setIsItalic(v); applyFontProp('fontStyle', v ? 'italic' : 'normal'); }}
+                        sx={{ bgcolor: isItalic ? '#7c3aed' : '#f1f5f9', color: isItalic ? '#fff' : '#64748b', border: '1px solid #e2e8f0', p: 0.4 }}>
+                        <FormatItalicIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
+                  <Stack direction="row" alignItems="center" gap={1}>
+                    <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 32 }}>Spacing</Typography>
+                    <Slider value={letterSp} min={-100} max={800} size="small"
+                      onChange={(_, v) => { setLetterSp(v); applyFontProp('charSpacing', v); }}
+                      sx={{ flex: 1, color: '#7c3aed', py: 0.5 }} />
+                    <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{letterSp}</Typography>
+                  </Stack>
+                </>)}
+
+                {/* Image controls */}
+                {selectedObj.type === 'image' && (<>
+                  <Stack direction="row" alignItems="center" gap={1}>
+                    <WbSunnyIcon sx={{ fontSize: 13, color: '#f59e0b', flexShrink: 0 }} />
+                    <Slider value={Math.round(imgBright * 100)} min={-100} max={100} size="small"
+                      onChange={(_, v) => { const n = v / 100; setImgBright(n); applyImageFilter('Brightness', n); }}
+                      sx={{ flex: 1, color: '#f59e0b', py: 0.5 }} />
+                    <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{Math.round(imgBright * 100)}</Typography>
+                  </Stack>
+                  <Stack direction="row" alignItems="center" gap={1}>
+                    <TonalityIcon sx={{ fontSize: 13, color: '#6366f1', flexShrink: 0 }} />
+                    <Slider value={Math.round(imgContrast * 100)} min={-100} max={100} size="small"
+                      onChange={(_, v) => { const n = v / 100; setImgContrast(n); applyImageFilter('Contrast', n); }}
+                      sx={{ flex: 1, color: '#6366f1', py: 0.5 }} />
+                    <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{Math.round(imgContrast * 100)}</Typography>
+                  </Stack>
+                </>)}
+              </>) : (
+                <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', pt: 0.5 }}>Tap an element on the canvas to edit it.</Typography>
+              )}
+            </Stack>
           )}
 
           {/* Export tab */}
