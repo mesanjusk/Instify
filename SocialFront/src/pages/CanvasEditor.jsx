@@ -19,8 +19,25 @@ import DownloadIcon from '@mui/icons-material/Download';
 import FolderZipIcon from '@mui/icons-material/FolderZip';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
+<<<<<<< Updated upstream
 import DeleteIcon from '@mui/icons-material/Delete';
 import ImageIcon from '@mui/icons-material/Image';
+=======
+import FormatBoldIcon from '@mui/icons-material/FormatBold';
+import FormatItalicIcon from '@mui/icons-material/FormatItalic';
+import LayersIcon from '@mui/icons-material/Layers';
+import HomeIcon from '@mui/icons-material/Home';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import PrintIcon from '@mui/icons-material/Print';
+import TuneIcon from '@mui/icons-material/Tune';
+import ShareIcon from '@mui/icons-material/Share';
+import CheckIcon from '@mui/icons-material/Check';
+import SearchIcon from '@mui/icons-material/Search';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import FolderOpenIcon from '@mui/icons-material/FolderOpen';
+import ViewModuleIcon from '@mui/icons-material/ViewModule';
+import AppsIcon from '@mui/icons-material/Apps';
+>>>>>>> Stashed changes
 import jsPDF from 'jspdf';
 import JSZip from 'jszip';
 import apiClient from '../apiClient';
@@ -38,8 +55,60 @@ const DOC_TYPES = [
   { key: 'admit_card', label: 'Exam Admit Card', icon: <CreditCardIcon />, color: '#ef4444', desc: 'Admit card with photo, exam details, and roll number' },
 ];
 
+<<<<<<< Updated upstream
 // Build a Fabric.js canvas for a given document type and student data
 async function buildCanvas(canvasEl, docType, data, instituteName) {
+=======
+const TEMPLATES = {
+  id_card: [
+    { id: 'indigo', label: 'Classic',  thumb: '#4f46e5', headerColor: '#4f46e5', bg: '#f0f4ff' },
+    { id: 'dark',   label: 'Premium',  thumb: '#0f172a', headerColor: '#0f172a', bg: '#1e293b' },
+    { id: 'green',  label: 'Fresh',    thumb: '#059669', headerColor: '#059669', bg: '#f0fdf4' },
+    { id: 'rose',   label: 'Rose',     thumb: '#be123c', headerColor: '#be123c', bg: '#fff1f2' },
+  ],
+  certificate: [
+    { id: 'gold',    label: 'Gold',       thumb: '#92400e', headerColor: '#92400e', bg: '#fffbf0' },
+    { id: 'blue',    label: 'Royal Blue', thumb: '#1d4ed8', headerColor: '#1d4ed8', bg: '#eff6ff' },
+    { id: 'minimal', label: 'Minimal',    thumb: '#374151', headerColor: '#374151', bg: '#ffffff' },
+  ],
+  result: [
+    { id: 'slate',  label: 'Formal', thumb: '#1e293b', headerColor: '#1e293b', bg: '#ffffff' },
+    { id: 'indigo', label: 'Modern', thumb: '#4338ca', headerColor: '#4338ca', bg: '#f5f3ff' },
+  ],
+  admit_card: [
+    { id: 'red',    label: 'Alert Red', thumb: '#dc2626', headerColor: '#dc2626', bg: '#fff5f5' },
+    { id: 'indigo', label: 'Classic',   thumb: '#4f46e5', headerColor: '#4f46e5', bg: '#f0f4ff' },
+    { id: 'dark',   label: 'Dark',      thumb: '#0f172a', headerColor: '#0f172a', bg: '#f8fafc' },
+  ],
+};
+
+/* ─── Print / page-setup constants ───────────────────────────── */
+const MM_TO_PX = 3.7795275591; // 96 DPI
+
+const PAGE_SIZES = [
+  { key: 'a4',          label: 'A4',           w: 210,   h: 297   },
+  { key: 'a4l',         label: 'A4 Landscape', w: 297,   h: 210   },
+  { key: 'a3',          label: 'A3',           w: 297,   h: 420   },
+  { key: 'a3l',         label: 'A3 Landscape', w: 420,   h: 297   },
+  { key: 'a5',          label: 'A5',           w: 148,   h: 210   },
+  { key: 'a2',          label: 'A2',           w: 420,   h: 594   },
+  { key: 'letter',      label: 'Letter',       w: 216,   h: 279   },
+  { key: 'legal',       label: 'Legal',        w: 216,   h: 356   },
+  { key: 'id_card',     label: 'ID Card',      w: 85.6,  h: 53.98 },
+  { key: 'certificate', label: 'Certificate',  w: 297,   h: 210   },
+  { key: 'custom',      label: 'Custom…',      w: null,  h: null  },
+];
+
+const DEFAULT_SETUPS = {
+  id_card:     { pageKey: 'id_card',     w: 85.6,  h: 53.98, marginT: 0,  marginR: 0,  marginB: 0,  marginL: 0,  orientation: 'landscape' },
+  certificate: { pageKey: 'certificate', w: 297,   h: 210,   marginT: 10, marginR: 10, marginB: 10, marginL: 10, orientation: 'landscape' },
+  result:      { pageKey: 'a4',          w: 210,   h: 297,   marginT: 15, marginR: 15, marginB: 15, marginL: 15, orientation: 'portrait'  },
+  admit_card:  { pageKey: 'id_card',     w: 85.6,  h: 53.98, marginT: 0,  marginR: 0,  marginB: 0,  marginL: 0,  orientation: 'landscape' },
+};
+
+/* ─── Canvas seeder ──────────────────────────────────────────── */
+async function seedCanvas(canvas, docType, tpl, data, instName) {
+>>>>>>> Stashed changes
   const { fabric } = await getFabric();
   const inst = instituteName || 'Institute Name';
 
@@ -195,6 +264,7 @@ export default function DocumentMaker() {
   const [uploadDocType, setUploadDocType] = useState('other');
   const [uploading, setUploading] = useState(false);
 
+<<<<<<< Updated upstream
   // Batch generation
   const [batches, setBatches] = useState([]);
   const [selectedBatch, setSelectedBatch] = useState('');
@@ -206,6 +276,119 @@ export default function DocumentMaker() {
     setAlert({ type, text });
     setTimeout(() => setAlert(null), 5000);
   }
+=======
+  const pageSetupRef = useRef(null);
+  const [pageSetup,      setPageSetup]      = useState(null);
+  const [tempSetup,      setTempSetup]      = useState(null);
+  const [pageSetupDialog,setPageSetupDialog]= useState(false);
+  const [printCopies,    setPrintCopies]    = useState(1);
+  const [printing,       setPrinting]       = useState(false);
+
+  function showAlert(type, text) { setAlert({ type, text }); setTimeout(() => setAlert(null), 4000); }
+
+  async function drawMGuides(fc, setup) {
+    if (!fc || !setup) return;
+    const { fabric } = await getFabric();
+    fc.getObjects().filter(o => o.__marginGuide).forEach(o => fc.remove(o));
+    const { marginT, marginR, marginB, marginL } = setup;
+    if ((marginT + marginR + marginB + marginL) === 0) { fc.renderAll(); return; }
+    const t = marginT * MM_TO_PX, r = marginR * MM_TO_PX;
+    const b = marginB * MM_TO_PX, l = marginL * MM_TO_PX;
+    const guide = new fabric.Rect({
+      left: l, top: t,
+      width: fc.width - l - r, height: fc.height - t - b,
+      fill: 'transparent',
+      stroke: 'rgba(99,102,241,0.7)',
+      strokeWidth: 1,
+      strokeDashArray: [6, 4],
+      selectable: false, evented: false,
+    });
+    guide.__marginGuide = true;
+    fc.add(guide);
+    fc.renderAll();
+  }
+
+  function hideMGuides() {
+    if (!fabricRef.current) return;
+    fabricRef.current.getObjects().filter(o => o.__marginGuide).forEach(o => o.set('visible', false));
+    fabricRef.current.renderAll();
+  }
+
+  function showMGuides() {
+    if (!fabricRef.current) return;
+    fabricRef.current.getObjects().filter(o => o.__marginGuide).forEach(o => o.set('visible', true));
+    fabricRef.current.renderAll();
+  }
+
+  async function printDocument() {
+    if (!fabricRef.current) return;
+    const setup = pageSetupRef.current;
+    if (!setup) return;
+    setPrinting(true);
+    try {
+      hideMGuides();
+      const dataUrl = fabricRef.current.toDataURL({ format: 'png', multiplier: 3 });
+      showMGuides();
+      const wMM = setup.w, hMM = setup.h;
+      const isLand = setup.orientation === 'landscape';
+      const pdf = new jsPDF({ orientation: isLand ? 'landscape' : 'portrait', unit: 'mm', format: [wMM, hMM] });
+      const pW = wMM - setup.marginL - setup.marginR;
+      const pH = hMM - setup.marginT - setup.marginB;
+      for (let i = 0; i < Math.max(1, printCopies); i++) {
+        if (i > 0) pdf.addPage([wMM, hMM], isLand ? 'landscape' : 'portrait');
+        pdf.addImage(dataUrl, 'PNG', setup.marginL, setup.marginT, pW, pH);
+      }
+      pdf.autoPrint();
+      window.open(pdf.output('bloburl'), '_blank');
+    } catch (err) {
+      showAlert('error', 'Print failed: ' + err.message);
+    } finally {
+      setPrinting(false);
+    }
+  }
+
+  async function generateBatchPDF() {
+    if (!batchStudents.length) return showAlert('error', 'No students in selected batch');
+    const setup = pageSetupRef.current;
+    if (!setup) return;
+    setGenerating(true);
+    const { fabric } = await getFabric();
+    const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
+    try {
+      const wMM = setup.w, hMM = setup.h;
+      const isLand = setup.orientation === 'landscape';
+      const pdf = new jsPDF({ orientation: isLand ? 'landscape' : 'portrait', unit: 'mm', format: [wMM, hMM] });
+      const pW = wMM - setup.marginL - setup.marginR;
+      const pH = hMM - setup.marginT - setup.marginB;
+      for (let idx = 0; idx < batchStudents.length; idx++) {
+        const s = batchStudents[idx];
+        const el = document.createElement('canvas'); document.body.appendChild(el);
+        const { w, h } = DOC_TYPES.find(d => d.key === docType).dims;
+        const fc = new fabric.Canvas(el, { width: w, height: h });
+        const data = {
+          name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.name || 'Student',
+          rollNo: s.rollNo || '—', course: s.course || '—', batch: s.batch || selBatch,
+        };
+        await seedCanvas(fc, docType, tpl, data, instituteName);
+        const imgData = fc.toDataURL({ format: 'png', multiplier: 3 });
+        if (idx > 0) pdf.addPage([wMM, hMM], isLand ? 'landscape' : 'portrait');
+        pdf.addImage(imgData, 'PNG', setup.marginL, setup.marginT, pW, pH);
+        fc.dispose(); document.body.removeChild(el);
+      }
+      pdf.autoPrint();
+      window.open(pdf.output('bloburl'), '_blank');
+      showAlert('success', `Batch PDF ready — ${batchStudents.length} pages!`);
+    } catch (err) { showAlert('error', err.message); }
+    finally { setGenerating(false); }
+  }
+
+  const updateScale = useCallback(() => {
+    if (!containerRef.current || !fabricRef.current) return;
+    const cw = containerRef.current.clientWidth - 32;
+    const fw = fabricRef.current.width;
+    setScale(cw < fw ? cw / fw : 1);
+  }, []);
+>>>>>>> Stashed changes
 
   function setField(key, value) {
     setStudentData(prev => ({ ...prev, [key]: value }));
@@ -282,6 +465,7 @@ export default function DocumentMaker() {
 
   async function renderCanvas() {
     if (!canvasRef.current) return;
+<<<<<<< Updated upstream
     if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
     setReady(false);
     try {
@@ -307,6 +491,46 @@ export default function DocumentMaker() {
       .then(r => setBatches(Array.isArray(r.data?.result) ? r.data.result : []))
       .catch(() => {});
   }, []);
+=======
+    const { w, h } = DOC_TYPES.find(d => d.key === type).dims;
+    const fc = new fabric.Canvas(canvasRef.current, { width: w, height: h, selection: true });
+    fabricRef.current = fc;
+    fc.on('selection:created', handleSelect);
+    fc.on('selection:updated', handleSelect);
+    fc.on('selection:cleared', () => setSelectedObj(null));
+    await seedCanvas(fc, type, tpl, {}, instituteName);
+    await drawMGuides(fc, pageSetupRef.current);
+    setReady(true);
+    setTimeout(updateScale, 50);
+  }
+
+  function handleSelect(e) {
+    const obj = e.selected?.[0];
+    if (!obj) return;
+    setSelectedObj(obj);
+    if (obj.type === 'i-text' || obj.type === 'text') {
+      setFontSize(obj.fontSize || 14);
+      setFontColor(obj.fill || '#1e293b');
+      setIsBold(obj.fontWeight === 'bold');
+      setIsItalic(obj.fontStyle === 'italic');
+      setToolTab(2);
+    }
+  }
+
+  function openEditor(type, tplIdx = 0) {
+    const setup = { ...(DEFAULT_SETUPS[type] || DEFAULT_SETUPS.result) };
+    pageSetupRef.current = setup;
+    setPageSetup(setup);
+    setTempSetup(setup);
+    setDocType(type);
+    setSelectedTpl(tplIdx);
+    setSelectedObj(null);
+    setToolTab(0);
+    setReady(false);
+    setView('editor');
+    setTimeout(() => initCanvas(type, tplIdx), 0);
+  }
+>>>>>>> Stashed changes
 
   useEffect(() => {
     if (!selectedBatch) { setBatchStudents([]); return; }
@@ -319,20 +543,33 @@ export default function DocumentMaker() {
 
   async function exportPNG() {
     if (!fabricRef.current) return;
+    hideMGuides();
     const url = fabricRef.current.toDataURL({ format: 'png', multiplier: 2 });
+<<<<<<< Updated upstream
     const a = document.createElement('a');
     a.href = url;
     a.download = `${docType}-${studentData.name || 'student'}.png`;
     a.click();
+=======
+    showMGuides();
+    const a = document.createElement('a'); a.href = url; a.download = `${docType}.png`; a.click();
+>>>>>>> Stashed changes
   }
 
   async function exportPDF() {
     if (!fabricRef.current) return;
     setExporting(true);
     try {
+<<<<<<< Updated upstream
       const url = fabricRef.current.toDataURL({ format: 'png', multiplier: 2 });
       const w = fabricRef.current.width;
       const h = fabricRef.current.height;
+=======
+      hideMGuides();
+      const { w, h } = DOC_TYPES.find(d => d.key === docType).dims;
+      const url = fabricRef.current.toDataURL({ format: 'png', multiplier: 2 });
+      showMGuides();
+>>>>>>> Stashed changes
       const pdf = new jsPDF({ orientation: w > h ? 'landscape' : 'portrait', unit: 'px', format: [w * 2, h * 2] });
       pdf.addImage(url, 'PNG', 0, 0, w * 2, h * 2);
       pdf.save(`${docType}-${studentData.name || 'document'}.pdf`);
@@ -549,6 +786,7 @@ export default function DocumentMaker() {
               >
                 {uploadFile ? uploadFile.name : 'Choose Image (max 10MB)'}
               </Button>
+<<<<<<< Updated upstream
             </Box>
             {uploadFile && (
               <Box
@@ -568,6 +806,81 @@ export default function DocumentMaker() {
             disabled={uploading || !uploadFile || !uploadName.trim()}
             startIcon={uploading ? <CircularProgress size={14} color="inherit" /> : null}
             sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' }, textTransform: 'none' }}
+=======
+              {uploadFile && <Box component="img" src={URL.createObjectURL(uploadFile)} alt="preview" sx={{ width: '100%', maxHeight: 160, objectFit: 'contain', borderRadius: 1, border: '1px solid #e2e8f0' }} />}
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setUploadDialog(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
+            <Button variant="contained" onClick={handleUpload} disabled={uploading || !uploadFile || !uploadName.trim()}
+              startIcon={uploading ? <CircularProgress size={14} color="inherit" /> : null}
+              sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' }, textTransform: 'none' }}>
+              {uploading ? 'Uploading…' : 'Upload'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Bottom nav */}
+        <Box sx={{ bgcolor: '#ffffff', borderTop: '1px solid #e2e8f0', display: 'flex', flexShrink: 0, boxShadow: '0 -1px 8px rgba(0,0,0,0.06)' }}>
+          <HomeNavItem icon={<AddCircleOutlineIcon fontSize="small" />} label="Create" active={homeNav === 0} onClick={() => setHomeNav(0)} />
+          <HomeNavItem icon={<FolderOpenIcon fontSize="small" />} label="Your Designs" active={homeNav === 1} onClick={() => setHomeNav(1)} />
+          <HomeNavItem icon={<ViewModuleIcon fontSize="small" />} label="Templates" active={homeNav === 2} onClick={() => setHomeNav(2)} />
+          <HomeNavItem icon={<AppsIcon fontSize="small" />} label="More" active={homeNav === 3} onClick={() => setHomeNav(3)} />
+        </Box>
+      </Box>
+    );
+  }
+
+  /* ════════════════════════════════════════════════════════════
+     EDITOR VIEW
+  ════════════════════════════════════════════════════════════ */
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#f1f5f9', overflow: 'hidden' }}>
+
+      {/* Hidden file inputs */}
+      <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleImageFile(e, 'Photo')} />
+      <input ref={sigInputRef}  type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleImageFile(e, 'Signature')} />
+
+      {/* Top bar */}
+      <Box sx={{
+        bgcolor: '#ffffff', borderBottom: '1px solid #e2e8f0',
+        px: 1.5, py: 1, display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0,
+        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      }}>
+        <IconButton onClick={() => setView('home')} size="small" sx={{ color: '#64748b' }}>
+          <HomeIcon fontSize="small" />
+        </IconButton>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography sx={{ color: '#1e293b', fontWeight: 600, fontSize: '0.825rem' }} noWrap>
+            {currentDT?.label}
+          </Typography>
+        </Box>
+        <Tooltip title="Page Setup">
+          <IconButton size="small" onClick={() => { setTempSetup({ ...(pageSetup || DEFAULT_SETUPS[docType] || DEFAULT_SETUPS.result) }); setPageSetupDialog(true); }} sx={{ color: '#64748b' }}>
+            <TuneIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Print">
+          <IconButton size="small" onClick={printDocument} disabled={printing} sx={{ color: '#4f46e5' }}>
+            {printing ? <CircularProgress size={16} color="inherit" /> : <PrintIcon fontSize="small" />}
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="More options">
+          <IconButton size="small" sx={{ color: '#64748b' }}><MoreHorizIcon fontSize="small" /></IconButton>
+        </Tooltip>
+        <Tooltip title="Download PNG">
+          <IconButton size="small" onClick={exportPNG} sx={{ color: '#64748b' }}><DownloadIcon fontSize="small" /></IconButton>
+        </Tooltip>
+        <Tooltip title="Share">
+          <IconButton size="small" sx={{ color: '#64748b' }}><ShareIcon fontSize="small" /></IconButton>
+        </Tooltip>
+        <Tooltip title="Save Design">
+          <IconButton
+            size="small"
+            onClick={saveDesign}
+            disabled={savingDesign}
+            sx={{ bgcolor: '#7c3aed', color: '#fff', borderRadius: 1.5, p: 0.75, '&:hover': { bgcolor: '#6d28d9' } }}
+>>>>>>> Stashed changes
           >
             {uploading ? 'Uploading…' : 'Upload'}
           </Button>
@@ -677,13 +990,171 @@ export default function DocumentMaker() {
                 </Typography>
                 {ready && <Chip label="Ready" size="small" color="success" sx={{ height: 18, fontSize: '0.6rem' }} />}
               </Stack>
+<<<<<<< Updated upstream
               <Box sx={{ overflowX: 'auto', '& canvas': { display: 'block', maxWidth: '100%' } }}>
                 <canvas ref={canvasRef} />
               </Box>
             </CardContent>
           </Card>
+=======
+            ) : (
+              <Typography sx={{ fontSize: '0.78rem', color: '#64748b' }}>Tap an element on the canvas to edit it.</Typography>
+            )
+          )}
+
+          {/* Export tab */}
+          {toolTab === 3 && (
+            <Stack spacing={1.5}>
+              {/* Fill from student */}
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Select value={fillStudent} onChange={e => { setFillStudent(e.target.value); fillFromStudent(e.target.value); }}
+                  displayEmpty size="small"
+                  sx={{ flex: 1, bgcolor: '#f1f5f9', color: '#1e293b', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}>
+                  <MenuItem value=""><em style={{ color: '#94a3b8' }}>Fill from student…</em></MenuItem>
+                  {students.map(s => <MenuItem key={s.uuid || s._id} value={s.uuid || s._id}>{s.firstName} {s.lastName}</MenuItem>)}
+                </Select>
+              </Stack>
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                <Button size="small" startIcon={<DownloadIcon />} onClick={exportPNG}
+                  sx={{ flex: 1, bgcolor: '#f1f5f9', color: '#1e293b', border: '1px solid #e2e8f0', '&:hover': { bgcolor: '#e2e8f0' } }}>PNG</Button>
+                <Button size="small" startIcon={<PictureAsPdfIcon />} onClick={exportPDF} disabled={exporting}
+                  sx={{ flex: 1, bgcolor: '#7c3aed22', color: '#7c3aed', border: '1px solid #7c3aed33', '&:hover': { bgcolor: '#7c3aed33' } }}>PDF</Button>
+              </Stack>
+              {/* Copies + Print */}
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Typography sx={{ fontSize: '0.72rem', color: '#64748b', flexShrink: 0 }}>Copies</Typography>
+                <TextField type="number" size="small" value={printCopies}
+                  onChange={e => setPrintCopies(Math.max(1, Math.min(99, Number(e.target.value))))}
+                  inputProps={{ min: 1, max: 99 }}
+                  sx={{ width: 64, '& .MuiOutlinedInput-root': { bgcolor: '#f1f5f9', '& fieldset': { borderColor: '#e2e8f0' } }, '& input': { py: 0.5, px: 1 } }}
+                />
+                <Button size="small"
+                  startIcon={printing ? <CircularProgress size={12} color="inherit" /> : <PrintIcon />}
+                  onClick={printDocument} disabled={printing}
+                  sx={{ flex: 1, bgcolor: '#4f46e522', color: '#4f46e5', border: '1px solid #4f46e533', '&:hover': { bgcolor: '#4f46e533' } }}>
+                  {printing ? 'Printing…' : 'Print'}
+                </Button>
+              </Stack>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Select value={selBatch} onChange={e => setSelBatch(e.target.value)} displayEmpty size="small"
+                  sx={{ flex: 1, bgcolor: '#f1f5f9', color: '#1e293b', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}>
+                  <MenuItem value=""><em style={{ color: '#94a3b8' }}>Select batch for bulk…</em></MenuItem>
+                  {batches.map(b => <MenuItem key={b._id} value={b.batch_name || b._id}>{b.batch_name}</MenuItem>)}
+                </Select>
+                <Button size="small" startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <FolderZipIcon />}
+                  onClick={generateBatchZip} disabled={generating || !batchStudents.length}
+                  sx={{ flexShrink: 0, bgcolor: '#f1f5f9', color: '#1e293b', border: '1px solid #e2e8f0', '&:hover': { bgcolor: '#e2e8f0' } }}>
+                  {generating ? '…' : `ZIP (${batchStudents.length})`}
+                </Button>
+                <Button size="small" startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <PictureAsPdfIcon />}
+                  onClick={generateBatchPDF} disabled={generating || !batchStudents.length}
+                  sx={{ flexShrink: 0, bgcolor: '#7c3aed22', color: '#7c3aed', border: '1px solid #7c3aed33', '&:hover': { bgcolor: '#7c3aed33' } }}>
+                  {generating ? '…' : `PDF`}
+                </Button>
+              </Stack>
+              {loadingBatch && <CircularProgress size={16} sx={{ mx: 'auto', color: '#7c3aed' }} />}
+            </Stack>
+          )}
+>>>>>>> Stashed changes
         </Box>
       </Box>
+
+      {/* ── Page Setup Dialog ──────────────────────────────── */}
+      <Dialog open={pageSetupDialog} onClose={() => setPageSetupDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem', pb: 0 }}>Page Setup</DialogTitle>
+        <DialogContent sx={{ pt: 1.5 }}>
+          <Stack spacing={2}>
+            {/* Paper size chips */}
+            <Box>
+              <Typography sx={{ fontSize: '0.75rem', color: '#64748b', mb: 1 }}>Paper Size</Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                {PAGE_SIZES.map(ps => (
+                  <Chip key={ps.key} label={ps.label} size="small"
+                    onClick={() => setTempSetup(prev => ({
+                      ...prev,
+                      pageKey: ps.key,
+                      ...(ps.w && ps.h ? { w: ps.w, h: ps.h } : {}),
+                    }))}
+                    sx={{
+                      bgcolor: tempSetup?.pageKey === ps.key ? '#7c3aed' : '#f1f5f9',
+                      color: tempSetup?.pageKey === ps.key ? '#fff' : '#1e293b',
+                      borderRadius: 1, cursor: 'pointer', fontSize: '0.7rem', height: 26,
+                      '&:hover': { bgcolor: tempSetup?.pageKey === ps.key ? '#6d28d9' : '#e2e8f0' },
+                    }}
+                  />
+                ))}
+              </Box>
+            </Box>
+
+            {/* Custom W×H */}
+            {tempSetup?.pageKey === 'custom' && (
+              <Stack direction="row" spacing={1}>
+                <TextField label="Width (mm)" type="number" size="small" value={tempSetup?.w || ''}
+                  onChange={e => setTempSetup(prev => ({ ...prev, w: Number(e.target.value) }))}
+                  inputProps={{ min: 10, max: 2000 }} sx={{ flex: 1 }} />
+                <TextField label="Height (mm)" type="number" size="small" value={tempSetup?.h || ''}
+                  onChange={e => setTempSetup(prev => ({ ...prev, h: Number(e.target.value) }))}
+                  inputProps={{ min: 10, max: 2000 }} sx={{ flex: 1 }} />
+              </Stack>
+            )}
+
+            {/* Orientation */}
+            <Box>
+              <Typography sx={{ fontSize: '0.75rem', color: '#64748b', mb: 1 }}>Orientation</Typography>
+              <Stack direction="row" spacing={1}>
+                {[['portrait', '↕ Portrait'], ['landscape', '↔ Landscape']].map(([val, lbl]) => (
+                  <Button key={val} size="small" onClick={() => setTempSetup(prev => ({ ...prev, orientation: val }))}
+                    sx={{
+                      flex: 1, textTransform: 'none',
+                      bgcolor: tempSetup?.orientation === val ? '#7c3aed' : '#f1f5f9',
+                      color: tempSetup?.orientation === val ? '#fff' : '#64748b',
+                      border: `1px solid ${tempSetup?.orientation === val ? '#7c3aed' : '#e2e8f0'}`,
+                      '&:hover': { bgcolor: tempSetup?.orientation === val ? '#6d28d9' : '#e2e8f0' },
+                    }}>{lbl}</Button>
+                ))}
+              </Stack>
+            </Box>
+
+            {/* Margins */}
+            <Box>
+              <Typography sx={{ fontSize: '0.75rem', color: '#64748b', mb: 1 }}>Margins (mm)</Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+                {[['marginT', 'Top'], ['marginR', 'Right'], ['marginB', 'Bottom'], ['marginL', 'Left']].map(([key, lbl]) => (
+                  <TextField key={key} label={lbl} type="number" size="small"
+                    value={tempSetup?.[key] ?? 0}
+                    onChange={e => setTempSetup(prev => ({ ...prev, [key]: Math.max(0, Number(e.target.value)) }))}
+                    inputProps={{ min: 0, max: 100 }} />
+                ))}
+              </Box>
+            </Box>
+
+            {/* Quick margin presets */}
+            <Box>
+              <Typography sx={{ fontSize: '0.75rem', color: '#64748b', mb: 1 }}>Quick Margin Presets</Typography>
+              <Stack direction="row" spacing={0.75} flexWrap="wrap">
+                {[['None', 0], ['5mm', 5], ['10mm', 10], ['15mm', 15], ['20mm', 20]].map(([lbl, val]) => (
+                  <Chip key={lbl} label={lbl} size="small"
+                    onClick={() => setTempSetup(prev => ({ ...prev, marginT: val, marginR: val, marginB: val, marginL: val }))}
+                    sx={{ bgcolor: '#f1f5f9', color: '#64748b', fontSize: '0.7rem', height: 26, cursor: 'pointer', borderRadius: 1, '&:hover': { bgcolor: '#e2e8f0' } }}
+                  />
+                ))}
+              </Stack>
+            </Box>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setPageSetupDialog(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" onClick={() => {
+            const s = { ...tempSetup };
+            pageSetupRef.current = s;
+            setPageSetup(s);
+            setPageSetupDialog(false);
+            if (fabricRef.current) drawMGuides(fabricRef.current, s);
+          }} sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' }, textTransform: 'none' }}>
+            Apply
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
