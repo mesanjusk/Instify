@@ -29,6 +29,8 @@ import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 import LayersIcon from '@mui/icons-material/Layers';
 import HomeIcon from '@mui/icons-material/Home';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import PrintIcon from '@mui/icons-material/Print';
 import TuneIcon from '@mui/icons-material/Tune';
@@ -333,12 +335,20 @@ export default function DocumentMaker() {
   const [uploadDocType, setUploadDocType] = useState('other');
   const [uploading, setUploading] = useState(false);
 
-  const pageSetupRef = useRef(null);
+  const pageSetupRef     = useRef(null);
+  const suppressDirtyRef = useRef(false);
+  const carouselStatesRef = useRef({});
   const [pageSetup,       setPageSetup]       = useState(null);
   const [tempSetup,       setTempSetup]       = useState(null);
   const [pageSetupDialog, setPageSetupDialog] = useState(false);
   const [printCopies,     setPrintCopies]     = useState(1);
   const [printing,        setPrinting]        = useState(false);
+  const [isDirty,         setIsDirty]         = useState(false);
+  const [exitConfirmDlg,  setExitConfirmDlg]  = useState(false);
+  const [pendingExit,     setPendingExit]      = useState(null);
+  const [galleryDialog,   setGalleryDialog]   = useState(false);
+  const [carouselIdx,     setCarouselIdx]     = useState(0);
+  const [carouselFields,  setCarouselFields]  = useState({ name: '', rollNo: '', course: '', batch: '' });
 
   function showAlert(type, text) { setAlert({ type, text }); setTimeout(() => setAlert(null), 4000); }
 
@@ -504,11 +514,31 @@ export default function DocumentMaker() {
     }, 400);
   }
 
-  async function initCanvas(type, tplIdx) {
-    const { fabric } = await getFabric();
-    const tpl = (TEMPLATES[type] || [])[tplIdx] || TEMPLATES[type][0];
+  function attachCanvasListeners(fc) {
+    fc.on('selection:created', handleSelect);
+    fc.on('selection:updated', handleSelect);
+    fc.on('selection:cleared', () => setSelectedObj(null));
+    fc.on('object:added',    () => { if (!suppressDirtyRef.current) setIsDirty(true); });
+    fc.on('object:modified', () => { if (!suppressDirtyRef.current) setIsDirty(true); });
+    fc.on('object:removed',  () => { if (!suppressDirtyRef.current) setIsDirty(true); });
+  }
 
-  // Load custom template image as canvas background
+  async function initCanvas(type, _tplIdx) {
+    const { fabric } = await getFabric();
+    if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
+    if (!canvasRef.current) return;
+    const { w, h } = DOC_TYPES.find(d => d.key === type).dims;
+    const fc = new fabric.Canvas(canvasRef.current, { width: w, height: h, selection: true });
+    fabricRef.current = fc;
+    attachCanvasListeners(fc);
+    fc.backgroundColor = '#ffffff';
+    fc.renderAll();
+    await drawMGuides(fc, pageSetupRef.current);
+    setIsDirty(false);
+    setReady(true);
+    setTimeout(updateScale, 50);
+  }
+
   async function handleUseTemplate(imageUrl) {
     if (!canvasRef.current) return;
     if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
@@ -521,24 +551,12 @@ export default function DocumentMaker() {
       const canvas = new fabric.Canvas(canvasRef.current, { width: iw, height: ih, selection: true });
       canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), { scaleX: 1, scaleY: 1 });
       fabricRef.current = canvas;
+      attachCanvasListeners(canvas);
+      setIsDirty(false);
       setReady(true);
     } catch (err) {
       showAlert('error', 'Could not load template: ' + err.message);
     }
-  }
-
-    if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
-    if (!canvasRef.current) return;
-    const { w, h } = DOC_TYPES.find(d => d.key === type).dims;
-    const fc = new fabric.Canvas(canvasRef.current, { width: w, height: h, selection: true });
-    fabricRef.current = fc;
-    fc.on('selection:created', handleSelect);
-    fc.on('selection:updated', handleSelect);
-    fc.on('selection:cleared', () => setSelectedObj(null));
-    await seedCanvas(fc, type, tpl, {}, instituteName);
-    await drawMGuides(fc, pageSetupRef.current);
-    setReady(true);
-    setTimeout(updateScale, 50);
   }
 
   function handleSelect(e) {
@@ -554,6 +572,19 @@ export default function DocumentMaker() {
     }
   }
 
+  function confirmThen(action) {
+    if (isDirty) {
+      setPendingExit(() => action);
+      setExitConfirmDlg(true);
+    } else {
+      action();
+    }
+  }
+
+  function handleBack() {
+    confirmThen(() => { setIsDirty(false); setView('home'); });
+  }
+
   function openEditor(type, tplIdx = 0) {
     const setup = { ...(DEFAULT_SETUPS[type] || DEFAULT_SETUPS.result) };
     pageSetupRef.current = setup;
@@ -564,8 +595,67 @@ export default function DocumentMaker() {
     setSelectedObj(null);
     setToolTab(0);
     setReady(false);
+    setIsDirty(false);
+    carouselStatesRef.current = {};
+    setCarouselIdx(0);
     setView('editor');
     setTimeout(() => initCanvas(type, tplIdx), 0);
+  }
+
+  async function goCarousel(newIdx) {
+    if (newIdx < 0 || newIdx >= batchStudents.length) return;
+    const fc = fabricRef.current;
+    if (fc) {
+      const cur = batchStudents[carouselIdx];
+      const curKey = cur?.uuid || cur?._id || String(carouselIdx);
+      suppressDirtyRef.current = true;
+      carouselStatesRef.current[curKey] = JSON.stringify(fc.toJSON());
+      suppressDirtyRef.current = false;
+    }
+    const nxt = batchStudents[newIdx];
+    const nxtKey = nxt?.uuid || nxt?._id || String(newIdx);
+    const fields = {
+      name:   `${nxt.firstName || ''} ${nxt.lastName || ''}`.trim() || nxt.name || 'Student',
+      rollNo: nxt.rollNo || '—',
+      course: nxt.course || '—',
+      batch:  nxt.batch  || selBatch,
+    };
+    setCarouselIdx(newIdx);
+    setCarouselFields(fields);
+    if (!fc) return;
+    suppressDirtyRef.current = true;
+    if (carouselStatesRef.current[nxtKey]) {
+      await new Promise(res => fc.loadFromJSON(JSON.parse(carouselStatesRef.current[nxtKey]), () => { fc.renderAll(); res(); }));
+    } else {
+      const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
+      await seedCanvas(fc, docType, tpl, fields, instituteName);
+    }
+    suppressDirtyRef.current = false;
+  }
+
+  async function applyCarouselToCanvas() {
+    if (!fabricRef.current || !batchStudents.length) return;
+    const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
+    suppressDirtyRef.current = true;
+    setReady(false);
+    await seedCanvas(fabricRef.current, docType, tpl, carouselFields, instituteName);
+    suppressDirtyRef.current = false;
+    setReady(true);
+  }
+
+  async function addGalleryImage(url) {
+    const { fabric } = await getFabric();
+    if (!fabricRef.current) return;
+    fabric.Image.fromURL(url, (img) => {
+      if (!fabricRef.current) return;
+      const fc = fabricRef.current;
+      img.scaleToWidth(Math.min(fc.width / 2, 200));
+      img.set({ left: 50, top: 50 });
+      fc.add(img);
+      fc.setActiveObject(img);
+      fc.renderAll();
+    }, { crossOrigin: 'anonymous' });
+    setGalleryDialog(false);
   }
 
   useEffect(() => {
@@ -686,8 +776,10 @@ export default function DocumentMaker() {
   }
 
   function switchTemplate(idx) {
-    setSelectedTpl(idx); setSelectedObj(null); setReady(false);
-    setTimeout(() => initCanvas(docType, idx), 0);
+    confirmThen(() => {
+      setSelectedTpl(idx); setSelectedObj(null); setReady(false); setIsDirty(false);
+      setTimeout(() => initCanvas(docType, idx), 0);
+    });
   }
 
   async function saveDesign() {
@@ -710,6 +802,7 @@ export default function DocumentMaker() {
         setCurrentDesignId(res.data.result?.design_uuid);
       }
       showAlert('success', 'Design saved!');
+      setIsDirty(false);
       loadSavedDesigns();
     } catch { showAlert('error', 'Save failed'); }
     finally { setSavingDesign(false); }
@@ -759,6 +852,7 @@ export default function DocumentMaker() {
     const student = students.find(s => s.uuid === studentId || s._id === studentId);
     if (!student || !fabricRef.current) return;
     const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
+    suppressDirtyRef.current = true;
     setReady(false);
     await seedCanvas(fabricRef.current, docType, tpl, {
       name: `${student.firstName || ''} ${student.lastName || ''}`.trim() || 'Student',
@@ -766,6 +860,7 @@ export default function DocumentMaker() {
       course: student.course || '—',
       batch: student.batch || '—',
     }, instituteName);
+    suppressDirtyRef.current = false;
     setReady(true);
     updateScale();
   }
@@ -786,7 +881,21 @@ export default function DocumentMaker() {
     if (!selBatch) { setBatchStudents([]); return; }
     setLoadingBatch(true);
     apiClient.get(`/api/students?batch=${selBatch}&institute_uuid=${localStorage.getItem('institute_uuid')}`)
-      .then(r => setBatchStudents(Array.isArray(r.data?.result) ? r.data.result : []))
+      .then(r => {
+        const list = Array.isArray(r.data?.result) ? r.data.result : [];
+        setBatchStudents(list);
+        carouselStatesRef.current = {};
+        setCarouselIdx(0);
+        if (list.length > 0) {
+          const s = list[0];
+          setCarouselFields({
+            name:   `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.name || 'Student',
+            rollNo: s.rollNo || '—',
+            course: s.course || '—',
+            batch:  s.batch  || selBatch,
+          });
+        }
+      })
       .catch(() => setBatchStudents([]))
       .finally(() => setLoadingBatch(false));
   }, [selBatch]);
@@ -1034,7 +1143,7 @@ export default function DocumentMaker() {
         px: 1.5, py: 1, display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0,
         boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
       }}>
-        <IconButton onClick={() => setView('home')} size="small" sx={{ color: '#64748b' }}>
+        <IconButton onClick={handleBack} size="small" sx={{ color: '#64748b' }}>
           <HomeIcon fontSize="small" />
         </IconButton>
         <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -1139,12 +1248,13 @@ export default function DocumentMaker() {
           {toolTab === 1 && (
             <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 0.5, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
               {[
-                { label: 'Text',      icon: <TextFieldsIcon fontSize="small" />,  action: addText },
-                { label: 'Photo',     icon: <ImageIcon fontSize="small" />,        action: () => fileInputRef.current?.click() },
-                { label: 'Signature', icon: <DrawIcon fontSize="small" />,         action: () => sigInputRef.current?.click() },
-                { label: 'Sig Line',  icon: <DrawIcon fontSize="small" />,         action: addSignatureLine },
-                { label: 'Rectangle', icon: <LayersIcon fontSize="small" />,       action: () => addShape('rect') },
-                { label: 'Circle',    icon: <LayersIcon fontSize="small" />,       action: () => addShape('circle') },
+                { label: 'Text',      icon: <TextFieldsIcon fontSize="small" />,      action: addText },
+                { label: 'Photo',     icon: <ImageIcon fontSize="small" />,            action: () => fileInputRef.current?.click() },
+                { label: 'Gallery',   icon: <AddPhotoAlternateIcon fontSize="small" />,action: () => setGalleryDialog(true) },
+                { label: 'Signature', icon: <DrawIcon fontSize="small" />,             action: () => sigInputRef.current?.click() },
+                { label: 'Sig Line',  icon: <DrawIcon fontSize="small" />,             action: addSignatureLine },
+                { label: 'Rectangle', icon: <LayersIcon fontSize="small" />,           action: () => addShape('rect') },
+                { label: 'Circle',    icon: <LayersIcon fontSize="small" />,           action: () => addShape('circle') },
               ].map(({ label, icon, action }) => (
                 <Box key={label} onClick={action} sx={{
                   flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -1207,6 +1317,54 @@ export default function DocumentMaker() {
           {/* Export tab */}
           {toolTab === 3 && (
             <Stack spacing={1.5}>
+
+              {/* Student Carousel */}
+              {batchStudents.length > 0 && (
+                <Box sx={{ bgcolor: '#f8fafc', borderRadius: 2, border: '1px solid #e2e8f0', p: 1.25 }}>
+                  {/* Header + navigation */}
+                  <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
+                    <Typography sx={{ fontSize: '0.72rem', color: '#475569', fontWeight: 700 }}>
+                      Record {carouselIdx + 1} / {batchStudents.length}
+                    </Typography>
+                    <Stack direction="row" spacing={0.25} alignItems="center">
+                      <IconButton size="small" onClick={() => goCarousel(carouselIdx - 1)} disabled={carouselIdx === 0}
+                        sx={{ color: '#7c3aed', p: 0.3, border: '1px solid #e2e8f0', borderRadius: 1, '&.Mui-disabled': { opacity: 0.3 } }}>
+                        <ChevronLeftIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                      <Box sx={{ display: 'flex', gap: 0.3 }}>
+                        {batchStudents.slice(Math.max(0, carouselIdx - 2), carouselIdx + 3).map((_, i) => {
+                          const absIdx = Math.max(0, carouselIdx - 2) + i;
+                          return (
+                            <Box key={absIdx} onClick={() => goCarousel(absIdx)} sx={{
+                              width: absIdx === carouselIdx ? 16 : 6, height: 6, borderRadius: 3,
+                              bgcolor: absIdx === carouselIdx ? '#7c3aed' : '#cbd5e1',
+                              cursor: 'pointer', transition: 'all 0.2s',
+                            }} />
+                          );
+                        })}
+                      </Box>
+                      <IconButton size="small" onClick={() => goCarousel(carouselIdx + 1)} disabled={carouselIdx === batchStudents.length - 1}
+                        sx={{ color: '#7c3aed', p: 0.3, border: '1px solid #e2e8f0', borderRadius: 1, '&.Mui-disabled': { opacity: 0.3 } }}>
+                        <ChevronRightIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Stack>
+                  </Stack>
+                  {/* Editable fields */}
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.75, mb: 1 }}>
+                    {[['name', 'Name'], ['rollNo', 'Roll No'], ['course', 'Course'], ['batch', 'Batch']].map(([key, lbl]) => (
+                      <TextField key={key} label={lbl} value={carouselFields[key] || ''} size="small"
+                        onChange={e => setCarouselFields(prev => ({ ...prev, [key]: e.target.value }))}
+                        sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#fff', fontSize: '0.75rem' }, '& label': { fontSize: '0.72rem' } }}
+                      />
+                    ))}
+                  </Box>
+                  <Button size="small" fullWidth onClick={applyCarouselToCanvas}
+                    sx={{ bgcolor: '#7c3aed22', color: '#7c3aed', border: '1px solid #7c3aed33', textTransform: 'none', fontSize: '0.72rem', '&:hover': { bgcolor: '#7c3aed33' } }}>
+                    Apply to Canvas
+                  </Button>
+                </Box>
+              )}
+
               {/* Fill from student */}
               <Stack direction="row" spacing={1} alignItems="center">
                 <Select value={fillStudent} onChange={e => { setFillStudent(e.target.value); fillFromStudent(e.target.value); }}
@@ -1259,6 +1417,73 @@ export default function DocumentMaker() {
           )}
         </Box>
       </Box>
+
+      {/* ── Exit Confirmation Dialog ───────────────────────── */}
+      <Dialog open={exitConfirmDlg} onClose={() => setExitConfirmDlg(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem' }}>Unsaved Changes</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: '#475569', fontSize: '0.875rem' }}>
+            You have unsaved changes. Save before leaving?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 0.5 }}>
+          <Button onClick={() => setExitConfirmDlg(false)} sx={{ textTransform: 'none', color: '#64748b' }}>Cancel</Button>
+          <Button onClick={() => { setExitConfirmDlg(false); pendingExit?.(); }}
+            sx={{ textTransform: 'none', color: '#ef4444' }}>Discard</Button>
+          <Button variant="contained"
+            onClick={async () => {
+              await saveDesign();
+              setExitConfirmDlg(false);
+              pendingExit?.();
+            }}
+            disabled={savingDesign}
+            startIcon={savingDesign ? <CircularProgress size={13} color="inherit" /> : null}
+            sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' }, textTransform: 'none' }}>
+            Save & Continue
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Gallery Dialog ─────────────────────────────────── */}
+      <Dialog open={galleryDialog} onClose={() => setGalleryDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem', pb: 0 }}>Add from Gallery</DialogTitle>
+        <DialogContent sx={{ pt: 1.5 }}>
+          <Stack spacing={1.5}>
+            <Button variant="outlined" fullWidth startIcon={<AddPhotoAlternateIcon />}
+              onClick={() => { setGalleryDialog(false); fileInputRef.current?.click(); }}
+              sx={{ textTransform: 'none', borderColor: '#7c3aed', color: '#7c3aed' }}>
+              Choose from Device
+            </Button>
+            {customTemplates.length > 0 && (
+              <>
+                <Typography sx={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Saved Templates</Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1, maxHeight: 260, overflowY: 'auto' }}>
+                  {customTemplates.map(ct => (
+                    <Box key={ct.template_uuid} onClick={() => addGalleryImage(ct.imageUrl)}
+                      sx={{ cursor: 'pointer', borderRadius: 1.5, overflow: 'hidden', border: '1px solid #e2e8f0',
+                        '&:hover': { border: '1px solid #7c3aed55', boxShadow: '0 2px 8px rgba(124,58,237,0.15)' } }}>
+                      <Box sx={{ height: 64, overflow: 'hidden' }}>
+                        <img src={ct.thumbUrl || ct.imageUrl} alt={ct.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </Box>
+                      <Box sx={{ p: 0.5 }}>
+                        <Typography sx={{ fontSize: '0.6rem', color: '#64748b' }} noWrap>{ct.name}</Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              </>
+            )}
+            {customTemplates.length === 0 && (
+              <Typography sx={{ fontSize: '0.78rem', color: '#94a3b8', textAlign: 'center', py: 1 }}>
+                No gallery images yet. Upload templates from the Templates tab.
+              </Typography>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setGalleryDialog(false)} sx={{ textTransform: 'none' }}>Close</Button>
+        </DialogActions>
+      </Dialog>
 
       {/* ── Page Setup Dialog ──────────────────────────────── */}
       <Dialog open={pageSetupDialog} onClose={() => setPageSetupDialog(false)} maxWidth="xs" fullWidth>
