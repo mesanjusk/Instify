@@ -456,9 +456,14 @@ export default function DocumentMaker() {
 
   const updateScale = useCallback(() => {
     if (!containerRef.current || !fabricRef.current) return;
-    const cw = containerRef.current.clientWidth - 32;
+    const pad = 24;
+    const cw = containerRef.current.clientWidth  - pad * 2;
+    const ch = containerRef.current.clientHeight - pad * 2;
     const fw = fabricRef.current.width;
-    setScale(cw < fw ? cw / fw : 1);
+    const fh = fabricRef.current.height;
+    const sx = fw > cw ? cw / fw : 1;
+    const sy = fh > ch ? ch / fh : 1;
+    setScale(Math.min(sx, sy, 1));   // never scale up, only down to fit
   }, []);
 
   async function loadCustomTemplates() {
@@ -1219,36 +1224,38 @@ export default function DocumentMaker() {
       <Box
         ref={containerRef}
         sx={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          overflow: 'auto', p: 2,
+          flex: 1, minHeight: 0,   // minHeight:0 lets flex child shrink below content size
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          overflow: 'hidden', p: '12px',
           '& canvas': { display: 'block' },
         }}
       >
         {!ready && <CircularProgress sx={{ color: currentDT?.color || '#7c3aed' }} />}
         <Box sx={{
           transform: `scale(${scale})`,
-          transformOrigin: 'top center',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-          borderRadius: 2,
+          transformOrigin: 'center center',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
+          borderRadius: 1.5,
           overflow: 'hidden',
           display: ready ? 'block' : 'none',
+          flexShrink: 0,
         }}>
           <canvas ref={canvasRef} />
         </Box>
       </Box>
 
-      {/* Bottom toolbar */}
+      {/* Bottom toolbar — fixed compact height so canvas always wins space */}
       <Box sx={{
         bgcolor: '#ffffff', borderTop: '1px solid #e2e8f0',
-        flexShrink: 0, maxHeight: 220, display: 'flex', flexDirection: 'column',
+        flexShrink: 0, height: 168, display: 'flex', flexDirection: 'column',
         boxShadow: '0 -1px 8px rgba(0,0,0,0.06)',
       }}>
         <Tabs
           value={toolTab} onChange={(_, v) => setToolTab(v)}
           variant="scrollable" scrollButtons="auto"
           sx={{
-            minHeight: 44, borderBottom: '1px solid #e2e8f0',
-            '& .MuiTab-root': { minHeight: 44, py: 0, fontSize: '0.75rem', fontWeight: 600, textTransform: 'none', color: '#64748b' },
+            minHeight: 36, flexShrink: 0, borderBottom: '1px solid #e2e8f0',
+            '& .MuiTab-root': { minHeight: 36, py: 0, fontSize: '0.72rem', fontWeight: 600, textTransform: 'none', color: '#64748b' },
             '& .Mui-selected': { color: '#7c3aed !important' },
             '& .MuiTabs-indicator': { bgcolor: '#7c3aed' },
           }}
@@ -1587,12 +1594,30 @@ export default function DocumentMaker() {
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
           <Button onClick={() => setPageSetupDialog(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
-          <Button variant="contained" onClick={() => {
+          <Button variant="contained" onClick={async () => {
             const s = { ...tempSetup };
+            // Swap w/h if orientation doesn't match the stored dimensions
+            if (s.w && s.h) {
+              const needsLandscape = s.orientation === 'landscape';
+              const isCurrentlyLandscape = s.w >= s.h;
+              if (needsLandscape !== isCurrentlyLandscape) {
+                const tmp = s.w; s.w = s.h; s.h = tmp;
+              }
+            }
             pageSetupRef.current = s;
             setPageSetup(s);
             setPageSetupDialog(false);
-            if (fabricRef.current) drawMGuides(fabricRef.current, s);
+            const fc = fabricRef.current;
+            if (fc && s.w && s.h) {
+              // Resize canvas to match page dimensions (mm → px at 96 DPI)
+              const newW = Math.round(s.w * MM_TO_PX);
+              const newH = Math.round(s.h * MM_TO_PX);
+              fc.setWidth(newW);
+              fc.setHeight(newH);
+              fc.renderAll();
+              await drawMGuides(fc, s);
+              setTimeout(updateScale, 50);
+            }
           }} sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' }, textTransform: 'none' }}>
             Apply
           </Button>
