@@ -524,23 +524,32 @@ export default function DocumentMaker() {
     fc.on('object:removed',  () => { if (!suppressDirtyRef.current) setIsDirty(true); });
   }
 
-  async function initCanvas(type, _tplIdx, pendingJSON = null) {
+  // tplIdx = null  → blank white canvas (default when opening from home)
+  // tplIdx = 0..N  → seed canvas with that template design (Templates tab tiles)
+  // pendingJSON     → restore a saved design JSON
+  async function initCanvas(type, tplIdx = null, pendingJSON = null) {
     const { fabric } = await getFabric();
     if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
-    if (!canvasRef.current) { setReady(true); return; }  // failsafe: show blank rather than spin forever
+    if (!canvasRef.current) { setReady(true); return; }
     const { w, h } = DOC_TYPES.find(d => d.key === type).dims;
     const fc = new fabric.Canvas(canvasRef.current, { width: w, height: h, selection: true });
     fabricRef.current = fc;
     attachCanvasListeners(fc);
+    suppressDirtyRef.current = true;
     if (pendingJSON) {
-      suppressDirtyRef.current = true;
       await new Promise(res => fc.loadFromJSON(pendingJSON, () => { fc.renderAll(); res(); }));
-      suppressDirtyRef.current = false;
+    } else if (tplIdx !== null) {
+      const tpl = (TEMPLATES[type] || [])[tplIdx] || (TEMPLATES[type] || [])[0];
+      if (tpl) await seedCanvas(fc, type, tpl, {}, instituteName);
+      else { fc.backgroundColor = '#ffffff'; fc.renderAll(); }
+      await drawMGuides(fc, pageSetupRef.current);
     } else {
+      // Blank canvas — white background only
       fc.backgroundColor = '#ffffff';
       fc.renderAll();
       await drawMGuides(fc, pageSetupRef.current);
     }
+    suppressDirtyRef.current = false;
     setIsDirty(false);
     setReady(true);
     setTimeout(updateScale, 50);
@@ -595,7 +604,7 @@ export default function DocumentMaker() {
   function openEditor(type, tplIdx = 0) {
     const setup = { ...(DEFAULT_SETUPS[type] || DEFAULT_SETUPS.result) };
     pageSetupRef.current = setup;
-    initParamsRef.current = { type, tplIdx };
+    initParamsRef.current = { type, tplIdx: null };   // null = blank canvas on first open
     setPageSetup(setup);
     setTempSetup(setup);
     setDocType(type);
@@ -670,7 +679,7 @@ export default function DocumentMaker() {
     if (view === 'editor') {
       // Always dispose any stale canvas before creating a fresh one
       if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
-      const params = initParamsRef.current || { type: docType, tplIdx: selectedTpl, pendingJSON: null };
+      const params = initParamsRef.current || { type: docType, tplIdx: null, pendingJSON: null };
       initParamsRef.current = null;
       initCanvas(params.type, params.tplIdx, params.pendingJSON ?? null);
     } else {
@@ -793,11 +802,9 @@ export default function DocumentMaker() {
 
   function switchTemplate(idx) {
     confirmThen(() => {
-      initParamsRef.current = { type: docType, tplIdx: idx };
       setSelectedTpl(idx); setSelectedObj(null); setReady(false); setIsDirty(false);
-      // Force the useEffect to re-run even though view hasn't changed
       if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
-      initCanvas(docType, idx);
+      initCanvas(docType, idx);   // idx is the template index → seeds the canvas
     });
   }
 
