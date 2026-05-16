@@ -176,10 +176,10 @@ function CategoryCard({ dt, onClick }) {
       onClick={onClick}
       sx={{
         cursor: 'pointer', borderRadius: 3, overflow: 'hidden',
-        bgcolor: '#1e1e2e', border: '1px solid #2a2a3e',
+        bgcolor: '#ffffff', border: '1px solid #e2e8f0',
         transition: 'transform 0.15s, box-shadow 0.15s',
         '&:active': { transform: 'scale(0.97)' },
-        '&:hover': { boxShadow: `0 4px 20px ${dt.color}44` },
+        '&:hover': { boxShadow: `0 4px 20px ${dt.color}33`, borderColor: `${dt.color}55` },
       }}
     >
       {/* Colored top */}
@@ -190,7 +190,7 @@ function CategoryCard({ dt, onClick }) {
         <Box sx={{ color: '#fff', opacity: 0.9 }}>{dt.icon}</Box>
       </Box>
       <Box sx={{ p: 1.25 }}>
-        <Typography sx={{ color: '#e2e8f0', fontWeight: 600, fontSize: '0.8rem', lineHeight: 1.2 }}>{dt.label}</Typography>
+        <Typography sx={{ color: '#1e293b', fontWeight: 600, fontSize: '0.8rem', lineHeight: 1.2 }}>{dt.label}</Typography>
         <Typography sx={{ color: '#64748b', fontSize: '0.65rem', mt: 0.3, lineHeight: 1.3 }}>{dt.desc}</Typography>
       </Box>
     </Box>
@@ -204,8 +204,9 @@ function RecentTile({ dt, tpl, onClick }) {
       onClick={onClick}
       sx={{
         width: 120, flexShrink: 0, cursor: 'pointer', borderRadius: 2, overflow: 'hidden',
-        border: '1px solid #2a2a3e', transition: 'transform 0.15s',
+        border: '1px solid #e2e8f0', transition: 'transform 0.15s, box-shadow 0.15s',
         '&:active': { transform: 'scale(0.97)' },
+        '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
       }}
     >
       <Box sx={{
@@ -214,8 +215,8 @@ function RecentTile({ dt, tpl, onClick }) {
       }}>
         <AutoAwesomeIcon sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 22 }} />
       </Box>
-      <Box sx={{ bgcolor: '#1e1e2e', p: 1 }}>
-        <Typography sx={{ color: '#e2e8f0', fontSize: '0.7rem', fontWeight: 500 }} noWrap>{dt.label}</Typography>
+      <Box sx={{ bgcolor: '#ffffff', p: 1 }}>
+        <Typography sx={{ color: '#1e293b', fontSize: '0.7rem', fontWeight: 500 }} noWrap>{dt.label}</Typography>
         <Typography sx={{ color: '#64748b', fontSize: '0.62rem' }}>{tpl.label}</Typography>
       </Box>
     </Box>
@@ -228,8 +229,9 @@ function HomeNavItem({ icon, label, active, onClick }) {
     <Box onClick={onClick} sx={{
       flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
       gap: 0.3, py: 1, cursor: 'pointer',
-      color: active ? '#a78bfa' : '#64748b',
-      '&:hover': { color: '#e2e8f0' },
+      color: active ? '#7c3aed' : '#64748b',
+      '&:hover': { color: '#1e293b' },
+      transition: 'color 0.15s',
     }}>
       {icon}
       <Typography sx={{ fontSize: '0.62rem', fontWeight: active ? 700 : 400 }}>{label}</Typography>
@@ -665,14 +667,14 @@ export default function DocumentMaker() {
   ════════════════════════════════════════════════════════════ */
   if (view === 'home') {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#0f0f1a' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#f8fafc' }}>
 
         {/* Header */}
-        <Box sx={{ px: 2, pt: 2, pb: 1, bgcolor: '#0f0f1a', flexShrink: 0 }}>
+        <Box sx={{ px: 2, pt: 2, pb: 1, bgcolor: '#f8fafc', flexShrink: 0 }}>
           <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
-            <Typography sx={{ color: '#e2e8f0', fontWeight: 700, fontSize: '1.1rem' }}>Document Maker</Typography>
+            <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '1.1rem' }}>Document Maker</Typography>
             <Stack direction="row" spacing={0.5} alignItems="center">
-              <Chip size="small" label="Pro" sx={{ bgcolor: '#7c3aed22', color: '#a78bfa', fontSize: '0.65rem', height: 22 }} />
+              <Chip size="small" label="Pro" sx={{ bgcolor: '#7c3aed22', color: '#7c3aed', fontSize: '0.65rem', height: 22, fontWeight: 600 }} />
             </Stack>
           </Stack>
           {/* Search */}
@@ -681,16 +683,16 @@ export default function DocumentMaker() {
             placeholder="Search templates…"
             size="small" fullWidth
             InputProps={{
-              startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: '#64748b', fontSize: 18 }} /></InputAdornment>,
+              startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: '#94a3b8', fontSize: 18 }} /></InputAdornment>,
             }}
             sx={{
               '& .MuiOutlinedInput-root': {
-                bgcolor: '#1e1e2e', borderRadius: 3, color: '#e2e8f0',
-                '& fieldset': { borderColor: '#2a2a3e' },
-                '&:hover fieldset': { borderColor: '#3a3a5e' },
+                bgcolor: '#ffffff', borderRadius: 3, color: '#1e293b',
+                '& fieldset': { borderColor: '#e2e8f0' },
+                '&:hover fieldset': { borderColor: '#cbd5e1' },
                 '&.Mui-focused fieldset': { borderColor: '#7c3aed' },
               },
-              '& .MuiInputBase-input::placeholder': { color: '#64748b', opacity: 1 },
+              '& .MuiInputBase-input::placeholder': { color: '#94a3b8', opacity: 1 },
             }}
           />
         </Box>
@@ -700,7 +702,7 @@ export default function DocumentMaker() {
 
           {/* Explore templates */}
           <Box sx={{ px: 2, pt: 1, pb: 2 }}>
-            <Typography sx={{ color: '#e2e8f0', fontWeight: 700, fontSize: '0.9rem', mb: 1.5 }}>Explore templates</Typography>
+            <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '0.9rem', mb: 1.5 }}>Explore templates</Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
               {filteredDTs.map(dt => (
                 <CategoryCard key={dt.key} dt={dt} onClick={() => openEditor(dt.key, 0)} />
@@ -711,7 +713,7 @@ export default function DocumentMaker() {
           {/* Inspired by your designs */}
           {homeNav === 0 && (
             <Box sx={{ px: 2, pb: 3 }}>
-              <Typography sx={{ color: '#e2e8f0', fontWeight: 700, fontSize: '0.9rem', mb: 1.5 }}>
+              <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '0.9rem', mb: 1.5 }}>
                 Inspired by your designs
               </Typography>
               <Box sx={{
@@ -730,23 +732,23 @@ export default function DocumentMaker() {
             <Box sx={{ px: 2, pb: 3 }}>
               {savedDesigns.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 5 }}>
-                  <FolderOpenIcon sx={{ fontSize: 48, color: '#2a2a3e', mb: 1 }} />
+                  <FolderOpenIcon sx={{ fontSize: 48, color: '#cbd5e1', mb: 1 }} />
                   <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>No saved designs yet</Typography>
-                  <Typography sx={{ color: '#475569', fontSize: '0.75rem', mt: 0.5 }}>Create a design to see it here</Typography>
+                  <Typography sx={{ color: '#94a3b8', fontSize: '0.75rem', mt: 0.5 }}>Create a design to see it here</Typography>
                 </Box>
               ) : (
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
                   {savedDesigns.map(d => (
-                    <Box key={d.design_uuid} sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid #2a2a3e', cursor: 'pointer', '&:hover': { border: '1px solid #7c3aed55' } }}>
-                      <Box onClick={() => loadDesign(d)} sx={{ height: 80, bgcolor: '#1e1e2e', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                        {d.thumbnail ? <img src={d.thumbnail} alt={d.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} /> : <AutoAwesomeIcon sx={{ color: '#3a3a5e', fontSize: 28 }} />}
+                    <Box key={d.design_uuid} sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid #e2e8f0', cursor: 'pointer', '&:hover': { border: '1px solid #7c3aed55', boxShadow: '0 2px 8px rgba(124,58,237,0.1)' } }}>
+                      <Box onClick={() => loadDesign(d)} sx={{ height: 80, bgcolor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                        {d.thumbnail ? <img src={d.thumbnail} alt={d.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} /> : <AutoAwesomeIcon sx={{ color: '#cbd5e1', fontSize: 28 }} />}
                       </Box>
-                      <Box sx={{ bgcolor: '#1a1a2e', p: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box sx={{ bgcolor: '#ffffff', p: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9' }}>
                         <Box sx={{ minWidth: 0 }}>
-                          <Typography sx={{ color: '#e2e8f0', fontSize: '0.72rem', fontWeight: 500 }} noWrap>{d.name}</Typography>
+                          <Typography sx={{ color: '#1e293b', fontSize: '0.72rem', fontWeight: 500 }} noWrap>{d.name}</Typography>
                           <Typography sx={{ color: '#64748b', fontSize: '0.62rem' }}>{DOC_TYPES.find(dt => dt.key === d.docType)?.label}</Typography>
                         </Box>
-                        <IconButton size="small" onClick={e => { e.stopPropagation(); deleteDesign(d); }} sx={{ color: '#64748b', p: 0.25 }}>
+                        <IconButton size="small" onClick={e => { e.stopPropagation(); deleteDesign(d); }} sx={{ color: '#94a3b8', p: 0.25, '&:hover': { color: '#ef4444' } }}>
                           <DeleteOutlineIcon sx={{ fontSize: 15 }} />
                         </IconButton>
                       </Box>
@@ -762,18 +764,18 @@ export default function DocumentMaker() {
             <Box sx={{ px: 2, pb: 3 }}>
               {DOC_TYPES.map(dt => (
                 <Box key={dt.key} sx={{ mb: 3 }}>
-                  <Typography sx={{ color: '#e2e8f0', fontWeight: 600, fontSize: '0.85rem', mb: 1 }}>{dt.label}</Typography>
+                  <Typography sx={{ color: '#1e293b', fontWeight: 600, fontSize: '0.85rem', mb: 1 }}>{dt.label}</Typography>
                   <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
                     {(TEMPLATES[dt.key] || []).map((tpl, i) => (
                       <Box key={tpl.id} onClick={() => openEditor(dt.key, i)} sx={{
                         width: 96, flexShrink: 0, cursor: 'pointer', borderRadius: 2, overflow: 'hidden',
-                        border: '1px solid #2a2a3e', '&:hover': { border: '1px solid #7c3aed55' },
+                        border: '1px solid #e2e8f0', '&:hover': { border: '1px solid #7c3aed55', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' },
                       }}>
                         <Box sx={{ height: 64, background: `linear-gradient(135deg, ${tpl.thumb}cc, ${tpl.thumb})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <AutoAwesomeIcon sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 20 }} />
                         </Box>
-                        <Box sx={{ bgcolor: '#1e1e2e', p: 0.75 }}>
-                          <Typography sx={{ color: '#e2e8f0', fontSize: '0.65rem', fontWeight: 500 }}>{tpl.label}</Typography>
+                        <Box sx={{ bgcolor: '#ffffff', p: 0.75 }}>
+                          <Typography sx={{ color: '#1e293b', fontSize: '0.65rem', fontWeight: 500 }}>{tpl.label}</Typography>
                         </Box>
                       </Box>
                     ))}
@@ -784,7 +786,7 @@ export default function DocumentMaker() {
               {/* Custom / admin-uploaded templates */}
               <Box sx={{ mt: 1 }}>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
-                  <Typography sx={{ color: '#e2e8f0', fontWeight: 600, fontSize: '0.85rem' }}>Your Custom Templates</Typography>
+                  <Typography sx={{ color: '#1e293b', fontWeight: 600, fontSize: '0.85rem' }}>Your Custom Templates</Typography>
                   {isAdmin && (
                     <Button
                       size="small"
@@ -808,13 +810,13 @@ export default function DocumentMaker() {
                       <Box key={ct.template_uuid} sx={{ position: 'relative', flexShrink: 0 }}>
                         <Box
                           onClick={() => handleUseCustomTemplate(ct.imageUrl)}
-                          sx={{ width: 96, cursor: 'pointer', borderRadius: 2, overflow: 'hidden', border: '1px solid #2a2a3e', '&:hover': { border: '1px solid #7c3aed55' } }}
+                          sx={{ width: 96, cursor: 'pointer', borderRadius: 2, overflow: 'hidden', border: '1px solid #e2e8f0', '&:hover': { border: '1px solid #7c3aed55', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } }}
                         >
                           <Box sx={{ height: 64, overflow: 'hidden' }}>
                             <img src={ct.thumbUrl || ct.imageUrl} alt={ct.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           </Box>
-                          <Box sx={{ bgcolor: '#1e1e2e', p: 0.75 }}>
-                            <Typography sx={{ color: '#e2e8f0', fontSize: '0.65rem', fontWeight: 500 }} noWrap>{ct.name}</Typography>
+                          <Box sx={{ bgcolor: '#ffffff', p: 0.75 }}>
+                            <Typography sx={{ color: '#1e293b', fontSize: '0.65rem', fontWeight: 500 }} noWrap>{ct.name}</Typography>
                           </Box>
                         </Box>
                         {isAdmin && (
@@ -868,7 +870,7 @@ export default function DocumentMaker() {
         </Dialog>
 
         {/* Bottom nav */}
-        <Box sx={{ bgcolor: '#1e1e2e', borderTop: '1px solid #2a2a3e', display: 'flex', flexShrink: 0 }}>
+        <Box sx={{ bgcolor: '#ffffff', borderTop: '1px solid #e2e8f0', display: 'flex', flexShrink: 0, boxShadow: '0 -1px 8px rgba(0,0,0,0.06)' }}>
           <HomeNavItem icon={<AddCircleOutlineIcon fontSize="small" />} label="Create" active={homeNav === 0} onClick={() => setHomeNav(0)} />
           <HomeNavItem icon={<FolderOpenIcon fontSize="small" />} label="Your Designs" active={homeNav === 1} onClick={() => setHomeNav(1)} />
           <HomeNavItem icon={<ViewModuleIcon fontSize="small" />} label="Templates" active={homeNav === 2} onClick={() => setHomeNav(2)} />
@@ -882,33 +884,34 @@ export default function DocumentMaker() {
      EDITOR VIEW
   ════════════════════════════════════════════════════════════ */
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#1a1a2e', overflow: 'hidden' }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#f1f5f9', overflow: 'hidden' }}>
 
       {/* Hidden file inputs */}
       <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleImageFile(e, 'Photo')} />
       <input ref={sigInputRef}  type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleImageFile(e, 'Signature')} />
 
-      {/* ── Top bar (Canva-style minimal) ──────────────────── */}
+      {/* Top bar */}
       <Box sx={{
-        bgcolor: '#16213e', borderBottom: '1px solid #1e2a4a',
+        bgcolor: '#ffffff', borderBottom: '1px solid #e2e8f0',
         px: 1.5, py: 1, display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0,
+        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
       }}>
-        <IconButton onClick={() => setView('home')} size="small" sx={{ color: '#94a3b8' }}>
+        <IconButton onClick={() => setView('home')} size="small" sx={{ color: '#64748b' }}>
           <HomeIcon fontSize="small" />
         </IconButton>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ color: '#e2e8f0', fontWeight: 600, fontSize: '0.825rem' }} noWrap>
+          <Typography sx={{ color: '#1e293b', fontWeight: 600, fontSize: '0.825rem' }} noWrap>
             {currentDT?.label}
           </Typography>
         </Box>
         <Tooltip title="More options">
-          <IconButton size="small" sx={{ color: '#94a3b8' }}><MoreHorizIcon fontSize="small" /></IconButton>
+          <IconButton size="small" sx={{ color: '#64748b' }}><MoreHorizIcon fontSize="small" /></IconButton>
         </Tooltip>
         <Tooltip title="Download PNG">
-          <IconButton size="small" onClick={exportPNG} sx={{ color: '#94a3b8' }}><DownloadIcon fontSize="small" /></IconButton>
+          <IconButton size="small" onClick={exportPNG} sx={{ color: '#64748b' }}><DownloadIcon fontSize="small" /></IconButton>
         </Tooltip>
         <Tooltip title="Share">
-          <IconButton size="small" sx={{ color: '#94a3b8' }}><ShareIcon fontSize="small" /></IconButton>
+          <IconButton size="small" sx={{ color: '#64748b' }}><ShareIcon fontSize="small" /></IconButton>
         </Tooltip>
         <Tooltip title="Save Design">
           <IconButton
@@ -942,7 +945,7 @@ export default function DocumentMaker() {
         <Box sx={{
           transform: `scale(${scale})`,
           transformOrigin: 'top center',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.7)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
           borderRadius: 2,
           overflow: 'hidden',
           display: ready ? 'block' : 'none',
@@ -951,18 +954,19 @@ export default function DocumentMaker() {
         </Box>
       </Box>
 
-      {/* ── Bottom toolbar (Canva-style tabs) ──────────────── */}
+      {/* Bottom toolbar */}
       <Box sx={{
-        bgcolor: '#16213e', borderTop: '1px solid #1e2a4a',
+        bgcolor: '#ffffff', borderTop: '1px solid #e2e8f0',
         flexShrink: 0, maxHeight: 220, display: 'flex', flexDirection: 'column',
+        boxShadow: '0 -1px 8px rgba(0,0,0,0.06)',
       }}>
         <Tabs
           value={toolTab} onChange={(_, v) => setToolTab(v)}
           variant="scrollable" scrollButtons="auto"
           sx={{
-            minHeight: 44, borderBottom: '1px solid #1e2a4a',
+            minHeight: 44, borderBottom: '1px solid #e2e8f0',
             '& .MuiTab-root': { minHeight: 44, py: 0, fontSize: '0.75rem', fontWeight: 600, textTransform: 'none', color: '#64748b' },
-            '& .Mui-selected': { color: '#a78bfa !important' },
+            '& .Mui-selected': { color: '#7c3aed !important' },
             '& .MuiTabs-indicator': { bgcolor: '#7c3aed' },
           }}
         >
@@ -997,11 +1001,11 @@ export default function DocumentMaker() {
                 <Box key={label} onClick={action} sx={{
                   flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
                   gap: 0.5, cursor: 'pointer', p: 1, borderRadius: 2, minWidth: 60,
-                  border: '1px solid #1e2a4a', bgcolor: '#1a1a2e',
-                  '&:hover': { bgcolor: '#1e2a4a', borderColor: '#7c3aed55' },
+                  border: '1px solid #e2e8f0', bgcolor: '#f8fafc',
+                  '&:hover': { bgcolor: '#f1f5f9', borderColor: '#7c3aed55', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' },
                 }}>
-                  <Box sx={{ color: '#a78bfa' }}>{icon}</Box>
-                  <Typography sx={{ fontSize: '0.62rem', fontWeight: 500, color: '#94a3b8' }}>{label}</Typography>
+                  <Box sx={{ color: '#7c3aed' }}>{icon}</Box>
+                  <Typography sx={{ fontSize: '0.62rem', fontWeight: 500, color: '#64748b' }}>{label}</Typography>
                 </Box>
               ))}
             </Box>
@@ -1030,13 +1034,13 @@ export default function DocumentMaker() {
                       />
                       <Tooltip title="Bold">
                         <IconButton size="small" onClick={() => { const v = !isBold; setIsBold(v); applyFontProp('fontWeight', v ? 'bold' : 'normal'); }}
-                          sx={{ bgcolor: isBold ? '#7c3aed' : '#1e2a4a', color: isBold ? '#fff' : '#94a3b8' }}>
+                          sx={{ bgcolor: isBold ? '#7c3aed' : '#f1f5f9', color: isBold ? '#fff' : '#64748b', border: '1px solid #e2e8f0' }}>
                           <FormatBoldIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Italic">
                         <IconButton size="small" onClick={() => { const v = !isItalic; setIsItalic(v); applyFontProp('fontStyle', v ? 'italic' : 'normal'); }}
-                          sx={{ bgcolor: isItalic ? '#7c3aed' : '#1e2a4a', color: isItalic ? '#fff' : '#94a3b8' }}>
+                          sx={{ bgcolor: isItalic ? '#7c3aed' : '#f1f5f9', color: isItalic ? '#fff' : '#64748b', border: '1px solid #e2e8f0' }}>
                           <FormatItalicIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Tooltip>
@@ -1059,26 +1063,26 @@ export default function DocumentMaker() {
               <Stack direction="row" spacing={1} alignItems="center">
                 <Select value={fillStudent} onChange={e => { setFillStudent(e.target.value); fillFromStudent(e.target.value); }}
                   displayEmpty size="small"
-                  sx={{ flex: 1, bgcolor: '#1e2a4a', color: '#e2e8f0', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#1e2a4a' } }}>
-                  <MenuItem value=""><em style={{ color: '#64748b' }}>Fill from student…</em></MenuItem>
+                  sx={{ flex: 1, bgcolor: '#f1f5f9', color: '#1e293b', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}>
+                  <MenuItem value=""><em style={{ color: '#94a3b8' }}>Fill from student…</em></MenuItem>
                   {students.map(s => <MenuItem key={s.uuid || s._id} value={s.uuid || s._id}>{s.firstName} {s.lastName}</MenuItem>)}
                 </Select>
               </Stack>
               <Stack direction="row" spacing={1} flexWrap="wrap">
                 <Button size="small" startIcon={<DownloadIcon />} onClick={exportPNG}
-                  sx={{ flex: 1, bgcolor: '#1e2a4a', color: '#e2e8f0', '&:hover': { bgcolor: '#243350' } }}>PNG</Button>
+                  sx={{ flex: 1, bgcolor: '#f1f5f9', color: '#1e293b', border: '1px solid #e2e8f0', '&:hover': { bgcolor: '#e2e8f0' } }}>PNG</Button>
                 <Button size="small" startIcon={<PictureAsPdfIcon />} onClick={exportPDF} disabled={exporting}
-                  sx={{ flex: 1, bgcolor: '#7c3aed22', color: '#a78bfa', '&:hover': { bgcolor: '#7c3aed33' } }}>PDF</Button>
+                  sx={{ flex: 1, bgcolor: '#7c3aed22', color: '#7c3aed', border: '1px solid #7c3aed33', '&:hover': { bgcolor: '#7c3aed33' } }}>PDF</Button>
               </Stack>
               <Stack direction="row" spacing={1} alignItems="center">
                 <Select value={selBatch} onChange={e => setSelBatch(e.target.value)} displayEmpty size="small"
-                  sx={{ flex: 1, bgcolor: '#1e2a4a', color: '#e2e8f0', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#1e2a4a' } }}>
-                  <MenuItem value=""><em style={{ color: '#64748b' }}>Select batch for bulk…</em></MenuItem>
+                  sx={{ flex: 1, bgcolor: '#f1f5f9', color: '#1e293b', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}>
+                  <MenuItem value=""><em style={{ color: '#94a3b8' }}>Select batch for bulk…</em></MenuItem>
                   {batches.map(b => <MenuItem key={b._id} value={b.batch_name || b._id}>{b.batch_name}</MenuItem>)}
                 </Select>
                 <Button size="small" startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <FolderZipIcon />}
                   onClick={generateBatchZip} disabled={generating || !batchStudents.length}
-                  sx={{ flexShrink: 0, bgcolor: '#1e2a4a', color: '#e2e8f0' }}>
+                  sx={{ flexShrink: 0, bgcolor: '#f1f5f9', color: '#1e293b', border: '1px solid #e2e8f0', '&:hover': { bgcolor: '#e2e8f0' } }}>
                   {generating ? '…' : `ZIP (${batchStudents.length})`}
                 </Button>
               </Stack>

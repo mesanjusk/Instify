@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Suspense, lazy } from 'react-router-dom';
+import { CircularProgress, Box } from '@mui/material';
 
 import DashboardLayout from './layouts/DashboardLayout';
 import SectionLayout from './layouts/SectionLayout';
@@ -45,15 +46,23 @@ import Fees from './pages/Fees';
 import ToolsPanel from './pages/ToolsPanel';
 import AllTransaction3 from './reports/allTransaction3';
 import WhatsAppIntegrationSettingsPage from './modules/whatsapp/pages/WhatsAppIntegrationSettingsPage';
-import BaileysWhatsApp from './pages/BaileysWhatsApp';
+const BaileysWhatsApp = lazy(() => import('./pages/BaileysWhatsApp'));
+const CanvasEditor = lazy(() => import('./pages/CanvasEditor'));
 import UpiPayment from './pages/UpiPayment';
 import CsvImport from './pages/CsvImport';
-import CanvasEditor from './pages/CanvasEditor';
 import BulkDownload from './pages/BulkDownload';
 import Employees from './pages/Employees';
 import TrialBalance from './pages/TrialBalance';
 import ProfitLoss from './pages/ProfitLoss';
 import FunnelReport from './pages/FunnelReport';
+
+function PageLoader() {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', minHeight: 200 }}>
+      <CircularProgress size={32} sx={{ color: '#075E54' }} />
+    </Box>
+  );
+}
 
 export default function App() {
   return (
@@ -73,7 +82,9 @@ export default function App() {
         element={
           <PrivateRoute>
             <SectionLayout title="WhatsApp Bot" subtitle="Automation & messaging" color="#075E54">
-              <BaileysWhatsApp />
+              <Suspense fallback={<PageLoader />}>
+                <BaileysWhatsApp />
+              </Suspense>
             </SectionLayout>
           </PrivateRoute>
         }
@@ -83,7 +94,9 @@ export default function App() {
         element={
           <PrivateRoute>
             <SectionLayout title="Document Maker" subtitle="ID cards · Certificates · Results" color="#7c3aed">
-              <CanvasEditor />
+              <Suspense fallback={<PageLoader />}>
+                <CanvasEditor />
+              </Suspense>
             </SectionLayout>
           </PrivateRoute>
         }
