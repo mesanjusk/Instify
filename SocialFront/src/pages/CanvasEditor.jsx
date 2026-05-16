@@ -281,6 +281,12 @@ export default function DocumentMaker() {
   const [batchStudents,setBatchStudents]= useState([]);
   const [loadingBatch, setLoadingBatch] = useState(false);
   const [searchTerm,   setSearchTerm]   = useState('');
+  const [savedDesigns, setSavedDesigns] = useState([]);
+  const [savingDesign, setSavingDesign] = useState(false);
+  const [designName,   setDesignName]   = useState('');
+  const [currentDesignId, setCurrentDesignId] = useState(null);
+  const [fillStudent,  setFillStudent]  = useState('');
+  const [students,     setStudents]     = useState([]);
 
   const instituteName = localStorage.getItem('institute_title') || 'Your Institute';
 
@@ -450,10 +456,94 @@ export default function DocumentMaker() {
     setTimeout(() => initCanvas(docType, idx), 0);
   }
 
+  async function saveDesign() {
+    if (!fabricRef.current) return;
+    setSavingDesign(true);
+    try {
+      const canvasJSON = JSON.stringify(fabricRef.current.toJSON());
+      const thumbnail = fabricRef.current.toDataURL({ format: 'png', multiplier: 0.3 });
+      const uuid = localStorage.getItem('institute_uuid');
+      const payload = {
+        institute_uuid: uuid,
+        name: designName || `${currentDT?.label} ${new Date().toLocaleDateString('en-IN')}`,
+        docType, templateId: templates[selectedTpl]?.id,
+        canvasJSON, thumbnail,
+      };
+      if (currentDesignId) {
+        await apiClient.put(`/api/designs/${currentDesignId}`, payload);
+      } else {
+        const res = await apiClient.post('/api/designs', payload);
+        setCurrentDesignId(res.data.result?.design_uuid);
+      }
+      showAlert('success', 'Design saved!');
+      loadSavedDesigns();
+    } catch { showAlert('error', 'Save failed'); }
+    finally { setSavingDesign(false); }
+  }
+
+  async function loadSavedDesigns() {
+    const uuid = localStorage.getItem('institute_uuid'); if (!uuid) return;
+    try {
+      const res = await apiClient.get(`/api/designs?institute_uuid=${uuid}`);
+      setSavedDesigns(res.data?.result || []);
+    } catch { setSavedDesigns([]); }
+  }
+
+  async function loadDesign(design) {
+    setDocType(design.docType);
+    setCurrentDesignId(design.design_uuid);
+    setDesignName(design.name);
+    setView('editor');
+    setReady(false);
+    setTimeout(async () => {
+      const { fabric } = await getFabric();
+      if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
+      if (!canvasRef.current) return;
+      const { w, h } = DOC_TYPES.find(d => d.key === design.docType).dims;
+      const fc = new fabric.Canvas(canvasRef.current, { width: w, height: h, selection: true });
+      fabricRef.current = fc;
+      fc.on('selection:created', handleSelect);
+      fc.on('selection:updated', handleSelect);
+      fc.on('selection:cleared', () => setSelectedObj(null));
+      if (design.canvasJSON) {
+        fc.loadFromJSON(JSON.parse(design.canvasJSON), () => { fc.renderAll(); setReady(true); setTimeout(updateScale, 50); });
+      } else {
+        setReady(true);
+      }
+    }, 0);
+  }
+
+  async function deleteDesign(design) {
+    if (!window.confirm(`Delete "${design.name}"?`)) return;
+    try {
+      await apiClient.delete(`/api/designs/${design.design_uuid}`);
+      loadSavedDesigns();
+    } catch { showAlert('error', 'Delete failed'); }
+  }
+
+  async function fillFromStudent(studentId) {
+    const student = students.find(s => s.uuid === studentId || s._id === studentId);
+    if (!student || !fabricRef.current) return;
+    const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
+    setReady(false);
+    await seedCanvas(fabricRef.current, docType, tpl, {
+      name: `${student.firstName || ''} ${student.lastName || ''}`.trim() || 'Student',
+      rollNo: student.rollNo || student.roll_number || '—',
+      course: student.course || '—',
+      batch: student.batch || '—',
+    }, instituteName);
+    setReady(true);
+    updateScale();
+  }
+
   useEffect(() => {
     const uuid = localStorage.getItem('institute_uuid'); if (!uuid) return;
     apiClient.get(`/api/batches?institute_uuid=${uuid}`)
       .then(r => setBatches(Array.isArray(r.data?.result) ? r.data.result : []))
+      .catch(() => {});
+    loadSavedDesigns();
+    apiClient.get(`/api/students?institute_uuid=${uuid}`)
+      .then(r => setStudents(Array.isArray(r.data?.result) ? r.data.result : []))
       .catch(() => {});
   }, []);
 
@@ -542,12 +632,33 @@ export default function DocumentMaker() {
 
           {/* Your Designs tab */}
           {homeNav === 1 && (
-            <Box sx={{ px: 2, pb: 3, textAlign: 'center' }}>
-              <Box sx={{ py: 5 }}>
-                <FolderOpenIcon sx={{ fontSize: 48, color: '#2a2a3e', mb: 1 }} />
-                <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>No saved designs yet</Typography>
-                <Typography sx={{ color: '#475569', fontSize: '0.75rem', mt: 0.5 }}>Create a design to see it here</Typography>
-              </Box>
+            <Box sx={{ px: 2, pb: 3 }}>
+              {savedDesigns.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 5 }}>
+                  <FolderOpenIcon sx={{ fontSize: 48, color: '#2a2a3e', mb: 1 }} />
+                  <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>No saved designs yet</Typography>
+                  <Typography sx={{ color: '#475569', fontSize: '0.75rem', mt: 0.5 }}>Create a design to see it here</Typography>
+                </Box>
+              ) : (
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
+                  {savedDesigns.map(d => (
+                    <Box key={d.design_uuid} sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid #2a2a3e', cursor: 'pointer', '&:hover': { border: '1px solid #7c3aed55' } }}>
+                      <Box onClick={() => loadDesign(d)} sx={{ height: 80, bgcolor: '#1e1e2e', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                        {d.thumbnail ? <img src={d.thumbnail} alt={d.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} /> : <AutoAwesomeIcon sx={{ color: '#3a3a5e', fontSize: 28 }} />}
+                      </Box>
+                      <Box sx={{ bgcolor: '#1a1a2e', p: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography sx={{ color: '#e2e8f0', fontSize: '0.72rem', fontWeight: 500 }} noWrap>{d.name}</Typography>
+                          <Typography sx={{ color: '#64748b', fontSize: '0.62rem' }}>{DOC_TYPES.find(dt => dt.key === d.docType)?.label}</Typography>
+                        </Box>
+                        <IconButton size="small" onClick={e => { e.stopPropagation(); deleteDesign(d); }} sx={{ color: '#64748b', p: 0.25 }}>
+                          <DeleteOutlineIcon sx={{ fontSize: 15 }} />
+                        </IconButton>
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              )}
             </Box>
           )}
 
@@ -621,14 +732,14 @@ export default function DocumentMaker() {
         <Tooltip title="Share">
           <IconButton size="small" sx={{ color: '#94a3b8' }}><ShareIcon fontSize="small" /></IconButton>
         </Tooltip>
-        <Tooltip title="Export PDF">
+        <Tooltip title="Save Design">
           <IconButton
             size="small"
-            onClick={exportPDF}
-            disabled={exporting}
+            onClick={saveDesign}
+            disabled={savingDesign}
             sx={{ bgcolor: '#7c3aed', color: '#fff', borderRadius: 1.5, p: 0.75, '&:hover': { bgcolor: '#6d28d9' } }}
           >
-            <CheckIcon fontSize="small" />
+            {savingDesign ? <CircularProgress size={14} color="inherit" /> : <CheckIcon fontSize="small" />}
           </IconButton>
         </Tooltip>
       </Box>
@@ -766,6 +877,15 @@ export default function DocumentMaker() {
           {/* Export tab */}
           {toolTab === 3 && (
             <Stack spacing={1.5}>
+              {/* Fill from student */}
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Select value={fillStudent} onChange={e => { setFillStudent(e.target.value); fillFromStudent(e.target.value); }}
+                  displayEmpty size="small"
+                  sx={{ flex: 1, bgcolor: '#1e2a4a', color: '#e2e8f0', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#1e2a4a' } }}>
+                  <MenuItem value=""><em style={{ color: '#64748b' }}>Fill from student…</em></MenuItem>
+                  {students.map(s => <MenuItem key={s.uuid || s._id} value={s.uuid || s._id}>{s.firstName} {s.lastName}</MenuItem>)}
+                </Select>
+              </Stack>
               <Stack direction="row" spacing={1} flexWrap="wrap">
                 <Button size="small" startIcon={<DownloadIcon />} onClick={exportPNG}
                   sx={{ flex: 1, bgcolor: '#1e2a4a', color: '#e2e8f0', '&:hover': { bgcolor: '#243350' } }}>PNG</Button>

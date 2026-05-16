@@ -82,4 +82,85 @@ router.get("/GetTransactionList", async (req, res) => {
     }
 });
 
+// Trial Balance
+router.get('/trial-balance', async (req, res) => {
+  try {
+    const { institute_uuid } = req.query;
+    if (!institute_uuid) return res.status(400).json({ success: false, message: 'institute_uuid required' });
+
+    const Account = require('../models/Account');
+    const rows = await Transaction.aggregate([
+      { $match: { institute_uuid } },
+      { $unwind: '$Journal_entry' },
+      { $group: { _id: { acct: '$Journal_entry.Account_id', type: '$Journal_entry.Type' }, total: { $sum: '$Journal_entry.Amount' } } },
+    ]);
+
+    const totals = {};
+    rows.forEach(r => {
+      const id = r._id.acct;
+      if (!totals[id]) totals[id] = { debit: 0, credit: 0 };
+      totals[id][r._id.type === 'Debit' ? 'debit' : 'credit'] += r.total;
+    });
+
+    const accounts = await Account.find({ institute_uuid });
+    const result = accounts.map(a => ({
+      name: a.Account_name,
+      group: a.Account_group,
+      debit: totals[a.uuid]?.debit || 0,
+      credit: totals[a.uuid]?.credit || 0,
+    })).filter(r => r.debit > 0 || r.credit > 0);
+
+    const totalDebit = result.reduce((s, r) => s + r.debit, 0);
+    const totalCredit = result.reduce((s, r) => s + r.credit, 0);
+    res.json({ success: true, result, totalDebit, totalCredit });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+// Profit & Loss
+router.get('/pnl', async (req, res) => {
+  try {
+    const { institute_uuid, from, to } = req.query;
+    if (!institute_uuid) return res.status(400).json({ success: false, message: 'institute_uuid required' });
+
+    const Account = require('../models/Account');
+    const match = { institute_uuid };
+    if (from || to) {
+      match.Transaction_date = {};
+      if (from) match.Transaction_date.$gte = new Date(from);
+      if (to) match.Transaction_date.$lte = new Date(to);
+    }
+
+    const rows = await Transaction.aggregate([
+      { $match: match },
+      { $unwind: '$Journal_entry' },
+      { $group: { _id: { acct: '$Journal_entry.Account_id', type: '$Journal_entry.Type' }, total: { $sum: '$Journal_entry.Amount' } } },
+    ]);
+
+    const totals = {};
+    rows.forEach(r => {
+      const id = r._id.acct;
+      if (!totals[id]) totals[id] = { debit: 0, credit: 0 };
+      totals[id][r._id.type === 'Debit' ? 'debit' : 'credit'] += r.total;
+    });
+
+    const accounts = await Account.find({ institute_uuid });
+    const income = [], expense = [];
+
+    accounts.forEach(a => {
+      const grp = (a.Account_group || '').toLowerCase();
+      const d = totals[a.uuid]?.debit || 0;
+      const c = totals[a.uuid]?.credit || 0;
+      if (grp.includes('income') || grp.includes('revenue') || grp.includes('fees')) {
+        income.push({ name: a.Account_name, amount: c - d });
+      } else if (grp.includes('expense') || grp.includes('salary') || grp.includes('cost')) {
+        expense.push({ name: a.Account_name, amount: d - c });
+      }
+    });
+
+    const totalIncome = income.reduce((s, r) => s + r.amount, 0);
+    const totalExpense = expense.reduce((s, r) => s + r.amount, 0);
+    res.json({ success: true, result: { income, expense, totalIncome, totalExpense, netProfit: totalIncome - totalExpense } });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
 module.exports = router;

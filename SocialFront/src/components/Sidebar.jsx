@@ -26,13 +26,17 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import QuizIcon from '@mui/icons-material/Quiz';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
+import BalanceIcon from '@mui/icons-material/Balance';
+import ShowChartIcon from '@mui/icons-material/ShowChart';
+import FunnelIcon from '@mui/icons-material/FilterAlt';
 
 const DRAWER_WIDTH = 256;
 
 export default function Sidebar({ username, open, onClose, variant = 'permanent' }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [expanded, setExpanded] = useState({ academic: true, finance: false, crm: false, features: true, settings: false });
+  const [expanded, setExpanded] = useState({ academic: true, finance: false, crm: false, features: true, hr: false, reports: false, settings: false });
 
   const toggle = (key) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
 
@@ -67,6 +71,15 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
         { label: 'Add Payment', icon: <AccountBalanceWalletIcon fontSize="small" />, path: `/${username}/addPayment` },
         { label: 'Add Receipt', icon: <ReceiptLongIcon fontSize="small" />, path: `/${username}/addReciept` },
         { label: 'Transactions', icon: <AccountBalanceIcon fontSize="small" />, path: `/${username}/allTransaction3` },
+        { label: 'Trial Balance', icon: <BalanceIcon fontSize="small" />, path: `/${username}/trial-balance` },
+        { label: 'Profit & Loss', icon: <ShowChartIcon fontSize="small" />, path: `/${username}/profit-loss` },
+      ],
+    },
+    {
+      key: 'hr',
+      label: 'HR & Payroll',
+      items: [
+        { label: 'Employees', icon: <PeopleOutlineIcon fontSize="small" />, path: `/${username}/employees` },
       ],
     },
     {
@@ -76,6 +89,7 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
         { label: 'Leads', icon: <TrendingUpIcon fontSize="small" />, path: `/${username}/leads` },
         { label: 'Enquiries', icon: <ForumIcon fontSize="small" />, path: `/${username}/enquiry` },
         { label: 'Follow-ups', icon: <EventNoteIcon fontSize="small" />, path: `/${username}/followup` },
+        { label: 'Funnel Report', icon: <FunnelIcon fontSize="small" />, path: `/${username}/funnel-report` },
       ],
     },
     {

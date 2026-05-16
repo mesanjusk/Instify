@@ -182,9 +182,51 @@ function ConnectionPanel({ status, qr, loading, isConnected, onConnect, onDiscon
   );
 }
 
-function AutomationPanel({ automation, isConnected, onToggle }) {
+function AutomationPanel({ automation, isConnected, onToggle, instituteId }) {
+  const [templates, setTemplates] = useState({});
+  const [editing, setEditing]     = useState(null); // key being edited
+  const [editBody, setEditBody]   = useState('');
+  const [saving, setSaving]       = useState(false);
+  const [snack, setSnack]         = useState(null);
+
+  useEffect(() => {
+    if (!instituteId) return;
+    apiClient.get(`/api/message-templates?institute_uuid=${instituteId}`)
+      .then(r => {
+        const map = {};
+        (r.data?.result || []).forEach(t => { map[t.key] = t; });
+        setTemplates(map);
+      })
+      .catch(() => {});
+  }, [instituteId]);
+
+  async function saveTemplate(key) {
+    setSaving(true);
+    try {
+      await apiClient.put(`/api/message-templates/${key}`, { institute_uuid: instituteId, body: editBody });
+      setTemplates(prev => ({ ...prev, [key]: { ...prev[key], body: editBody, isCustom: true } }));
+      setSnack({ type: 'success', text: 'Template saved!' });
+      setEditing(null);
+    } catch { setSnack({ type: 'error', text: 'Save failed' }); }
+    finally { setSaving(false); }
+  }
+
+  async function resetTemplate(key) {
+    try {
+      await apiClient.delete(`/api/message-templates/${key}?institute_uuid=${instituteId}`);
+      const res = await apiClient.get(`/api/message-templates?institute_uuid=${instituteId}`);
+      const map = {};
+      (res.data?.result || []).forEach(t => { map[t.key] = t; });
+      setTemplates(map);
+      setSnack({ type: 'success', text: 'Reset to default' });
+    } catch { setSnack({ type: 'error', text: 'Reset failed' }); }
+  }
+
   return (
     <Box sx={{ p: 2 }}>
+      <Snackbar open={!!snack} autoHideDuration={4000} onClose={() => setSnack(null)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Alert severity={snack?.type || 'info'} onClose={() => setSnack(null)}>{snack?.text}</Alert>
+      </Snackbar>
       {!isConnected && (
         <Box sx={{ bgcolor: '#2d2000', border: '1px solid #f59e0b55', borderRadius: 2, p: 1.5, mb: 2 }}>
           <Typography variant="caption" sx={{ color: '#fbbf24' }}>Connect WhatsApp first to activate automation.</Typography>
@@ -200,9 +242,38 @@ function AutomationPanel({ automation, isConnected, onToggle }) {
               <Box sx={{ flex: 1 }}>
                 <Typography sx={{ color: WA_TEXT, fontWeight: 600, fontSize: '0.85rem' }}>{job.label}</Typography>
                 <Typography sx={{ color: WA_MUTED, fontSize: '0.75rem', mt: 0.3 }}>{job.description}</Typography>
-                <Box sx={{ mt: 1, bgcolor: '#1a2530', borderRadius: 1.5, p: 1.25, borderLeft: `3px solid ${WA_LIGHT}` }}>
-                  <Typography sx={{ color: WA_MUTED, fontSize: '0.72rem', fontStyle: 'italic' }}>"{job.preview}"</Typography>
-                </Box>
+
+                {editing === job.key ? (
+                  <Stack sx={{ mt: 1 }} spacing={1}>
+                    <TextField
+                      multiline rows={4} size="small" value={editBody}
+                      onChange={e => setEditBody(e.target.value)}
+                      placeholder="Use {{name}}, {{date}}, {{course}}, {{amount}}, {{balance}}, {{link}}"
+                      sx={{ ...fieldSx, '& .MuiOutlinedInput-root': { ...fieldSx['& .MuiOutlinedInput-root'], fontSize: '0.78rem' } }}
+                    />
+                    <Typography sx={{ color: WA_MUTED, fontSize: '0.65rem' }}>Variables: {'{{name}} {{date}} {{course}} {{amount}} {{balance}} {{link}}'}</Typography>
+                    <Stack direction="row" spacing={1}>
+                      <Button size="small" onClick={() => saveTemplate(job.key)} disabled={saving}
+                        sx={{ bgcolor: WA_LIGHT, color: '#fff', '&:hover': { bgcolor: '#1ebe57' }, fontSize: '0.72rem' }}>
+                        {saving ? 'Saving…' : 'Save'}
+                      </Button>
+                      <Button size="small" onClick={() => setEditing(null)} sx={{ color: WA_MUTED, fontSize: '0.72rem' }}>Cancel</Button>
+                      {templates[job.key]?.isCustom && (
+                        <Button size="small" color="error" onClick={() => resetTemplate(job.key)} sx={{ fontSize: '0.72rem' }}>Reset</Button>
+                      )}
+                    </Stack>
+                  </Stack>
+                ) : (
+                  <Box sx={{ mt: 1, bgcolor: '#1a2530', borderRadius: 1.5, p: 1.25, borderLeft: `3px solid ${WA_LIGHT}`, cursor: 'pointer' }}
+                    onClick={() => { setEditing(job.key); setEditBody(templates[job.key]?.body || job.preview); }}>
+                    <Typography sx={{ color: WA_MUTED, fontSize: '0.72rem', fontStyle: 'italic' }}>
+                      "{templates[job.key]?.body || job.preview}"
+                    </Typography>
+                    <Typography sx={{ color: WA_LIGHT, fontSize: '0.62rem', mt: 0.5 }}>
+                      {templates[job.key]?.isCustom ? '✎ Custom template — tap to edit' : '✎ Tap to customise'}
+                    </Typography>
+                  </Box>
+                )}
               </Box>
               <Switch
                 checked={automation[job.key]}
@@ -467,7 +538,7 @@ export default function BaileysWhatsApp() {
         </Box>
         <Box sx={{ flex: 1, overflowY: 'auto' }}>
           {panel === 'connect' && <ConnectionPanel status={status} qr={qr} loading={loading} isConnected={isConnected} onConnect={startSession} onDisconnect={disconnect} />}
-          {panel === 'automation' && <AutomationPanel automation={automation} isConnected={isConnected} onToggle={toggleAutomation} />}
+          {panel === 'automation' && <AutomationPanel automation={automation} isConnected={isConnected} onToggle={toggleAutomation} instituteId={instituteId} />}
           {panel === 'broadcast' && <BroadcastPanel isConnected={isConnected} instituteId={instituteId} />}
           {panel === 'magic' && <MagicLinksPanel isConnected={isConnected} instituteId={instituteId} />}
         </Box>
@@ -584,7 +655,7 @@ export default function BaileysWhatsApp() {
             <Stack spacing={1.5}>
               {[
                 { label: 'Connect WhatsApp', desc: isConnected ? '● Connected' : '○ Not connected', icon: <WhatsAppIcon />, action: () => setPanel('connect'), color: isConnected ? WA_LIGHT : WA_MUTED },
-                { label: 'Automation Rules', desc: `${Object.values(automation).filter(Boolean).length} of ${AUTOMATION_JOBS.length} active`, icon: <AutorenewIcon />, action: () => setPanel('automation') },
+                { label: 'Automation & Templates', desc: `${Object.values(automation).filter(Boolean).length} of ${AUTOMATION_JOBS.length} active`, icon: <AutorenewIcon />, action: () => setPanel('automation') },
                 { label: 'Broadcast Messages', desc: 'Send to individuals or bulk', icon: <BroadcastOnPersonalIcon />, action: () => setPanel('broadcast') },
                 { label: 'Magic Links', desc: 'One-click login via WhatsApp', icon: <LinkIcon />, action: () => setPanel('magic') },
               ].map((item) => (

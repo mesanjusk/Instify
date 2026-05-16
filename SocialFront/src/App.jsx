@@ -50,6 +50,10 @@ import UpiPayment from './pages/UpiPayment';
 import CsvImport from './pages/CsvImport';
 import CanvasEditor from './pages/CanvasEditor';
 import BulkDownload from './pages/BulkDownload';
+import Employees from './pages/Employees';
+import TrialBalance from './pages/TrialBalance';
+import ProfitLoss from './pages/ProfitLoss';
+import FunnelReport from './pages/FunnelReport';
 
 export default function App() {
   return (
@@ -143,6 +147,10 @@ export default function App() {
         <Route path="upi-payment" element={<UpiPayment />} />
         <Route path="csv-import" element={<CsvImport />} />
         <Route path="bulk-download" element={<BulkDownload />} />
+        <Route path="employees" element={<Employees />} />
+        <Route path="trial-balance" element={<TrialBalance />} />
+        <Route path="profit-loss" element={<ProfitLoss />} />
+        <Route path="funnel-report" element={<FunnelReport />} />
         {/* Legacy redirects → section routes */}
         <Route path="whatsapp-personal" element={<RedirectToSection section="whatsapp" />} />
         <Route path="canvas-editor" element={<RedirectToSection section="canvas" />} />

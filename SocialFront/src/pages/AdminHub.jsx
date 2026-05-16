@@ -12,6 +12,9 @@ import QrCodeIcon from '@mui/icons-material/QrCode';
 import BusinessIcon from '@mui/icons-material/Business';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
+import BalanceIcon from '@mui/icons-material/Balance';
+import ShowChartIcon from '@mui/icons-material/ShowChart';
 
 function AdminCard({ icon, label, desc, color, onClick }) {
   return (
@@ -64,6 +67,9 @@ export default function AdminHub() {
     { icon: <QrCodeIcon />,              label: 'UPI Payment',          desc: 'UPI QR & collection link',           color: '#7c3aed', path: 'upi-payment' },
     { icon: <UploadFileIcon />,          label: 'CSV Import',           desc: 'Bulk import students/leads',         color: '#0284c7', path: 'csv-import' },
     { icon: <DownloadIcon />,            label: 'Bulk Download',        desc: 'Export ZIP of records',              color: '#64748b', path: 'bulk-download' },
+    { icon: <PeopleOutlineIcon />,       label: 'HR & Payroll',         desc: 'Employees, salary & payslips',       color: '#7c3aed', path: 'employees' },
+    { icon: <BalanceIcon />,             label: 'Trial Balance',        desc: 'All accounts Dr/Cr summary',         color: '#4f46e5', path: 'trial-balance' },
+    { icon: <ShowChartIcon />,           label: 'Profit & Loss',        desc: 'Income vs expense statement',        color: '#10b981', path: 'profit-loss' },
   ];
 
   return (
