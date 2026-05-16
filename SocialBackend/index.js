@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const whatsappRoutes = require('./routes/whatsappRoutes');
 const { initCronJobs } = require('./services/cronService');
+const { autoReconnectSessions } = require('./services/baileysService');
 
 dotenv.config();
 
@@ -22,6 +23,8 @@ mongoose.connect(process.env.MONGO_URI, {
 }).then(() => {
   console.log('✅ Connected to MongoDB');
   initCronJobs();
+  // Restore and reconnect any active WhatsApp sessions after every deploy/restart
+  autoReconnectSessions().catch(e => console.error('autoReconnectSessions:', e.message));
 }).catch((err) => {
   console.error('❌ MongoDB connection error:', err.message);
 });

@@ -1,7 +1,7 @@
 /**
  * Baileys WhatsApp Service
- * Manages per-institute QR-scan WhatsApp sessions.
- * Saves all messages (in/out) to MongoDB. Handles text, image, document, video.
+ * Sessions survive server restarts/deploys by persisting auth files to MongoDB.
+ * On startup, autoReconnectSessions() restores and reconnects all active sessions.
  */
 
 const path = require('path');
@@ -10,6 +10,7 @@ const { Readable } = require('stream');
 const QRCode = require('qrcode');
 const { v2: cloudinary } = require('cloudinary');
 const Message = require('../repositories/Message');
+const WASession = require('../models/WASession');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -28,8 +29,8 @@ function checkRateLimit(instituteId) {
   rateLimiter.set(instituteId, bucket);
 }
 
-function randomDelay(minMs = 2000, maxMs = 4000) {
-  return new Promise(r => setTimeout(r, minMs + Math.random() * (maxMs - minMs)));
+function randomDelay(min = 2000, max = 4000) {
+  return new Promise(r => setTimeout(r, min + Math.random() * (max - min)));
 }
 
 const SESSION_DIR = path.join(__dirname, '../baileys_sessions');
@@ -51,6 +52,44 @@ async function getBaileys() {
 function normaliseJid(jid = '') {
   return jid.split('@')[0].replace(/\D/g, '');
 }
+
+/* ── Session persistence helpers ────────────────────────────── */
+
+async function backupSession(instituteId, sessionPath) {
+  try {
+    if (!fs.existsSync(sessionPath)) return;
+    const files = {};
+    for (const file of fs.readdirSync(sessionPath)) {
+      try { files[file] = fs.readFileSync(path.join(sessionPath, file), 'utf8'); } catch { /* skip */ }
+    }
+    if (Object.keys(files).length === 0) return;
+    await WASession.updateOne(
+      { institute_uuid: instituteId },
+      { $set: { files, active: true } },
+      { upsert: true }
+    );
+  } catch (e) {
+    console.error('[Baileys] Session backup error:', e.message);
+  }
+}
+
+async function restoreSession(instituteId, sessionPath) {
+  try {
+    const doc = await WASession.findOne({ institute_uuid: instituteId });
+    if (!doc?.files || Object.keys(doc.files).length === 0) return false;
+    if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
+    for (const [fileName, content] of Object.entries(doc.files)) {
+      fs.writeFileSync(path.join(sessionPath, fileName), content, 'utf8');
+    }
+    console.log(`[Baileys] Session restored for ${instituteId}`);
+    return true;
+  } catch (e) {
+    console.error('[Baileys] Session restore error:', e.message);
+    return false;
+  }
+}
+
+/* ── Media helpers ──────────────────────────────────────────── */
 
 async function uploadToCloudinary(buffer, mimeType, instituteId) {
   return new Promise((resolve, reject) => {
@@ -90,10 +129,8 @@ async function saveMessage(institute_uuid, jid, msg, fromMe, downloadFn) {
       let mediaUrl = '';
       const buf = await downloadMedia(msg.imageMessage, 'image', downloadFn);
       if (buf) {
-        try {
-          const r = await uploadToCloudinary(buf, 'image/jpeg', institute_uuid);
-          mediaUrl = r.secure_url;
-        } catch (e) { console.error('[Baileys] Cloudinary image error:', e.message); }
+        try { const r = await uploadToCloudinary(buf, 'image/jpeg', institute_uuid); mediaUrl = r.secure_url; }
+        catch (e) { console.error('[Baileys] Cloudinary image error:', e.message); }
       }
       await Message.create({ ...base, message: msg.imageMessage.caption || '', type: 'image', mediaUrl, mimeType: 'image/jpeg' });
       return;
@@ -105,10 +142,8 @@ async function saveMessage(institute_uuid, jid, msg, fromMe, downloadFn) {
       let mediaUrl = '';
       const buf = await downloadMedia(msg.documentMessage, 'document', downloadFn);
       if (buf) {
-        try {
-          const r = await uploadToCloudinary(buf, mimeType, institute_uuid);
-          mediaUrl = r.secure_url;
-        } catch (e) { console.error('[Baileys] Cloudinary doc error:', e.message); }
+        try { const r = await uploadToCloudinary(buf, mimeType, institute_uuid); mediaUrl = r.secure_url; }
+        catch (e) { console.error('[Baileys] Cloudinary doc error:', e.message); }
       }
       await Message.create({ ...base, message: msg.documentMessage.caption || '', type: 'document', mediaUrl, mimeType, fileName });
       return;
@@ -119,10 +154,8 @@ async function saveMessage(institute_uuid, jid, msg, fromMe, downloadFn) {
       let mediaUrl = '';
       const buf = await downloadMedia(msg.videoMessage, 'video', downloadFn);
       if (buf) {
-        try {
-          const r = await uploadToCloudinary(buf, mimeType, institute_uuid);
-          mediaUrl = r.secure_url;
-        } catch (e) { console.error('[Baileys] Cloudinary video error:', e.message); }
+        try { const r = await uploadToCloudinary(buf, mimeType, institute_uuid); mediaUrl = r.secure_url; }
+        catch (e) { console.error('[Baileys] Cloudinary video error:', e.message); }
       }
       await Message.create({ ...base, message: msg.videoMessage.caption || '', type: 'video', mediaUrl, mimeType });
       return;
@@ -141,17 +174,38 @@ async function saveMessage(institute_uuid, jid, msg, fromMe, downloadFn) {
   }
 }
 
+/* ── Core session management ────────────────────────────────── */
+
 async function startSession(instituteId, onQR, onStatus) {
+  // Prevent duplicate in-progress sessions
+  const existing = sessions.get(instituteId);
+  if (existing && (existing.status === 'connecting' || existing.status === 'connected')) {
+    console.log(`[Baileys] Session ${instituteId} already ${existing.status}, skipping`);
+    return;
+  }
+
   const { makeWASocket, useMultiFileAuthState, DisconnectReason, downloadContentFromMessage } = await getBaileys();
 
   const sessionPath = path.join(SESSION_DIR, instituteId);
   if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
 
+  // Restore auth files from MongoDB if local copy is missing (e.g. after deploy)
+  const hasLocalFiles = fs.readdirSync(sessionPath).length > 0;
+  if (!hasLocalFiles) {
+    await restoreSession(instituteId, sessionPath);
+  }
+
   const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
+
+  // Wrap saveCreds: persist to filesystem AND backup to MongoDB
+  const saveCredsWithBackup = async () => {
+    await saveCreds();
+    await backupSession(instituteId, sessionPath);
+  };
 
   const sock = makeWASocket({
     auth: state,
-    printQRInTerminal: true,
+    printQRInTerminal: false,
     browser: ['Instify', 'Chrome', '1.0.0'],
     connectTimeoutMs: 60000,
     defaultQueryTimeoutMs: 60000,
@@ -180,7 +234,11 @@ async function startSession(instituteId, onQR, onStatus) {
       const loggedOut = code === DisconnectReason.loggedOut;
       if (entry) entry.status = loggedOut ? 'logged_out' : 'disconnected';
       onStatus && onStatus(loggedOut ? 'logged_out' : 'disconnected');
-      if (!loggedOut) {
+
+      if (loggedOut) {
+        // Clear MongoDB backup so we don't auto-reconnect a logged-out session
+        await WASession.updateOne({ institute_uuid: instituteId }, { $set: { active: false, files: {} } });
+      } else {
         console.log(`[Baileys] Reconnecting ${instituteId} in 5s…`);
         setTimeout(() => startSession(instituteId, onQR, onStatus), 5000);
       }
@@ -190,10 +248,12 @@ async function startSession(instituteId, onQR, onStatus) {
       if (entry) { entry.status = 'connected'; entry.qrDataUrl = null; }
       onStatus && onStatus('connected');
       console.log(`[Baileys] ${instituteId} connected`);
+      // Ensure MongoDB has latest backup on successful connect
+      await backupSession(instituteId, sessionPath);
     }
   });
 
-  sock.ev.on('creds.update', saveCreds);
+  sock.ev.on('creds.update', saveCredsWithBackup);
 
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     if (type !== 'notify') return;
@@ -238,7 +298,6 @@ async function sendMedia(instituteId, to, buffer, mimeType, fileName, caption) {
 
   await session.sock.sendMessage(jid, msgObj);
 
-  // Upload to Cloudinary for storage/display
   let mediaUrl = '';
   try {
     const r = await uploadToCloudinary(buffer, mimeType, instituteId);
@@ -263,9 +322,7 @@ async function sendBulk(instituteId, numbers, message) {
       results.push({ number, success: true });
     } catch (err) {
       results.push({ number, success: false, error: err.message });
-      if (err.message.includes('Rate limit')) {
-        await new Promise(r => setTimeout(r, 62000));
-      }
+      if (err.message.includes('Rate limit')) await new Promise(r => setTimeout(r, 62000));
     }
     await randomDelay(2000, 4000);
   }
@@ -278,8 +335,51 @@ async function disconnectSession(instituteId) {
     try { await session.sock.logout(); } catch (_) {}
   }
   sessions.delete(instituteId);
+
+  // Remove local files
   const sessionPath = path.join(SESSION_DIR, instituteId);
   if (fs.existsSync(sessionPath)) fs.rmSync(sessionPath, { recursive: true, force: true });
+
+  // Mark inactive in MongoDB so auto-reconnect skips this institute
+  try {
+    await WASession.updateOne(
+      { institute_uuid: instituteId },
+      { $set: { active: false, files: {} } }
+    );
+  } catch { /* ignore */ }
+}
+
+/**
+ * Called once after MongoDB connects.
+ * Restores session files from MongoDB and reconnects all active sessions
+ * without requiring users to re-scan a QR code.
+ */
+async function autoReconnectSessions() {
+  try {
+    const active = await WASession.find({ active: true }, 'institute_uuid').lean();
+    if (active.length === 0) {
+      console.log('[Baileys] No sessions to auto-reconnect');
+      return;
+    }
+    console.log(`[Baileys] Auto-reconnecting ${active.length} session(s)…`);
+    for (const { institute_uuid } of active) {
+      try {
+        await startSession(
+          institute_uuid,
+          () => {}, // suppress QR output during auto-reconnect
+          (status) => {
+            if (status === 'connected') console.log(`✅ [Baileys] ${institute_uuid} auto-reconnected`);
+            else if (status === 'logged_out') console.log(`⚠️ [Baileys] ${institute_uuid} session expired — re-scan needed`);
+          }
+        );
+        await new Promise(r => setTimeout(r, 1000)); // stagger reconnects
+      } catch (e) {
+        console.error(`[Baileys] Auto-reconnect ${institute_uuid}: ${e.message}`);
+      }
+    }
+  } catch (e) {
+    console.error('[Baileys] autoReconnectSessions error:', e.message);
+  }
 }
 
 function getStatus(instituteId) {
@@ -290,4 +390,8 @@ function getLastQR(instituteId) {
   return sessions.get(instituteId)?.qrDataUrl ?? null;
 }
 
-module.exports = { startSession, sendText, sendMedia, sendBulk, disconnectSession, getStatus, getLastQR };
+module.exports = {
+  startSession, sendText, sendMedia, sendBulk,
+  disconnectSession, getStatus, getLastQR,
+  autoReconnectSessions,
+};
