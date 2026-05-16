@@ -9,6 +9,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 
 import Sidebar from '../components/Sidebar';
 import BottomNav from '../components/BottomNav';
+import FloatingButtons from './floatingButton';
 import { useApp } from '../context/AppContext';
 
 const DRAWER_WIDTH = 256;
@@ -132,6 +133,19 @@ export default function DashboardLayout() {
 
       {/* Mobile bottom navigation */}
       <BottomNav username={username} />
+
+      {/* Floating quick-action button (bottom-right) */}
+      <FloatingButtons
+        direction="up"
+        buttonsList={[
+          { label: '+ Add Student', onClick: () => navigate(`/${username}/students`) },
+          { label: '+ New Admission', onClick: () => navigate(`/${username}/addNewAdd`) },
+          { label: '+ Add Lead', onClick: () => navigate(`/${username}/add-lead`) },
+          { label: 'Collect Fee', onClick: () => navigate(`/${username}/addReciept`) },
+          { label: 'Add Payment', onClick: () => navigate(`/${username}/addPayment`) },
+          { label: 'Attendance', onClick: () => navigate(`/${username}/addAttendance`) },
+        ]}
+      />
     </Box>
   );
 }

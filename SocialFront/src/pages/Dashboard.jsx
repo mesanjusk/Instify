@@ -93,26 +93,6 @@ function FeatureWidget({ icon, iconColor, title, description, buttonLabel, butto
   );
 }
 
-function QuickActionBtn({ label, color, onClick }) {
-  return (
-    <Button
-      fullWidth
-      variant="outlined"
-      onClick={onClick}
-      sx={{
-        borderColor: `${color}60`,
-        color,
-        py: 1.25,
-        fontWeight: 600,
-        fontSize: '0.78rem',
-        borderRadius: 2,
-        '&:hover': { bgcolor: `${color}0e`, borderColor: color },
-      }}
-    >
-      {label}
-    </Button>
-  );
-}
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -176,15 +156,6 @@ export default function Dashboard() {
     { label: "Today's Revenue", value: `₹${(stats.feesToday || 0).toLocaleString()}`, icon: <AttachMoneyIcon sx={{ color: '#10b981', fontSize: 20 }} />, color: '#10b981', onClick: () => navigate(`/${username}/fees`) },
     { label: 'Follow-ups Today', value: stats.followupToday ?? '—', icon: <EventNoteIcon sx={{ color: '#ef4444', fontSize: 20 }} />, color: '#ef4444', onClick: () => navigate(`/${username}/followup`) },
     { label: 'Active Courses', value: stats.courses ?? '—', icon: <LibraryBooksIcon sx={{ color: '#7c3aed', fontSize: 20 }} />, color: '#7c3aed', onClick: () => navigate(`/${username}/courses`) },
-  ];
-
-  const quickActions = [
-    { label: '+ Add Student', color: '#4f46e5', path: `/${username}/students` },
-    { label: '+ New Admission', color: '#10b981', path: `/${username}/addNewAdd` },
-    { label: '+ Add Lead', color: '#f59e0b', path: `/${username}/add-lead` },
-    { label: 'Collect Fee', color: '#ef4444', path: `/${username}/addReciept` },
-    { label: 'Attendance', color: '#06b6d4', path: `/${username}/addAttendance` },
-    { label: 'CSV Import', color: '#64748b', path: `/${username}/csv-import` },
   ];
 
   return (
@@ -256,19 +227,6 @@ export default function Dashboard() {
         />
       </Box>
 
-      {/* Quick Actions */}
-      <Typography variant="subtitle1" fontWeight={700} mb={1.5}>Quick Actions</Typography>
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(6, 1fr)' },
-          gap: 1.5,
-        }}
-      >
-        {quickActions.map((a) => (
-          <QuickActionBtn key={a.label} label={a.label} color={a.color} onClick={() => navigate(a.path)} />
-        ))}
-      </Box>
     </Box>
   );
 }
