@@ -9,7 +9,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
       workbox: {
-        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: /\/api\/baileys\/(chats|messages)/,
@@ -17,8 +17,6 @@ export default defineConfig({
             options: {
               cacheName: 'wa-api-cache',
               networkTimeoutSeconds: 5,
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
-              cacheableResponse: { statuses: [0, 200] },
             },
           },
           {
@@ -26,8 +24,6 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: {
               cacheName: 'cloudinary-media',
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 7 },
-              cacheableResponse: { statuses: [0, 200] },
             },
           },
         ],
