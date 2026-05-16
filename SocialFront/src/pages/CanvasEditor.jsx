@@ -369,6 +369,7 @@ export default function DocumentMaker() {
   const suppressDirtyRef = useRef(false);
   const carouselStatesRef = useRef({});
   const initParamsRef    = useRef(null);   // { type, tplIdx } set by openEditor/switchTemplate
+  const frameInputRef    = useRef(null);
   const historyRef     = useRef([]);
   const historyIdxRef  = useRef(-1);
   const skipHistoryRef = useRef(false);
@@ -747,14 +748,14 @@ export default function DocumentMaker() {
       setIsItalic(obj.fontStyle === 'italic');
       setFontFamily(obj.fontFamily || 'Arial');
       setLetterSp(Math.round(obj.charSpacing || 0));
-      setToolTab(2);
+      setToolTab(2); // → Text tab
     } else if (obj.type === 'image') {
       const bright = obj.filters?.find(f => f.type === 'Brightness')?.brightness ?? 0;
       const cont   = obj.filters?.find(f => f.type === 'Contrast')?.contrast ?? 0;
       setImgBright(bright); setImgContrast(cont);
-      setToolTab(2);
+      setToolTab(3); // → Object tab
     } else {
-      setToolTab(2);
+      setToolTab(3); // → Object tab
     }
   }
 
@@ -901,7 +902,61 @@ export default function DocumentMaker() {
     else if (shape === 'circle')   obj = new fabric.Circle({ left: 60, top: 60, radius: 40, fill: '#e0e7ff', stroke: '#4f46e5', strokeWidth: 1.5 });
     else if (shape === 'triangle') obj = new fabric.Triangle({ left: 60, top: 60, width: 80, height: 80, fill: '#e0e7ff', stroke: '#4f46e5', strokeWidth: 1.5 });
     else if (shape === 'line')     obj = new fabric.Line([0, 0, 150, 0], { left: 60, top: 80, stroke: '#1e293b', strokeWidth: 2 });
-    if (obj) { fc.add(obj); fc.setActiveObject(obj); fc.renderAll(); }
+    if (obj) { fc.add(obj); fc.setActiveObject(obj); fc.renderAll(); pushHistory(); setIsDirty(true); }
+  }
+
+  async function addFrame(shapeType) {
+    const { fabric } = await getFabric();
+    const fc = fabricRef.current; if (!fc) return;
+    const w = shapeType === 'circle' ? 130 : 140;
+    const h = shapeType === 'circle' ? 130 : 180;
+    let border;
+    if (shapeType === 'circle') {
+      border = new fabric.Circle({ radius: w / 2, fill: '#ede9fe', stroke: '#7c3aed', strokeWidth: 2, strokeDashArray: [8, 4] });
+    } else if (shapeType === 'rounded') {
+      border = new fabric.Rect({ width: w, height: h, fill: '#ede9fe', stroke: '#7c3aed', strokeWidth: 2, strokeDashArray: [8, 4], rx: 24, ry: 24 });
+    } else {
+      border = new fabric.Rect({ width: w, height: h, fill: '#ede9fe', stroke: '#7c3aed', strokeWidth: 2, strokeDashArray: [8, 4], rx: 4, ry: 4 });
+    }
+    const cx = w / 2; const cy = shapeType === 'circle' ? w / 2 : h / 2;
+    const lbl = new fabric.Text('+ Photo', { left: cx, top: cy, originX: 'center', originY: 'center', fontSize: 12, fill: '#7c3aed', fontFamily: 'Arial', fontWeight: 'bold', selectable: false, evented: false });
+    const grp = new fabric.Group([border, lbl], { left: 60, top: 60 });
+    grp.__frameType = shapeType;
+    fc.add(grp); fc.setActiveObject(grp); fc.renderAll(); pushHistory(); setIsDirty(true);
+  }
+
+  async function fillFrameWithPhoto(file) {
+    const fc = fabricRef.current;
+    const obj = fc?.getActiveObject();
+    if (!fc || !file) return;
+    const { fabric } = await getFabric();
+    const shapeType = obj?.__frameType || 'rect';
+    const tLeft  = obj ? (obj.left || 0) : 60;
+    const tTop   = obj ? (obj.top  || 0) : 60;
+    const tW     = obj ? obj.getScaledWidth()  : 140;
+    const tH     = obj ? obj.getScaledHeight() : 180;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      fabric.Image.fromURL(ev.target.result, img => {
+        const scale = Math.max(tW / img.width, tH / img.height);
+        img.scale(scale);
+        let clip;
+        if (shapeType === 'circle') {
+          clip = new fabric.Circle({ radius: Math.min(tW, tH) / 2, originX: 'center', originY: 'center' });
+        } else if (shapeType === 'rounded') {
+          clip = new fabric.Rect({ width: tW, height: tH, rx: 24, ry: 24, originX: 'center', originY: 'center' });
+        } else {
+          clip = new fabric.Rect({ width: tW, height: tH, originX: 'center', originY: 'center' });
+        }
+        img.clipPath = clip;
+        img.set({ left: tLeft + tW / 2, top: tTop + tH / 2, originX: 'center', originY: 'center' });
+        if (obj) fc.remove(obj);
+        fc.add(img); fc.setActiveObject(img); fc.renderAll();
+        setSelectedObj(img); setToolTab(3);
+        pushHistory(); setIsDirty(true);
+      }, { crossOrigin: 'anonymous' });
+    };
+    reader.readAsDataURL(file);
   }
 
   async function addSignatureLine() {
@@ -1322,8 +1377,9 @@ export default function DocumentMaker() {
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#f1f5f9', overflow: 'hidden' }}>
 
       {/* Hidden file inputs */}
-      <input ref={fileInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleImageFile(e, 'Photo')} />
-      <input ref={sigInputRef}  type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleImageFile(e, 'Signature')} />
+      <input ref={fileInputRef}   type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleImageFile(e, 'Photo')} />
+      <input ref={sigInputRef}    type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleImageFile(e, 'Signature')} />
+      <input ref={frameInputRef}  type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) fillFrameWithPhoto(e.target.files[0]); e.target.value = ''; }} />
 
       {/* Top bar */}
       <Box sx={{
@@ -1411,31 +1467,35 @@ export default function DocumentMaker() {
         </Box>
       </Box>
 
-      {/* Bottom toolbar — fixed compact height so canvas always wins space */}
+      {/* Bottom toolbar — fixed height, scrollable tabs */}
       <Box sx={{
         bgcolor: '#ffffff', borderTop: '1px solid #e2e8f0',
         flexShrink: 0, height: 168, display: 'flex', flexDirection: 'column',
         boxShadow: '0 -1px 8px rgba(0,0,0,0.06)',
       }}>
+        {/* Scrollable tab bar — 7 focused sections */}
         <Tabs
           value={toolTab} onChange={(_, v) => setToolTab(v)}
           variant="scrollable" scrollButtons="auto"
           sx={{
             minHeight: 36, flexShrink: 0, borderBottom: '1px solid #e2e8f0',
-            '& .MuiTab-root': { minHeight: 36, py: 0, fontSize: '0.72rem', fontWeight: 600, textTransform: 'none', color: '#64748b' },
+            '& .MuiTab-root': { minHeight: 36, py: 0, fontSize: '0.68rem', fontWeight: 600, textTransform: 'none', color: '#64748b', px: 1.25 },
             '& .Mui-selected': { color: '#7c3aed !important' },
             '& .MuiTabs-indicator': { bgcolor: '#7c3aed' },
           }}
         >
           <Tab label="Templates" />
           <Tab label="Add" />
-          <Tab label="Edit" />
+          <Tab label="Text" />
+          <Tab label="Object" />
+          <Tab label="Arrange" />
+          <Tab label="Style" />
           <Tab label="Export" />
         </Tabs>
 
-        <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', p: 1.5 }}>
+        <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', p: 1.25 }}>
 
-          {/* Templates tab */}
+          {/* ── Tab 0: Templates ───────────────────────────── */}
           {toolTab === 0 && (
             <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', pb: 0.5, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
               {templates.map((tpl, idx) => (
@@ -1444,189 +1504,248 @@ export default function DocumentMaker() {
             </Box>
           )}
 
-          {/* Add tab */}
-          {toolTab === 1 && (
-            <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 0.5, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
-              {[
-                { label: 'Text',      icon: <TextFieldsIcon fontSize="small" />,      action: addText },
-                { label: 'Photo',     icon: <ImageIcon fontSize="small" />,            action: () => fileInputRef.current?.click() },
-                { label: 'Gallery',   icon: <AddPhotoAlternateIcon fontSize="small" />,action: () => setGalleryDialog(true) },
-                { label: 'Signature', icon: <DrawIcon fontSize="small" />,             action: () => sigInputRef.current?.click() },
-                { label: 'Sig Line',  icon: <DrawIcon fontSize="small" />,             action: addSignatureLine },
-                { label: 'Rectangle', icon: <LayersIcon fontSize="small" />,           action: () => addShape('rect') },
-                { label: 'Circle',    icon: <LayersIcon fontSize="small" />,           action: () => addShape('circle') },
-                { label: 'Triangle',  icon: <ChangeHistoryIcon fontSize="small" />,    action: () => addShape('triangle') },
-                { label: 'Line',      icon: <HorizontalRuleIcon fontSize="small" />,   action: () => addShape('line') },
-              ].map(({ label, icon, action }) => (
-                <Box key={label} onClick={action} sx={{
-                  flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  gap: 0.5, cursor: 'pointer', p: 1, borderRadius: 2, minWidth: 60,
-                  border: '1px solid #e2e8f0', bgcolor: '#f8fafc',
-                  '&:hover': { bgcolor: '#f1f5f9', borderColor: '#7c3aed55', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' },
-                }}>
-                  <Box sx={{ color: '#7c3aed' }}>{icon}</Box>
-                  <Typography sx={{ fontSize: '0.62rem', fontWeight: 500, color: '#64748b' }}>{label}</Typography>
+          {/* ── Tab 1: Add elements ────────────────────────── */}
+          {toolTab === 1 && (() => {
+            const btn = (label, icon, action) => (
+              <Box key={label} onClick={action} sx={{
+                flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                gap: 0.4, cursor: 'pointer', px: 0.75, py: 0.75, borderRadius: 2, minWidth: 52,
+                border: '1px solid #e2e8f0', bgcolor: '#f8fafc',
+                '&:active': { opacity: 0.7 }, '&:hover': { borderColor: '#7c3aed55', bgcolor: '#f1f5f9' },
+              }}>
+                <Box sx={{ color: '#7c3aed' }}>{icon}</Box>
+                <Typography sx={{ fontSize: '0.6rem', fontWeight: 500, color: '#64748b' }}>{label}</Typography>
+              </Box>
+            );
+            return (
+              <Stack spacing={0.75}>
+                {/* Content */}
+                <Typography sx={{ fontSize: '0.58rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Content</Typography>
+                <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
+                  {btn('Text',    <TextFieldsIcon sx={{ fontSize: 18 }} />,       addText)}
+                  {btn('Photo',   <ImageIcon sx={{ fontSize: 18 }} />,             () => fileInputRef.current?.click())}
+                  {btn('Gallery', <AddPhotoAlternateIcon sx={{ fontSize: 18 }} />, () => setGalleryDialog(true))}
+                  {btn('Sig',     <DrawIcon sx={{ fontSize: 18 }} />,              () => sigInputRef.current?.click())}
+                  {btn('Sig Line',<HorizontalRuleIcon sx={{ fontSize: 18 }} />,   addSignatureLine)}
                 </Box>
-              ))}
-            </Box>
+                {/* Photo Frames (image placeholders) */}
+                <Typography sx={{ fontSize: '0.58rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Photo Frames</Typography>
+                <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
+                  {btn('Rect',    <Box sx={{ width: 18, height: 18, border: '2px dashed #7c3aed', borderRadius: 1 }} />, () => addFrame('rect'))}
+                  {btn('Circle',  <Box sx={{ width: 18, height: 18, border: '2px dashed #7c3aed', borderRadius: '50%' }} />, () => addFrame('circle'))}
+                  {btn('Rounded', <Box sx={{ width: 18, height: 18, border: '2px dashed #7c3aed', borderRadius: 5 }} />, () => addFrame('rounded'))}
+                </Box>
+                {/* Shapes */}
+                <Typography sx={{ fontSize: '0.58rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Shapes</Typography>
+                <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
+                  {btn('Rect',     <LayersIcon sx={{ fontSize: 18 }} />,          () => addShape('rect'))}
+                  {btn('Circle',   <LayersIcon sx={{ fontSize: 18 }} />,          () => addShape('circle'))}
+                  {btn('Triangle', <ChangeHistoryIcon sx={{ fontSize: 18 }} />,   () => addShape('triangle'))}
+                  {btn('Line',     <HorizontalRuleIcon sx={{ fontSize: 18 }} />,  () => addShape('line'))}
+                </Box>
+              </Stack>
+            );
+          })()}
+
+          {/* ── Tab 2: Text ────────────────────────────────── */}
+          {toolTab === 2 && (
+            (selectedObj?.type === 'i-text' || selectedObj?.type === 'text') ? (
+              <Stack spacing={0.75}>
+                <Stack direction="row" alignItems="center" gap={1}>
+                  <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 36 }}>Font</Typography>
+                  <Select value={fontFamily} size="small" onChange={e => { setFontFamily(e.target.value); applyFontProp('fontFamily', e.target.value); }}
+                    sx={{ flex: 1, fontSize: '0.7rem', '& .MuiSelect-select': { py: 0.3, px: 1 } }}>
+                    {['Arial','Georgia','Times New Roman','Verdana','Courier New','Impact','Trebuchet MS','Comic Sans MS'].map(f => (
+                      <MenuItem key={f} value={f} sx={{ fontSize: '0.75rem', fontFamily: f }}>{f}</MenuItem>
+                    ))}
+                  </Select>
+                </Stack>
+                <Stack direction="row" alignItems="center" gap={1}>
+                  <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 36 }}>Size</Typography>
+                  <Slider value={fontSize} min={8} max={120} size="small"
+                    onChange={(_, v) => { setFontSize(v); applyFontProp('fontSize', v); }}
+                    sx={{ flex: 1, color: '#7c3aed', py: 0.5 }} />
+                  <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{fontSize}</Typography>
+                </Stack>
+                <Stack direction="row" alignItems="center" gap={1}>
+                  <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 36 }}>Color</Typography>
+                  <input type="color" value={fontColor} onChange={e => { setFontColor(e.target.value); applyFontProp('fill', e.target.value); }}
+                    style={{ width: 28, height: 24, border: 'none', borderRadius: 4, cursor: 'pointer', padding: 0 }} />
+                  <Tooltip title="Bold">
+                    <IconButton size="small" onClick={() => { const v = !isBold; setIsBold(v); applyFontProp('fontWeight', v ? 'bold' : 'normal'); }}
+                      sx={{ bgcolor: isBold ? '#7c3aed' : '#f1f5f9', color: isBold ? '#fff' : '#64748b', border: '1px solid #e2e8f0', p: 0.4 }}>
+                      <FormatBoldIcon sx={{ fontSize: 14 }} />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title="Italic">
+                    <IconButton size="small" onClick={() => { const v = !isItalic; setIsItalic(v); applyFontProp('fontStyle', v ? 'italic' : 'normal'); }}
+                      sx={{ bgcolor: isItalic ? '#7c3aed' : '#f1f5f9', color: isItalic ? '#fff' : '#64748b', border: '1px solid #e2e8f0', p: 0.4 }}>
+                      <FormatItalicIcon sx={{ fontSize: 14 }} />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+                <Stack direction="row" alignItems="center" gap={1}>
+                  <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 36 }}>Spacing</Typography>
+                  <Slider value={letterSp} min={-100} max={800} size="small"
+                    onChange={(_, v) => { setLetterSp(v); applyFontProp('charSpacing', v); }}
+                    sx={{ flex: 1, color: '#7c3aed', py: 0.5 }} />
+                  <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{letterSp}</Typography>
+                </Stack>
+              </Stack>
+            ) : (
+              <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', pt: 1, textAlign: 'center' }}>
+                Tap a text element on the canvas to edit it
+              </Typography>
+            )
           )}
 
-          {/* Edit tab */}
-          {toolTab === 2 && (
-            <Stack spacing={0.75}>
-              {/* BG color — always visible */}
-              <Stack direction="row" alignItems="center" gap={1}>
-                <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 32 }}>BG Color</Typography>
-                <input type="color" value={bgColor} onChange={e => setCanvasBg(e.target.value)}
-                  style={{ width: 28, height: 22, border: 'none', borderRadius: 4, cursor: 'pointer', padding: 0 }} />
-              </Stack>
-
-              {selectedObj ? (<>
-                {/* Opacity */}
+          {/* ── Tab 3: Object ──────────────────────────────── */}
+          {toolTab === 3 && (
+            selectedObj ? (
+              <Stack spacing={0.75}>
                 <Stack direction="row" alignItems="center" gap={1}>
-                  <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 32 }}>Opacity</Typography>
+                  <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 36 }}>Opacity</Typography>
                   <Slider value={Math.round(objOpacity * 100)} min={0} max={100} size="small"
                     onChange={(_, v) => { const n = v / 100; setObjOpacity(n); applyObjProp('opacity', n); }}
                     sx={{ flex: 1, color: '#7c3aed', py: 0.5 }} />
-                  <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 22 }}>{Math.round(objOpacity * 100)}%</Typography>
+                  <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 24 }}>{Math.round(objOpacity * 100)}%</Typography>
                 </Stack>
-
-                {/* Rotate */}
                 <Stack direction="row" alignItems="center" gap={1}>
-                  <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 32 }}>Rotate</Typography>
+                  <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 36 }}>Rotate</Typography>
                   <Slider value={objAngle} min={0} max={360} size="small"
                     onChange={(_, v) => { setObjAngle(v); applyObjProp('angle', v); }}
                     sx={{ flex: 1, color: '#7c3aed', py: 0.5 }} />
-                  <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 22 }}>{objAngle}°</Typography>
+                  <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 24 }}>{objAngle}°</Typography>
                 </Stack>
-
-                {/* Actions: flip / duplicate / delete */}
-                <Stack direction="row" gap={0.5}>
+                <Stack direction="row" gap={0.5} flexWrap="wrap">
                   {[
-                    { label: 'Flip H',  icon: <SwapHorizIcon sx={{ fontSize: 13 }} />,      action: () => { applyObjProp('flipX', !selectedObj.flipX); } },
-                    { label: 'Flip V',  icon: <SwapVertIcon sx={{ fontSize: 13 }} />,        action: () => { applyObjProp('flipY', !selectedObj.flipY); } },
-                    { label: 'Copy',    icon: <ContentCopyIcon sx={{ fontSize: 13 }} />,     action: duplicateObj },
-                    { label: 'Delete',  icon: <DeleteOutlineIcon sx={{ fontSize: 13 }} />,   action: deleteSelected, red: true },
+                    { label: 'Flip H',  icon: <SwapHorizIcon sx={{ fontSize: 13 }} />,    action: () => applyObjProp('flipX', !selectedObj.flipX) },
+                    { label: 'Flip V',  icon: <SwapVertIcon sx={{ fontSize: 13 }} />,      action: () => applyObjProp('flipY', !selectedObj.flipY) },
+                    { label: 'Copy',    icon: <ContentCopyIcon sx={{ fontSize: 13 }} />,   action: duplicateObj },
+                    { label: 'Delete',  icon: <DeleteOutlineIcon sx={{ fontSize: 13 }} />, action: deleteSelected, red: true },
                   ].map(({ label, icon, action, red }) => (
                     <Box key={label} onClick={action} sx={{
                       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.2,
                       cursor: 'pointer', px: 0.75, py: 0.4, borderRadius: 1.5, border: '1px solid #e2e8f0',
-                      bgcolor: red ? '#fff0f0' : '#f8fafc', minWidth: 40,
-                      '&:active': { opacity: 0.7 },
+                      bgcolor: red ? '#fff0f0' : '#f8fafc', minWidth: 42, '&:active': { opacity: 0.7 },
                     }}>
                       <Box sx={{ color: red ? '#ef4444' : '#7c3aed' }}>{icon}</Box>
                       <Typography sx={{ fontSize: '0.56rem', color: red ? '#ef4444' : '#64748b' }}>{label}</Typography>
                     </Box>
                   ))}
+                  {/* Fill frame with photo if a frame is selected */}
+                  {selectedObj.__frameType && (
+                    <Box onClick={() => frameInputRef.current?.click()} sx={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.2,
+                      cursor: 'pointer', px: 0.75, py: 0.4, borderRadius: 1.5, border: '1px solid #7c3aed55',
+                      bgcolor: '#f5f3ff', minWidth: 52, '&:active': { opacity: 0.7 },
+                    }}>
+                      <ImageIcon sx={{ fontSize: 13, color: '#7c3aed' }} />
+                      <Typography sx={{ fontSize: '0.56rem', color: '#7c3aed' }}>Fill Photo</Typography>
+                    </Box>
+                  )}
                 </Stack>
+                {/* Image-specific: brightness + contrast */}
+                {selectedObj.type === 'image' && (
+                  <>
+                    <Stack direction="row" alignItems="center" gap={1}>
+                      <WbSunnyIcon sx={{ fontSize: 13, color: '#f59e0b', flexShrink: 0 }} />
+                      <Slider value={Math.round(imgBright * 100)} min={-100} max={100} size="small"
+                        onChange={(_, v) => { const n = v / 100; setImgBright(n); applyImageFilter('Brightness', n); }}
+                        sx={{ flex: 1, color: '#f59e0b', py: 0.5 }} />
+                      <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{Math.round(imgBright * 100)}</Typography>
+                    </Stack>
+                    <Stack direction="row" alignItems="center" gap={1}>
+                      <TonalityIcon sx={{ fontSize: 13, color: '#6366f1', flexShrink: 0 }} />
+                      <Slider value={Math.round(imgContrast * 100)} min={-100} max={100} size="small"
+                        onChange={(_, v) => { const n = v / 100; setImgContrast(n); applyImageFilter('Contrast', n); }}
+                        sx={{ flex: 1, color: '#6366f1', py: 0.5 }} />
+                      <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{Math.round(imgContrast * 100)}</Typography>
+                    </Stack>
+                  </>
+                )}
+              </Stack>
+            ) : (
+              <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', pt: 1, textAlign: 'center' }}>
+                Tap an element on the canvas
+              </Typography>
+            )
+          )}
 
-                {/* Alignment */}
-                <Stack direction="row" gap={0.4} alignItems="center">
-                  <Typography sx={{ fontSize: '0.58rem', color: '#94a3b8', mr: 0.25 }}>Align</Typography>
+          {/* ── Tab 4: Arrange ─────────────────────────────── */}
+          {toolTab === 4 && (
+            selectedObj ? (
+              <Stack spacing={1}>
+                <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Align to Canvas</Typography>
+                <Stack direction="row" gap={0.5}>
                   {[
-                    { title: 'Left',     icon: <AlignHorizontalLeftIcon sx={{ fontSize: 13 }} />,   dir: 'left' },
-                    { title: 'H Center', icon: <AlignHorizontalCenterIcon sx={{ fontSize: 13 }} />, dir: 'hcenter' },
-                    { title: 'Right',    icon: <AlignHorizontalRightIcon sx={{ fontSize: 13 }} />,  dir: 'right' },
-                    { title: 'Top',      icon: <AlignVerticalTopIcon sx={{ fontSize: 13 }} />,      dir: 'top' },
-                    { title: 'V Center', icon: <AlignVerticalCenterIcon sx={{ fontSize: 13 }} />,   dir: 'vcenter' },
-                    { title: 'Bottom',   icon: <AlignVerticalBottomIcon sx={{ fontSize: 13 }} />,   dir: 'bottom' },
+                    { title: 'Left',     icon: <AlignHorizontalLeftIcon sx={{ fontSize: 15 }} />,   dir: 'left' },
+                    { title: 'H Center', icon: <AlignHorizontalCenterIcon sx={{ fontSize: 15 }} />, dir: 'hcenter' },
+                    { title: 'Right',    icon: <AlignHorizontalRightIcon sx={{ fontSize: 15 }} />,  dir: 'right' },
+                    { title: 'Top',      icon: <AlignVerticalTopIcon sx={{ fontSize: 15 }} />,      dir: 'top' },
+                    { title: 'V Center', icon: <AlignVerticalCenterIcon sx={{ fontSize: 15 }} />,   dir: 'vcenter' },
+                    { title: 'Bottom',   icon: <AlignVerticalBottomIcon sx={{ fontSize: 15 }} />,   dir: 'bottom' },
                   ].map(({ title, icon, dir }) => (
                     <Tooltip key={dir} title={title}>
                       <IconButton size="small" onClick={() => alignObj(dir)}
-                        sx={{ p: 0.35, border: '1px solid #e2e8f0', borderRadius: 1, color: '#7c3aed', bgcolor: '#f8fafc' }}>
+                        sx={{ p: 0.5, border: '1px solid #e2e8f0', borderRadius: 1.5, color: '#7c3aed', bgcolor: '#f8fafc', '&:hover': { bgcolor: '#f1f5f9' } }}>
                         {icon}
                       </IconButton>
                     </Tooltip>
                   ))}
                 </Stack>
-
-                {/* Layer */}
-                <Stack direction="row" gap={0.4} alignItems="center">
-                  <Typography sx={{ fontSize: '0.58rem', color: '#94a3b8', mr: 0.25 }}>Layer</Typography>
+                <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Layer Order</Typography>
+                <Stack direction="row" gap={0.5}>
                   {[
-                    { title: 'To Front',  icon: <FlipToFrontIcon sx={{ fontSize: 13 }} />,   dir: 'front' },
-                    { title: 'Forward',   icon: <ArrowUpwardIcon sx={{ fontSize: 13 }} />,    dir: 'up' },
-                    { title: 'Backward',  icon: <ArrowDownwardIcon sx={{ fontSize: 13 }} />,  dir: 'down' },
-                    { title: 'To Back',   icon: <FlipToBackIcon sx={{ fontSize: 13 }} />,    dir: 'back' },
+                    { title: 'Bring to Front', icon: <FlipToFrontIcon sx={{ fontSize: 15 }} />,  dir: 'front' },
+                    { title: 'Bring Forward',  icon: <ArrowUpwardIcon sx={{ fontSize: 15 }} />,   dir: 'up' },
+                    { title: 'Send Backward',  icon: <ArrowDownwardIcon sx={{ fontSize: 15 }} />,  dir: 'down' },
+                    { title: 'Send to Back',   icon: <FlipToBackIcon sx={{ fontSize: 15 }} />,   dir: 'back' },
                   ].map(({ title, icon, dir }) => (
                     <Tooltip key={dir} title={title}>
                       <IconButton size="small" onClick={() => applyLayer(dir)}
-                        sx={{ p: 0.35, border: '1px solid #e2e8f0', borderRadius: 1, color: '#64748b', bgcolor: '#f8fafc' }}>
+                        sx={{ p: 0.5, border: '1px solid #e2e8f0', borderRadius: 1.5, color: '#64748b', bgcolor: '#f8fafc', '&:hover': { bgcolor: '#f1f5f9' } }}>
                         {icon}
                       </IconButton>
                     </Tooltip>
                   ))}
                 </Stack>
+              </Stack>
+            ) : (
+              <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', pt: 1, textAlign: 'center' }}>
+                Tap an element to arrange it
+              </Typography>
+            )
+          )}
 
-                {/* Text controls */}
-                {(selectedObj.type === 'i-text' || selectedObj.type === 'text') && (<>
-                  <Stack direction="row" alignItems="center" gap={1}>
-                    <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 32 }}>Font</Typography>
-                    <Select value={fontFamily} size="small" onChange={e => { setFontFamily(e.target.value); applyFontProp('fontFamily', e.target.value); }}
-                      sx={{ flex: 1, fontSize: '0.7rem', '& .MuiSelect-select': { py: 0.3, px: 1 } }}>
-                      {['Arial','Georgia','Times New Roman','Verdana','Courier New','Impact','Trebuchet MS','Comic Sans MS'].map(f => (
-                        <MenuItem key={f} value={f} sx={{ fontSize: '0.75rem', fontFamily: f }}>{f}</MenuItem>
-                      ))}
-                    </Select>
-                  </Stack>
-                  <Stack direction="row" alignItems="center" gap={1}>
-                    <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 32 }}>Size</Typography>
-                    <Slider value={fontSize} min={8} max={120} size="small"
-                      onChange={(_, v) => { setFontSize(v); applyFontProp('fontSize', v); }}
-                      sx={{ flex: 1, color: '#7c3aed', py: 0.5 }} />
-                    <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{fontSize}</Typography>
-                  </Stack>
-                  <Stack direction="row" alignItems="center" gap={1}>
-                    <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 32 }}>Style</Typography>
-                    <input type="color" value={fontColor} onChange={e => { setFontColor(e.target.value); applyFontProp('fill', e.target.value); }}
-                      style={{ width: 26, height: 22, border: 'none', borderRadius: 4, cursor: 'pointer', padding: 0 }} />
-                    <Tooltip title="Bold">
-                      <IconButton size="small" onClick={() => { const v = !isBold; setIsBold(v); applyFontProp('fontWeight', v ? 'bold' : 'normal'); }}
-                        sx={{ bgcolor: isBold ? '#7c3aed' : '#f1f5f9', color: isBold ? '#fff' : '#64748b', border: '1px solid #e2e8f0', p: 0.4 }}>
-                        <FormatBoldIcon sx={{ fontSize: 14 }} />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Italic">
-                      <IconButton size="small" onClick={() => { const v = !isItalic; setIsItalic(v); applyFontProp('fontStyle', v ? 'italic' : 'normal'); }}
-                        sx={{ bgcolor: isItalic ? '#7c3aed' : '#f1f5f9', color: isItalic ? '#fff' : '#64748b', border: '1px solid #e2e8f0', p: 0.4 }}>
-                        <FormatItalicIcon sx={{ fontSize: 14 }} />
-                      </IconButton>
-                    </Tooltip>
-                  </Stack>
-                  <Stack direction="row" alignItems="center" gap={1}>
-                    <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 32 }}>Spacing</Typography>
-                    <Slider value={letterSp} min={-100} max={800} size="small"
-                      onChange={(_, v) => { setLetterSp(v); applyFontProp('charSpacing', v); }}
-                      sx={{ flex: 1, color: '#7c3aed', py: 0.5 }} />
-                    <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{letterSp}</Typography>
-                  </Stack>
-                </>)}
-
-                {/* Image controls */}
-                {selectedObj.type === 'image' && (<>
-                  <Stack direction="row" alignItems="center" gap={1}>
-                    <WbSunnyIcon sx={{ fontSize: 13, color: '#f59e0b', flexShrink: 0 }} />
-                    <Slider value={Math.round(imgBright * 100)} min={-100} max={100} size="small"
-                      onChange={(_, v) => { const n = v / 100; setImgBright(n); applyImageFilter('Brightness', n); }}
-                      sx={{ flex: 1, color: '#f59e0b', py: 0.5 }} />
-                    <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{Math.round(imgBright * 100)}</Typography>
-                  </Stack>
-                  <Stack direction="row" alignItems="center" gap={1}>
-                    <TonalityIcon sx={{ fontSize: 13, color: '#6366f1', flexShrink: 0 }} />
-                    <Slider value={Math.round(imgContrast * 100)} min={-100} max={100} size="small"
-                      onChange={(_, v) => { const n = v / 100; setImgContrast(n); applyImageFilter('Contrast', n); }}
-                      sx={{ flex: 1, color: '#6366f1', py: 0.5 }} />
-                    <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{Math.round(imgContrast * 100)}</Typography>
-                  </Stack>
-                </>)}
-              </>) : (
-                <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', pt: 0.5 }}>Tap an element on the canvas to edit it.</Typography>
-              )}
+          {/* ── Tab 5: Style ───────────────────────────────── */}
+          {toolTab === 5 && (
+            <Stack spacing={1}>
+              <Stack direction="row" alignItems="center" gap={1.5}>
+                <Box sx={{ width: 36, height: 36, borderRadius: 1.5, border: '2px solid #e2e8f0', overflow: 'hidden', flexShrink: 0 }}>
+                  <input type="color" value={bgColor} onChange={e => setCanvasBg(e.target.value)}
+                    style={{ width: '200%', height: '200%', border: 'none', cursor: 'pointer', padding: 0, marginLeft: '-50%', marginTop: '-50%' }} />
+                </Box>
+                <Box>
+                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: '#1e293b' }}>Background Color</Typography>
+                  <Typography sx={{ fontSize: '0.62rem', color: '#94a3b8' }}>{bgColor.toUpperCase()}</Typography>
+                </Box>
+              </Stack>
+              {/* Quick BG presets */}
+              <Stack direction="row" gap={0.75} flexWrap="wrap">
+                {['#ffffff','#f8fafc','#1e293b','#7c3aed','#4f46e5','#0f766e','#b45309','#be123c','#f1f5f9','#fef9c3'].map(c => (
+                  <Box key={c} onClick={() => setCanvasBg(c)} sx={{
+                    width: 28, height: 28, borderRadius: 1.5, bgcolor: c, cursor: 'pointer',
+                    border: bgColor === c ? '2px solid #7c3aed' : '1px solid #e2e8f0',
+                    '&:hover': { transform: 'scale(1.12)', transition: 'transform 0.1s' },
+                  }} />
+                ))}
+              </Stack>
             </Stack>
           )}
 
-          {/* Export tab */}
-          {toolTab === 3 && (
+          {/* ── Tab 6: Export ──────────────────────────────── */}
+          {toolTab === 6 && (
             <Stack spacing={1.5}>
 
               {/* Student Carousel */}
