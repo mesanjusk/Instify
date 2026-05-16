@@ -1,13 +1,21 @@
 /**
  * Baileys WhatsApp Service
  * Manages per-institute QR-scan WhatsApp sessions.
- * Saves all messages (in/out) to MongoDB for real chat history.
+ * Saves all messages (in/out) to MongoDB. Handles text, image, document, video.
  */
 
 const path = require('path');
 const fs = require('fs');
+const { Readable } = require('stream');
 const QRCode = require('qrcode');
+const { v2: cloudinary } = require('cloudinary');
 const Message = require('../repositories/Message');
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 const rateLimiter = new Map();
 
@@ -36,6 +44,7 @@ async function getBaileys() {
     makeWASocket: mod.default,
     useMultiFileAuthState: mod.useMultiFileAuthState,
     DisconnectReason: mod.DisconnectReason,
+    downloadContentFromMessage: mod.downloadContentFromMessage,
   };
 }
 
@@ -43,32 +52,97 @@ function normaliseJid(jid = '') {
   return jid.split('@')[0].replace(/\D/g, '');
 }
 
-async function saveMessage(institute_uuid, jid, msg, fromMe) {
-  try {
-    const text =
-      msg?.conversation ||
-      msg?.extendedTextMessage?.text ||
-      msg?.imageMessage?.caption ||
-      '';
-    if (!text && !msg?.imageMessage) return;
+async function uploadToCloudinary(buffer, mimeType, instituteId) {
+  return new Promise((resolve, reject) => {
+    const resourceType = mimeType?.startsWith('image/') ? 'image'
+      : mimeType?.startsWith('video/') ? 'video' : 'raw';
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: `instify/messages/${instituteId}`, resource_type: resourceType },
+      (err, result) => err ? reject(err) : resolve(result)
+    );
+    Readable.from(buffer).pipe(stream);
+  });
+}
 
+async function downloadMedia(mediaMsg, mediaType, downloadFn) {
+  if (!downloadFn) return null;
+  try {
+    const stream = await downloadFn(mediaMsg, mediaType);
+    let buf = Buffer.from([]);
+    for await (const chunk of stream) buf = Buffer.concat([buf, chunk]);
+    return buf;
+  } catch (e) {
+    console.error(`[Baileys] media download (${mediaType}) error:`, e.message);
+    return null;
+  }
+}
+
+async function saveMessage(institute_uuid, jid, msg, fromMe, downloadFn) {
+  try {
     const number = normaliseJid(jid);
-    await Message.create({
-      institute_uuid,
-      jid: number,
-      fromMe,
+    const base = {
+      institute_uuid, jid: number, fromMe,
       sender: fromMe ? institute_uuid : number,
       receiver: fromMe ? number : institute_uuid,
-      message: text,
-      type: msg?.imageMessage ? 'image' : 'text',
-    });
+    };
+
+    if (msg?.imageMessage) {
+      let mediaUrl = '';
+      const buf = await downloadMedia(msg.imageMessage, 'image', downloadFn);
+      if (buf) {
+        try {
+          const r = await uploadToCloudinary(buf, 'image/jpeg', institute_uuid);
+          mediaUrl = r.secure_url;
+        } catch (e) { console.error('[Baileys] Cloudinary image error:', e.message); }
+      }
+      await Message.create({ ...base, message: msg.imageMessage.caption || '', type: 'image', mediaUrl, mimeType: 'image/jpeg' });
+      return;
+    }
+
+    if (msg?.documentMessage) {
+      const mimeType = msg.documentMessage.mimetype || 'application/octet-stream';
+      const fileName = msg.documentMessage.fileName || 'document';
+      let mediaUrl = '';
+      const buf = await downloadMedia(msg.documentMessage, 'document', downloadFn);
+      if (buf) {
+        try {
+          const r = await uploadToCloudinary(buf, mimeType, institute_uuid);
+          mediaUrl = r.secure_url;
+        } catch (e) { console.error('[Baileys] Cloudinary doc error:', e.message); }
+      }
+      await Message.create({ ...base, message: msg.documentMessage.caption || '', type: 'document', mediaUrl, mimeType, fileName });
+      return;
+    }
+
+    if (msg?.videoMessage) {
+      const mimeType = msg.videoMessage.mimetype || 'video/mp4';
+      let mediaUrl = '';
+      const buf = await downloadMedia(msg.videoMessage, 'video', downloadFn);
+      if (buf) {
+        try {
+          const r = await uploadToCloudinary(buf, mimeType, institute_uuid);
+          mediaUrl = r.secure_url;
+        } catch (e) { console.error('[Baileys] Cloudinary video error:', e.message); }
+      }
+      await Message.create({ ...base, message: msg.videoMessage.caption || '', type: 'video', mediaUrl, mimeType });
+      return;
+    }
+
+    if (msg?.audioMessage) {
+      await Message.create({ ...base, message: '', type: 'audio', mimeType: msg.audioMessage.mimetype || 'audio/ogg' });
+      return;
+    }
+
+    const text = msg?.conversation || msg?.extendedTextMessage?.text || '';
+    if (!text) return;
+    await Message.create({ ...base, message: text, type: 'text' });
   } catch (err) {
     console.error('[Baileys] saveMessage error:', err.message);
   }
 }
 
 async function startSession(instituteId, onQR, onStatus) {
-  const { makeWASocket, useMultiFileAuthState, DisconnectReason } = await getBaileys();
+  const { makeWASocket, useMultiFileAuthState, DisconnectReason, downloadContentFromMessage } = await getBaileys();
 
   const sessionPath = path.join(SESSION_DIR, instituteId);
   if (!fs.existsSync(sessionPath)) fs.mkdirSync(sessionPath, { recursive: true });
@@ -121,14 +195,13 @@ async function startSession(instituteId, onQR, onStatus) {
 
   sock.ev.on('creds.update', saveCreds);
 
-  // Save all incoming messages to DB
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     if (type !== 'notify') return;
     for (const m of messages) {
       if (!m.message) continue;
       const jid = m.key.remoteJid;
-      if (!jid || jid.endsWith('@g.us')) continue; // skip groups for now
-      await saveMessage(instituteId, jid, m.message, m.key.fromMe);
+      if (!jid || jid.endsWith('@g.us')) continue;
+      await saveMessage(instituteId, jid, m.message, m.key.fromMe, downloadContentFromMessage);
     }
   });
 }
@@ -142,9 +215,44 @@ async function sendText(instituteId, to, message) {
   const number = to.replace(/\D/g, '');
   const jid = number + '@s.whatsapp.net';
   await session.sock.sendMessage(jid, { text: message });
-
-  // Persist outgoing message
   await saveMessage(instituteId, jid, { conversation: message }, true);
+}
+
+async function sendMedia(instituteId, to, buffer, mimeType, fileName, caption) {
+  const session = sessions.get(instituteId);
+  if (!session || session.status !== 'connected') {
+    throw new Error('WhatsApp session not connected');
+  }
+  checkRateLimit(instituteId);
+  const number = to.replace(/\D/g, '');
+  const jid = number + '@s.whatsapp.net';
+
+  let msgObj;
+  if (mimeType.startsWith('image/')) {
+    msgObj = { image: buffer, caption: caption || '' };
+  } else if (mimeType.startsWith('video/')) {
+    msgObj = { video: buffer, caption: caption || '' };
+  } else {
+    msgObj = { document: buffer, mimetype: mimeType, fileName: fileName || 'file', caption: caption || '' };
+  }
+
+  await session.sock.sendMessage(jid, msgObj);
+
+  // Upload to Cloudinary for storage/display
+  let mediaUrl = '';
+  try {
+    const r = await uploadToCloudinary(buffer, mimeType, instituteId);
+    mediaUrl = r.secure_url;
+  } catch (e) { console.error('[Baileys] Cloudinary outgoing error:', e.message); }
+
+  const type = mimeType.startsWith('image/') ? 'image' : mimeType.startsWith('video/') ? 'video' : 'document';
+  await Message.create({
+    institute_uuid: instituteId, jid: number, fromMe: true,
+    sender: instituteId, receiver: number,
+    message: caption || '', type, mediaUrl, mimeType, fileName: fileName || '',
+  });
+
+  return { mediaUrl };
 }
 
 async function sendBulk(instituteId, numbers, message) {
@@ -182,4 +290,4 @@ function getLastQR(instituteId) {
   return sessions.get(instituteId)?.qrDataUrl ?? null;
 }
 
-module.exports = { startSession, sendText, sendBulk, disconnectSession, getStatus, getLastQR };
+module.exports = { startSession, sendText, sendMedia, sendBulk, disconnectSession, getStatus, getLastQR };

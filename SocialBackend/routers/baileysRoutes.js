@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const baileysService = require('../services/baileysService');
 const Message = require('../repositories/Message');
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 function sse(res, event, data) {
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
@@ -54,6 +57,23 @@ router.post('/send-text', async (req, res) => {
       return res.status(400).json({ success: false, message: 'instituteId, to, message required' });
     await baileysService.sendText(instituteId, to, message);
     res.json({ success: true });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+// Send media (image / video / document)
+router.post('/send-media', upload.single('file'), async (req, res) => {
+  try {
+    const { instituteId, to, caption } = req.body;
+    if (!req.file || !instituteId || !to)
+      return res.status(400).json({ success: false, message: 'file, instituteId, to required' });
+    const result = await baileysService.sendMedia(
+      instituteId, to,
+      req.file.buffer,
+      req.file.mimetype,
+      req.file.originalname,
+      caption || ''
+    );
+    res.json({ success: true, ...result });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 

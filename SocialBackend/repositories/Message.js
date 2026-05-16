@@ -9,8 +9,10 @@ const MessageSchema = new mongoose.Schema(
     sender: { type: String, default: '' },
     receiver: { type: String, default: '' },
     message: { type: String, default: '', trim: true },
-    type: { type: String, enum: ['text', 'image'], default: 'text' },
+    type: { type: String, enum: ['text', 'image', 'document', 'video', 'audio'], default: 'text' },
     mediaUrl: { type: String, default: '', trim: true },
+    mimeType: { type: String, default: '' },
+    fileName: { type: String, default: '' },
     status: { type: String, enum: ['sent', 'delivered', 'read'], default: 'sent' },
   },
   { timestamps: true }

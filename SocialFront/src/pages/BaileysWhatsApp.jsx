@@ -29,6 +29,12 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import VideocamIcon from '@mui/icons-material/Videocam';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import AttachFileIcon from '@mui/icons-material/AttachFile';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import ImageOutlinedIcon from '@mui/icons-material/ImageOutlined';
+import HeadphonesIcon from '@mui/icons-material/Headphones';
+import DownloadIcon from '@mui/icons-material/Download';
+import CloseIcon from '@mui/icons-material/Close';
 import { useApp } from '../context/AppContext';
 import apiClient from '../apiClient';
 
@@ -125,21 +131,132 @@ function ChatRow({ chat, onClick }) {
 
 /* ── Message bubble ──────────────────────────────────────────── */
 function Bubble({ msg }) {
+  const isImage    = msg.type === 'image';
+  const isDocument = msg.type === 'document';
+  const isVideo    = msg.type === 'video';
+  const isAudio    = msg.type === 'audio';
+  const hasMedia   = isImage || isDocument || isVideo || isAudio;
+
+  const timeRow = (
+    <Stack direction="row" justifyContent="flex-end" alignItems="center" spacing={0.5} sx={{ px: 1.5, pb: 0.75, mt: hasMedia && !msg.message ? 0 : 0.25 }}>
+      <Typography sx={{ color: WA_MUTED, fontSize: '0.65rem' }}>{fmtBubbleTime(msg.createdAt)}</Typography>
+      {msg.fromMe && <DoneAllIcon sx={{ fontSize: 12, color: msg.status === 'read' ? '#53bdeb' : WA_MUTED }} />}
+    </Stack>
+  );
+
   return (
     <Box sx={{ display: 'flex', justifyContent: msg.fromMe ? 'flex-end' : 'flex-start', mb: 0.5, px: 2 }}>
       <Box sx={{
         maxWidth: '72%', bgcolor: msg.fromMe ? WA_BUBBLE_OUT : WA_BUBBLE_IN,
         borderRadius: msg.fromMe ? '8px 0 8px 8px' : '0 8px 8px 8px',
-        px: 1.5, py: 1,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
+        overflow: 'hidden', boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
       }}>
-        <Typography sx={{ color: WA_TEXT, fontSize: '0.875rem', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
-          {msg.message}
-        </Typography>
-        <Stack direction="row" justifyContent="flex-end" spacing={0.5} alignItems="center" mt={0.25}>
-          <Typography sx={{ color: WA_MUTED, fontSize: '0.65rem' }}>{fmtBubbleTime(msg.createdAt)}</Typography>
-          {msg.fromMe && <DoneAllIcon sx={{ fontSize: 12, color: msg.status === 'read' ? '#53bdeb' : WA_MUTED }} />}
-        </Stack>
+
+        {/* ── Image ── */}
+        {isImage && (
+          <>
+            {msg.mediaUrl ? (
+              <Box
+                component="img"
+                src={msg.mediaUrl}
+                alt="photo"
+                onClick={() => window.open(msg.mediaUrl, '_blank')}
+                sx={{ display: 'block', maxWidth: '100%', maxHeight: 260, objectFit: 'cover', cursor: 'pointer' }}
+              />
+            ) : (
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 1.5, py: 1.25 }}>
+                <ImageOutlinedIcon sx={{ color: WA_MUTED, fontSize: 28 }} />
+                <Typography sx={{ color: WA_MUTED, fontSize: '0.82rem' }}>📷 Photo</Typography>
+              </Stack>
+            )}
+            {msg.message && (
+              <Typography sx={{ color: WA_TEXT, fontSize: '0.875rem', px: 1.5, pt: 0.5, wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+                {msg.message}
+              </Typography>
+            )}
+            {timeRow}
+          </>
+        )}
+
+        {/* ── Document ── */}
+        {isDocument && (
+          <>
+            <Stack direction="row" alignItems="center" spacing={1.5} sx={{ px: 1.5, py: 1.25, minWidth: 230 }}>
+              <Box sx={{ bgcolor: msg.fromMe ? '#003d33' : '#1a2e36', borderRadius: 2, p: 1, flexShrink: 0 }}>
+                <InsertDriveFileIcon sx={{ color: '#53bdeb', fontSize: 26 }} />
+              </Box>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography sx={{ color: WA_TEXT, fontSize: '0.82rem', fontWeight: 500 }} noWrap>
+                  {msg.fileName || 'Document'}
+                </Typography>
+                <Typography sx={{ color: WA_MUTED, fontSize: '0.68rem' }}>
+                  {msg.mimeType ? msg.mimeType.split('/').pop().toUpperCase() : 'FILE'}
+                </Typography>
+              </Box>
+              {msg.mediaUrl && (
+                <IconButton
+                  size="small"
+                  onClick={() => window.open(msg.mediaUrl, '_blank')}
+                  sx={{ color: WA_LIGHT, p: 0.5, flexShrink: 0 }}
+                >
+                  <DownloadIcon sx={{ fontSize: 18 }} />
+                </IconButton>
+              )}
+            </Stack>
+            {msg.message && (
+              <Typography sx={{ color: WA_TEXT, fontSize: '0.875rem', px: 1.5, wordBreak: 'break-word' }}>
+                {msg.message}
+              </Typography>
+            )}
+            {timeRow}
+          </>
+        )}
+
+        {/* ── Video ── */}
+        {isVideo && (
+          <>
+            {msg.mediaUrl ? (
+              <Box component="video" src={msg.mediaUrl} controls sx={{ display: 'block', maxWidth: '100%', maxHeight: 240 }} />
+            ) : (
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 1.5, py: 1.25 }}>
+                <VideocamIcon sx={{ color: WA_MUTED, fontSize: 28 }} />
+                <Typography sx={{ color: WA_MUTED, fontSize: '0.82rem' }}>Video</Typography>
+                {msg.mediaUrl && (
+                  <IconButton size="small" onClick={() => window.open(msg.mediaUrl, '_blank')} sx={{ color: WA_LIGHT, p: 0.25 }}>
+                    <DownloadIcon sx={{ fontSize: 16 }} />
+                  </IconButton>
+                )}
+              </Stack>
+            )}
+            {msg.message && (
+              <Typography sx={{ color: WA_TEXT, fontSize: '0.875rem', px: 1.5, pt: 0.5, wordBreak: 'break-word' }}>
+                {msg.message}
+              </Typography>
+            )}
+            {timeRow}
+          </>
+        )}
+
+        {/* ── Audio ── */}
+        {isAudio && (
+          <>
+            <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 1.5, py: 1.25 }}>
+              <HeadphonesIcon sx={{ color: WA_MUTED, fontSize: 24 }} />
+              <Typography sx={{ color: WA_MUTED, fontSize: '0.82rem' }}>Voice / Audio</Typography>
+            </Stack>
+            {timeRow}
+          </>
+        )}
+
+        {/* ── Plain text ── */}
+        {!hasMedia && (
+          <Box sx={{ px: 1.5, py: 1 }}>
+            <Typography sx={{ color: WA_TEXT, fontSize: '0.875rem', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+              {msg.message}
+            </Typography>
+            {timeRow}
+          </Box>
+        )}
       </Box>
     </Box>
   );
@@ -405,8 +522,13 @@ export default function BaileysWhatsApp() {
   const [sending, setSending]     = useState(false);
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [chatMenuAnchor, setChatMenuAnchor] = useState(null);
-  const messagesEndRef = useRef(null);
-  const pollRef        = useRef(null);
+  const messagesEndRef  = useRef(null);
+  const pollRef         = useRef(null);
+  const imageInputRef   = useRef(null);
+  const docInputRef     = useRef(null);
+  const [attachMenu, setAttachMenu]   = useState(null);
+  const [mediaFile, setMediaFile]     = useState(null);
+  const [mediaType, setMediaType]     = useState(null); // 'image'|'video'|'document'
 
   const storageKey = `automation_${instituteId}`;
   const [automation, setAutomation] = useState(() => {
@@ -483,6 +605,37 @@ export default function BaileysWhatsApp() {
       closeChat();
       loadChats();
     } catch { setSnack({ type: 'error', text: 'Delete failed' }); }
+  }
+
+  /* Media attachment helpers */
+  function handleFileSelect(e, type) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setMediaFile(file);
+    setMediaType(type);
+    e.target.value = '';
+  }
+
+  function clearMedia() { setMediaFile(null); setMediaType(null); }
+
+  async function sendMediaFile() {
+    if (!mediaFile || !selectedChat) return;
+    setSending(true);
+    try {
+      const form = new FormData();
+      form.append('file', mediaFile);
+      form.append('instituteId', instituteId);
+      form.append('to', selectedChat);
+      form.append('caption', sendMsg.trim());
+      await apiClient.post('/api/baileys/send-media', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      clearMedia();
+      setSendMsg('');
+      await loadMessages(selectedChat);
+    } catch (err) {
+      setSnack({ type: 'error', text: err.response?.data?.message || 'Send failed' });
+    } finally { setSending(false); }
   }
 
   /* Connection */
@@ -597,12 +750,67 @@ export default function BaileysWhatsApp() {
           <div ref={messagesEndRef} />
         </Box>
 
+        {/* Hidden file inputs */}
+        <input ref={imageInputRef} type="file" accept="image/*,video/*" style={{ display: 'none' }}
+          onChange={e => handleFileSelect(e, e.target.files?.[0]?.type?.startsWith('video/') ? 'video' : 'image')} />
+        <input ref={docInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" style={{ display: 'none' }}
+          onChange={e => handleFileSelect(e, 'document')} />
+
+        {/* Attach menu */}
+        <Menu anchorEl={attachMenu} open={!!attachMenu} onClose={() => setAttachMenu(null)}
+          anchorOrigin={{ vertical: 'top', horizontal: 'left' }}
+          transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+          PaperProps={{ sx: { bgcolor: '#233138', color: WA_TEXT, minWidth: 180 } }}>
+          <MenuItem onClick={() => { imageInputRef.current?.click(); setAttachMenu(null); }}>
+            <ListItemIcon><ImageOutlinedIcon sx={{ color: '#a855f7', fontSize: 20 }} /></ListItemIcon>
+            <ListItemText>Photo / Video</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={() => { docInputRef.current?.click(); setAttachMenu(null); }}>
+            <ListItemIcon><InsertDriveFileIcon sx={{ color: '#3b82f6', fontSize: 20 }} /></ListItemIcon>
+            <ListItemText>Document</ListItemText>
+          </MenuItem>
+        </Menu>
+
+        {/* Media preview bar */}
+        {mediaFile && (
+          <Box sx={{ bgcolor: '#1a2b35', px: 2, py: 1, display: 'flex', alignItems: 'center', gap: 1.5, borderTop: `1px solid ${WA_DIVIDER}`, flexShrink: 0 }}>
+            {mediaType === 'image' ? (
+              <Box
+                component="img"
+                src={URL.createObjectURL(mediaFile)}
+                alt="preview"
+                sx={{ height: 56, width: 56, objectFit: 'cover', borderRadius: 1.5, flexShrink: 0 }}
+              />
+            ) : mediaType === 'video' ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: '#0d1f28', borderRadius: 1.5, px: 1.5, py: 1, flex: 1 }}>
+                <VideocamIcon sx={{ color: WA_MUTED, fontSize: 22 }} />
+                <Typography sx={{ color: WA_TEXT, fontSize: '0.8rem' }} noWrap>{mediaFile.name}</Typography>
+              </Box>
+            ) : (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: '#0d1f28', borderRadius: 1.5, px: 1.5, py: 1, flex: 1 }}>
+                <InsertDriveFileIcon sx={{ color: '#53bdeb', fontSize: 22 }} />
+                <Typography sx={{ color: WA_TEXT, fontSize: '0.8rem' }} noWrap>{mediaFile.name}</Typography>
+              </Box>
+            )}
+            <IconButton size="small" onClick={clearMedia} sx={{ color: WA_MUTED, ml: 'auto' }}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        )}
+
         {/* Input bar */}
         <Box sx={{ bgcolor: WA_SURFACE, px: 1.5, py: 1, display: 'flex', alignItems: 'flex-end', gap: 1, flexShrink: 0 }}>
+          <IconButton
+            onClick={e => setAttachMenu(e.currentTarget)}
+            disabled={!isConnected}
+            sx={{ color: WA_MUTED, mb: 0.25, '&:hover': { color: WA_TEXT } }}
+          >
+            <AttachFileIcon fontSize="small" />
+          </IconButton>
           <TextField
             value={sendMsg} onChange={e => setSendMsg(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendFromChat(); } }}
-            placeholder="Message" multiline maxRows={5} fullWidth
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); mediaFile ? sendMediaFile() : sendFromChat(); } }}
+            placeholder={mediaFile ? 'Add a caption…' : 'Message'} multiline maxRows={5} fullWidth
             disabled={!isConnected}
             sx={{
               '& .MuiOutlinedInput-root': {
@@ -613,8 +821,8 @@ export default function BaileysWhatsApp() {
             }}
           />
           <IconButton
-            onClick={sendFromChat}
-            disabled={!sendMsg.trim() || !isConnected || sending}
+            onClick={mediaFile ? sendMediaFile : sendFromChat}
+            disabled={(!sendMsg.trim() && !mediaFile) || !isConnected || sending}
             sx={{ bgcolor: WA_LIGHT, color: '#fff', '&:hover': { bgcolor: '#1ebe57' }, '&:disabled': { bgcolor: WA_DIVIDER }, flexShrink: 0, width: 44, height: 44 }}>
             {sending ? <CircularProgress size={18} color="inherit" /> : <SendIcon fontSize="small" />}
           </IconButton>
