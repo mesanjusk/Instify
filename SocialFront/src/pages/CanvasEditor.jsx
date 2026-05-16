@@ -63,6 +63,9 @@ import FlipToFrontIcon from '@mui/icons-material/FlipToFront';
 import FlipToBackIcon from '@mui/icons-material/FlipToBack';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import ZoomInIcon from '@mui/icons-material/ZoomIn';
+import ZoomOutIcon from '@mui/icons-material/ZoomOut';
+import FitScreenIcon from '@mui/icons-material/FitScreen';
 import jsPDF from 'jspdf';
 import JSZip from 'jszip';
 import apiClient from '../apiClient';
@@ -384,6 +387,7 @@ export default function DocumentMaker() {
   const [galleryDialog,   setGalleryDialog]   = useState(false);
   const [carouselIdx,     setCarouselIdx]     = useState(0);
   const [carouselFields,  setCarouselFields]  = useState({ name: '', rollNo: '', course: '', batch: '' });
+  const [userZoom,        setUserZoom]        = useState(1);
 
   // New Canva features state
   const [fontFamily,   setFontFamily]   = useState('Arial');
@@ -397,6 +401,10 @@ export default function DocumentMaker() {
   const [canRedo,      setCanRedo]      = useState(false);
 
   function showAlert(type, text) { setAlert({ type, text }); setTimeout(() => setAlert(null), 4000); }
+
+  function zoomIn()  { setUserZoom(prev => Math.min(4, +(prev + 0.25).toFixed(2))); }
+  function zoomOut() { setUserZoom(prev => Math.max(0.25, +(prev - 0.25).toFixed(2))); }
+  function zoomFit() { setUserZoom(1); }
 
   /* ── History (undo / redo) ─────────────────────────────────── */
   function pushHistory() {
@@ -748,14 +756,14 @@ export default function DocumentMaker() {
       setIsItalic(obj.fontStyle === 'italic');
       setFontFamily(obj.fontFamily || 'Arial');
       setLetterSp(Math.round(obj.charSpacing || 0));
-      setToolTab(2); // → Text tab
+      setToolTab(1); // → Text tab
     } else if (obj.type === 'image') {
       const bright = obj.filters?.find(f => f.type === 'Brightness')?.brightness ?? 0;
       const cont   = obj.filters?.find(f => f.type === 'Contrast')?.contrast ?? 0;
       setImgBright(bright); setImgContrast(cont);
-      setToolTab(3); // → Object tab
+      setToolTab(2); // → Object tab
     } else {
-      setToolTab(3); // → Object tab
+      setToolTab(2); // → Object tab
     }
   }
 
@@ -1381,48 +1389,42 @@ export default function DocumentMaker() {
       <input ref={sigInputRef}    type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleImageFile(e, 'Signature')} />
       <input ref={frameInputRef}  type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) fillFrameWithPhoto(e.target.files[0]); e.target.value = ''; }} />
 
-      {/* Top bar */}
+      {/* Top bar — compact, no dead-weight buttons */}
       <Box sx={{
         bgcolor: '#ffffff', borderBottom: '1px solid #e2e8f0',
-        px: 1.5, py: 1, display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0,
+        px: 1, py: 0.75, display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0,
         boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
       }}>
         <IconButton onClick={handleBack} size="small" sx={{ color: '#64748b' }}>
-          <HomeIcon fontSize="small" />
+          <HomeIcon sx={{ fontSize: 20 }} />
         </IconButton>
         <Tooltip title="Undo"><span>
           <IconButton size="small" onClick={undo} disabled={!canUndo} sx={{ color: '#64748b', '&.Mui-disabled': { opacity: 0.3 } }}>
-            <UndoIcon fontSize="small" />
+            <UndoIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </span></Tooltip>
         <Tooltip title="Redo"><span>
           <IconButton size="small" onClick={redo} disabled={!canRedo} sx={{ color: '#64748b', '&.Mui-disabled': { opacity: 0.3 } }}>
-            <RedoIcon fontSize="small" />
+            <RedoIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </span></Tooltip>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ color: '#1e293b', fontWeight: 600, fontSize: '0.825rem' }} noWrap>
+        <Box sx={{ flex: 1, minWidth: 0, px: 0.5 }}>
+          <Typography sx={{ color: '#1e293b', fontWeight: 600, fontSize: '0.8rem' }} noWrap>
             {currentDT?.label}
           </Typography>
         </Box>
         <Tooltip title="Page Setup">
           <IconButton size="small" onClick={() => { setTempSetup({ ...(pageSetup || DEFAULT_SETUPS[docType] || DEFAULT_SETUPS.result) }); setPageSetupDialog(true); }} sx={{ color: '#64748b' }}>
-            <TuneIcon fontSize="small" />
+            <TuneIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </Tooltip>
         <Tooltip title="Print">
           <IconButton size="small" onClick={printDocument} disabled={printing} sx={{ color: '#4f46e5' }}>
-            {printing ? <CircularProgress size={16} color="inherit" /> : <PrintIcon fontSize="small" />}
+            {printing ? <CircularProgress size={14} color="inherit" /> : <PrintIcon sx={{ fontSize: 18 }} />}
           </IconButton>
         </Tooltip>
-        <Tooltip title="More options">
-          <IconButton size="small" sx={{ color: '#64748b' }}><MoreHorizIcon fontSize="small" /></IconButton>
-        </Tooltip>
         <Tooltip title="Download PNG">
-          <IconButton size="small" onClick={exportPNG} sx={{ color: '#64748b' }}><DownloadIcon fontSize="small" /></IconButton>
-        </Tooltip>
-        <Tooltip title="Share">
-          <IconButton size="small" sx={{ color: '#64748b' }}><ShareIcon fontSize="small" /></IconButton>
+          <IconButton size="small" onClick={exportPNG} sx={{ color: '#64748b' }}><DownloadIcon sx={{ fontSize: 18 }} /></IconButton>
         </Tooltip>
         <Tooltip title="Save Design">
           <IconButton
@@ -1436,6 +1438,32 @@ export default function DocumentMaker() {
         </Tooltip>
       </Box>
 
+      {/* ── Template strip — Instagram-story style ─────────── */}
+      <Box sx={{ bgcolor: '#fff', borderBottom: '1px solid #e2e8f0', flexShrink: 0, px: 1.25, py: 0.75 }}>
+        <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
+          {templates.map((tpl, idx) => (
+            <Box key={tpl.id} onClick={() => switchTemplate(idx)} sx={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4, cursor: 'pointer' }}>
+              {/* Mini document preview */}
+              <Box sx={{
+                width: 40, height: 50, borderRadius: 1.5, overflow: 'hidden', position: 'relative',
+                bgcolor: tpl.bg, border: selectedTpl === idx ? '2px solid #7c3aed' : '1.5px solid #e2e8f0',
+                boxShadow: selectedTpl === idx ? '0 0 0 2px #7c3aed33' : 'none',
+              }}>
+                <Box sx={{ height: 11, bgcolor: tpl.thumb }} />
+                <Box sx={{ px: 0.5, pt: 0.5, display: 'flex', flexDirection: 'column', gap: 0.4 }}>
+                  <Box sx={{ height: 2, bgcolor: 'rgba(0,0,0,0.15)', borderRadius: 1 }} />
+                  <Box sx={{ height: 2, bgcolor: 'rgba(0,0,0,0.1)', borderRadius: 1, width: '70%' }} />
+                  <Box sx={{ height: 2, bgcolor: 'rgba(0,0,0,0.08)', borderRadius: 1, width: '55%' }} />
+                </Box>
+              </Box>
+              <Typography sx={{ fontSize: '0.58rem', color: selectedTpl === idx ? '#7c3aed' : '#94a3b8', fontWeight: selectedTpl === idx ? 700 : 400 }}>
+                {tpl.label}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
+      </Box>
+
       {/* ── Alert ──────────────────────────────────────────── */}
       {alert && (
         <Alert severity={alert.type} sx={{ mx: 1, mt: 0.5, flexShrink: 0 }} onClose={() => setAlert(null)} size="small">
@@ -1447,15 +1475,15 @@ export default function DocumentMaker() {
       <Box
         ref={containerRef}
         sx={{
-          flex: 1, minHeight: 0,   // minHeight:0 lets flex child shrink below content size
+          flex: 1, minHeight: 0, position: 'relative',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          overflow: 'hidden', p: '6px',
+          overflow: userZoom > 1 ? 'auto' : 'hidden', p: '6px',
           '& canvas': { display: 'block' },
         }}
       >
         {!ready && <CircularProgress sx={{ color: currentDT?.color || '#7c3aed' }} />}
         <Box sx={{
-          transform: `scale(${scale})`,
+          transform: `scale(${+(scale * userZoom).toFixed(3)})`,
           transformOrigin: 'center center',
           boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
           borderRadius: 1.5,
@@ -1465,7 +1493,108 @@ export default function DocumentMaker() {
         }}>
           <canvas ref={canvasRef} />
         </Box>
+
+        {/* Zoom pill — bottom right of canvas area */}
+        {ready && (
+          <Box sx={{
+            position: 'absolute', bottom: 8, right: 8, zIndex: 5,
+            display: 'flex', alignItems: 'center', gap: 0.25,
+            bgcolor: 'rgba(15,23,42,0.72)', borderRadius: 2, px: 0.75, py: 0.25,
+            backdropFilter: 'blur(6px)',
+          }}>
+            <IconButton size="small" onClick={zoomOut} sx={{ color: '#fff', p: 0.3 }}>
+              <ZoomOutIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+            <Typography onClick={zoomFit} sx={{ color: '#fff', fontSize: '0.62rem', minWidth: 30, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}>
+              {Math.round(scale * userZoom * 100)}%
+            </Typography>
+            <IconButton size="small" onClick={zoomIn} sx={{ color: '#fff', p: 0.3 }}>
+              <ZoomInIcon sx={{ fontSize: 14 }} />
+            </IconButton>
+          </Box>
+        )}
       </Box>
+
+      {/* ── Contextual quick bar — appears when element selected ── */}
+      {selectedObj && ready && (
+        <Box sx={{
+          bgcolor: '#1e293b', flexShrink: 0, px: 1.25, height: 42,
+          display: 'flex', alignItems: 'center', gap: 0.75,
+          boxShadow: '0 -2px 10px rgba(0,0,0,0.18)',
+        }}>
+          {/* TEXT quick tools */}
+          {(selectedObj.type === 'i-text' || selectedObj.type === 'text') && (<>
+            <input type="color" value={fontColor}
+              onChange={e => { setFontColor(e.target.value); applyFontProp('fill', e.target.value); }}
+              style={{ width: 24, height: 24, border: '2px solid rgba(255,255,255,0.25)', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'none', flexShrink: 0 }} />
+            <IconButton size="small" onClick={() => { const v = !isBold; setIsBold(v); applyFontProp('fontWeight', v ? 'bold' : 'normal'); }}
+              sx={{ color: isBold ? '#a78bfa' : 'rgba(255,255,255,0.6)', bgcolor: isBold ? 'rgba(167,139,250,0.15)' : 'transparent', p: 0.4, borderRadius: 1 }}>
+              <FormatBoldIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+            <IconButton size="small" onClick={() => { const v = !isItalic; setIsItalic(v); applyFontProp('fontStyle', v ? 'italic' : 'normal'); }}
+              sx={{ color: isItalic ? '#a78bfa' : 'rgba(255,255,255,0.6)', bgcolor: isItalic ? 'rgba(167,139,250,0.15)' : 'transparent', p: 0.4, borderRadius: 1 }}>
+              <FormatItalicIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+            <Stack direction="row" alignItems="center" sx={{ bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 1.5, px: 0.5 }}>
+              <IconButton size="small" onClick={() => { const v = Math.max(8, fontSize - 1); setFontSize(v); applyFontProp('fontSize', v); }} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.3 }}>
+                <Typography sx={{ fontSize: '0.75rem', lineHeight: 1, fontWeight: 700, color: 'inherit' }}>−</Typography>
+              </IconButton>
+              <Typography sx={{ color: '#fff', fontSize: '0.65rem', minWidth: 20, textAlign: 'center' }}>{fontSize}</Typography>
+              <IconButton size="small" onClick={() => { const v = Math.min(200, fontSize + 1); setFontSize(v); applyFontProp('fontSize', v); }} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.3 }}>
+                <Typography sx={{ fontSize: '0.75rem', lineHeight: 1, fontWeight: 700, color: 'inherit' }}>+</Typography>
+              </IconButton>
+            </Stack>
+          </>)}
+
+          {/* IMAGE quick tools */}
+          {selectedObj.type === 'image' && (<>
+            <WbSunnyIcon sx={{ fontSize: 15, color: '#fbbf24' }} />
+            <Box sx={{ width: 60 }}>
+              <Slider value={Math.round(imgBright * 100)} min={-100} max={100} size="small"
+                onChange={(_, v) => { const n = v / 100; setImgBright(n); applyImageFilter('Brightness', n); }}
+                sx={{ color: '#fbbf24', py: 0.5, '& .MuiSlider-thumb': { width: 10, height: 10 } }} />
+            </Box>
+            <TonalityIcon sx={{ fontSize: 15, color: '#818cf8' }} />
+            <Box sx={{ width: 60 }}>
+              <Slider value={Math.round(imgContrast * 100)} min={-100} max={100} size="small"
+                onChange={(_, v) => { const n = v / 100; setImgContrast(n); applyImageFilter('Contrast', n); }}
+                sx={{ color: '#818cf8', py: 0.5, '& .MuiSlider-thumb': { width: 10, height: 10 } }} />
+            </Box>
+            <IconButton size="small" onClick={() => applyObjProp('flipX', !selectedObj.flipX)} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.4 }}>
+              <SwapHorizIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </>)}
+
+          {/* FRAME quick tool — fill photo */}
+          {selectedObj.__frameType && (
+            <Button size="small" onClick={() => frameInputRef.current?.click()}
+              startIcon={<ImageIcon sx={{ fontSize: 14 }} />}
+              sx={{ color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 1.5, textTransform: 'none', fontSize: '0.65rem', px: 1, py: 0.3, '&:hover': { bgcolor: 'rgba(167,139,250,0.1)' } }}>
+              Fill Photo
+            </Button>
+          )}
+
+          {/* SHAPE quick tool — fill color */}
+          {(selectedObj.type === 'rect' || selectedObj.type === 'circle' || selectedObj.type === 'triangle' || selectedObj.type === 'polygon') && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Typography sx={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)' }}>Fill</Typography>
+              <input type="color" value={selectedObj.fill || '#e0e7ff'}
+                onChange={e => applyObjProp('fill', e.target.value)}
+                style={{ width: 24, height: 24, border: '2px solid rgba(255,255,255,0.25)', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'none' }} />
+            </Box>
+          )}
+
+          <Box sx={{ flex: 1 }} />
+
+          {/* Always: Tab hint + Copy + Delete */}
+          <IconButton size="small" onClick={duplicateObj} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.4 }}>
+            <ContentCopyIcon sx={{ fontSize: 15 }} />
+          </IconButton>
+          <IconButton size="small" onClick={deleteSelected} sx={{ color: '#f87171', p: 0.4 }}>
+            <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Box>
+      )}
 
       {/* Bottom toolbar — fixed height, scrollable tabs */}
       <Box sx={{
@@ -1473,7 +1602,7 @@ export default function DocumentMaker() {
         flexShrink: 0, height: 168, display: 'flex', flexDirection: 'column',
         boxShadow: '0 -1px 8px rgba(0,0,0,0.06)',
       }}>
-        {/* Scrollable tab bar — 7 focused sections */}
+        {/* Scrollable tab bar — 6 focused sections */}
         <Tabs
           value={toolTab} onChange={(_, v) => setToolTab(v)}
           variant="scrollable" scrollButtons="auto"
@@ -1484,7 +1613,6 @@ export default function DocumentMaker() {
             '& .MuiTabs-indicator': { bgcolor: '#7c3aed' },
           }}
         >
-          <Tab label="Templates" />
           <Tab label="Add" />
           <Tab label="Text" />
           <Tab label="Object" />
@@ -1495,17 +1623,8 @@ export default function DocumentMaker() {
 
         <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', p: 1.25 }}>
 
-          {/* ── Tab 0: Templates ───────────────────────────── */}
-          {toolTab === 0 && (
-            <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', pb: 0.5, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
-              {templates.map((tpl, idx) => (
-                <TemplateTile key={tpl.id} tpl={tpl} selected={selectedTpl === idx} onClick={() => switchTemplate(idx)} />
-              ))}
-            </Box>
-          )}
-
-          {/* ── Tab 1: Add elements ────────────────────────── */}
-          {toolTab === 1 && (() => {
+          {/* ── Tab 0: Add elements ────────────────────────── */}
+          {toolTab === 0 && (() => {
             const btn = (label, icon, action) => (
               <Box key={label} onClick={action} sx={{
                 flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -1547,8 +1666,8 @@ export default function DocumentMaker() {
             );
           })()}
 
-          {/* ── Tab 2: Text ────────────────────────────────── */}
-          {toolTab === 2 && (
+          {/* ── Tab 1: Text ────────────────────────────────── */}
+          {toolTab === 1 && (
             (selectedObj?.type === 'i-text' || selectedObj?.type === 'text') ? (
               <Stack spacing={0.75}>
                 <Stack direction="row" alignItems="center" gap={1}>
@@ -1599,8 +1718,8 @@ export default function DocumentMaker() {
             )
           )}
 
-          {/* ── Tab 3: Object ──────────────────────────────── */}
-          {toolTab === 3 && (
+          {/* ── Tab 2: Object ──────────────────────────────── */}
+          {toolTab === 2 && (
             selectedObj ? (
               <Stack spacing={0.75}>
                 <Stack direction="row" alignItems="center" gap={1}>
@@ -1672,8 +1791,8 @@ export default function DocumentMaker() {
             )
           )}
 
-          {/* ── Tab 4: Arrange ─────────────────────────────── */}
-          {toolTab === 4 && (
+          {/* ── Tab 3: Arrange ─────────────────────────────── */}
+          {toolTab === 3 && (
             selectedObj ? (
               <Stack spacing={1}>
                 <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Align to Canvas</Typography>
@@ -1718,8 +1837,8 @@ export default function DocumentMaker() {
             )
           )}
 
-          {/* ── Tab 5: Style ───────────────────────────────── */}
-          {toolTab === 5 && (
+          {/* ── Tab 4: Style ───────────────────────────────── */}
+          {toolTab === 4 && (
             <Stack spacing={1}>
               <Stack direction="row" alignItems="center" gap={1.5}>
                 <Box sx={{ width: 36, height: 36, borderRadius: 1.5, border: '2px solid #e2e8f0', overflow: 'hidden', flexShrink: 0 }}>
@@ -1744,8 +1863,8 @@ export default function DocumentMaker() {
             </Stack>
           )}
 
-          {/* ── Tab 6: Export ──────────────────────────────── */}
-          {toolTab === 6 && (
+          {/* ── Tab 5: Export ──────────────────────────────── */}
+          {toolTab === 5 && (
             <Stack spacing={1.5}>
 
               {/* Student Carousel */}
