@@ -478,8 +478,7 @@ export default function DocumentMaker() {
   return (
     <Box sx={{
       display: 'flex', flexDirection: 'column',
-      mx: { xs: -2, md: -3 }, mt: { xs: -2, md: -3 },
-      minHeight: { xs: 'calc(100dvh - 116px)', md: 'calc(100dvh - 64px)' },
+      height: '100%',
       overflow: 'hidden', bgcolor: '#0f172a',
     }}>
 

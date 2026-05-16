@@ -12,11 +12,11 @@ export default function BottomNav({ username }) {
   const path = location.pathname;
 
   const tabs = [
-    { label: 'Home', icon: <HomeIcon />, path: `/${username}` },
-    { label: 'Students', icon: <PeopleIcon />, path: `/${username}/students` },
-    { label: 'Admissions', icon: <SchoolIcon />, path: `/${username}/allAdmission` },
-    { label: 'WhatsApp', icon: <WhatsAppIcon sx={{ color: path.includes('whatsapp') ? '#25d366' : undefined }} />, path: `/${username}/whatsapp-personal` },
-    { label: 'More', icon: <AppsIcon />, path: `/${username}/tools` },
+    { label: 'Home',      icon: <HomeIcon />,    path: `/${username}` },
+    { label: 'Academic',  icon: <SchoolIcon />,  path: `/${username}/section/academic` },
+    { label: 'WhatsApp',  icon: <WhatsAppIcon sx={{ color: path.includes('section/whatsapp') ? '#25d366' : undefined }} />, path: `/${username}/section/whatsapp` },
+    { label: 'Documents', icon: <PeopleIcon />,  path: `/${username}/section/canvas` },
+    { label: 'Admin',     icon: <AppsIcon />,    path: `/${username}/section/admin` },
   ];
 
   const currentTab = tabs.findIndex((t, i) => {

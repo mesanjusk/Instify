@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Avatar, Box, Button, Card, CardContent, Chip, CircularProgress,
+  Avatar, Box, Card, CardContent, Chip, CircularProgress,
   Stack, Typography,
 } from '@mui/material';
 import PeopleIcon from '@mui/icons-material/People';
@@ -12,7 +12,9 @@ import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import BadgeIcon from '@mui/icons-material/Badge';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import { useApp } from '../context/AppContext';
 import apiClient from '../apiClient';
 
@@ -58,36 +60,37 @@ function StatCard({ icon, label, value, color, onClick, loading }) {
   );
 }
 
-function FeatureWidget({ icon, iconColor, title, description, buttonLabel, buttonColor, onClick, badge, badgeColor }) {
+function SectionCard({ icon, iconBg, title, desc, badge, badgeColor, gradient, onClick }) {
   return (
-    <Card sx={{ height: '100%' }}>
-      <CardContent sx={{ p: 3, '&:last-child': { pb: 3 }, height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <Stack direction="row" alignItems="center" spacing={1.5} mb={1.5}>
-          <Avatar sx={{ bgcolor: `${iconColor}18`, width: 48, height: 48 }}>
+    <Card
+      onClick={onClick}
+      sx={{
+        cursor: 'pointer',
+        background: gradient,
+        border: 'none',
+        transition: 'transform 0.15s, box-shadow 0.15s',
+        '&:active': { transform: 'scale(0.98)' },
+        '&:hover': { boxShadow: '0 8px 32px rgba(0,0,0,0.18)' },
+      }}
+    >
+      <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+        <Stack direction="row" alignItems="flex-start" justifyContent="space-between" mb={1.5}>
+          <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {icon}
-          </Avatar>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="subtitle1" fontWeight={700} lineHeight={1.2}>{title}</Typography>
-            {badge && (
-              <Chip label={badge} size="small" color={badgeColor || 'default'} sx={{ mt: 0.5, height: 18, fontSize: '0.65rem' }} />
-            )}
           </Box>
+          {badge && (
+            <Chip label={badge} size="small" color={badgeColor || 'default'} sx={{ height: 18, fontSize: '0.62rem', fontWeight: 700 }} />
+          )}
         </Stack>
-        <Typography variant="body2" color="text.secondary" sx={{ flex: 1, mb: 2, lineHeight: 1.6 }}>
-          {description}
+        <Typography variant="subtitle1" fontWeight={700} sx={{ color: '#fff', lineHeight: 1.2, mb: 0.4 }}>
+          {title}
         </Typography>
-        <Button
-          fullWidth
-          onClick={onClick}
-          endIcon={<ArrowForwardIcon />}
-          sx={{
-            bgcolor: buttonColor,
-            color: '#fff',
-            '&:hover': { bgcolor: buttonColor, filter: 'brightness(0.9)' },
-          }}
-        >
-          {buttonLabel}
-        </Button>
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.75)', lineHeight: 1.4 }}>
+            {desc}
+          </Typography>
+          <ArrowForwardIosIcon sx={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', flexShrink: 0, ml: 1 }} />
+        </Stack>
       </CardContent>
     </Card>
   );
@@ -191,39 +194,49 @@ export default function Dashboard() {
         ))}
       </Box>
 
-      {/* Feature Widgets */}
-      <Typography variant="subtitle1" fontWeight={700} mb={1.5}>Featured Tools</Typography>
+      {/* Section cards — Amazon-style entry points */}
+      <Typography variant="subtitle1" fontWeight={700} mb={1.5}>Sections</Typography>
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' },
-          gap: 2,
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 1.5,
           mb: 3,
         }}
       >
-        <FeatureWidget
-          icon={<WhatsAppIcon sx={{ color: '#25d366', fontSize: 26 }} />}
-          iconColor="#25d366"
-          title="WhatsApp Automation"
-          description={
-            waConnected
-              ? 'Connected! Automate fee reminders, follow-ups, birthday wishes, and send magic access links to teachers & students.'
-              : 'Connect your institute WhatsApp to automate reminders, send access links, and broadcast to batches — all from one hub.'
-          }
-          buttonLabel={waConnected ? 'Open Automation Hub' : 'Connect WhatsApp'}
-          buttonColor="#25d366"
-          badge={waConnected ? 'Connected' : 'Not Connected'}
-          badgeColor={waConnected ? 'success' : 'default'}
-          onClick={() => navigate(`/${username}/whatsapp-personal`)}
+        <SectionCard
+          icon={<MenuBookIcon sx={{ color: '#fff', fontSize: 24 }} />}
+          iconBg="rgba(255,255,255,0.2)"
+          title="Academic"
+          desc="Students, admissions, courses, attendance"
+          gradient="linear-gradient(135deg, #4f46e5, #7c3aed)"
+          onClick={() => navigate(`/${username}/section/academic`)}
         />
-        <FeatureWidget
-          icon={<BadgeIcon sx={{ color: '#7c3aed', fontSize: 26 }} />}
-          iconColor="#7c3aed"
-          title="Document Maker"
-          description="Generate student ID cards, completion certificates, result/mark sheets, and exam admit cards. Select a batch to create documents for all students at once."
-          buttonLabel="Create Documents"
-          buttonColor="#7c3aed"
-          onClick={() => navigate(`/${username}/canvas-editor`)}
+        <SectionCard
+          icon={<WhatsAppIcon sx={{ color: '#fff', fontSize: 24 }} />}
+          iconBg="rgba(255,255,255,0.2)"
+          title="WhatsApp"
+          desc="Automation, broadcast & magic links"
+          gradient="linear-gradient(135deg, #075E54, #128C7E)"
+          badge={waConnected ? 'Live' : undefined}
+          badgeColor="success"
+          onClick={() => navigate(`/${username}/section/whatsapp`)}
+        />
+        <SectionCard
+          icon={<BadgeIcon sx={{ color: '#fff', fontSize: 24 }} />}
+          iconBg="rgba(255,255,255,0.2)"
+          title="Documents"
+          desc="ID cards, certificates, results"
+          gradient="linear-gradient(135deg, #7c3aed, #a855f7)"
+          onClick={() => navigate(`/${username}/section/canvas`)}
+        />
+        <SectionCard
+          icon={<AdminPanelSettingsIcon sx={{ color: '#fff', fontSize: 24 }} />}
+          iconBg="rgba(255,255,255,0.2)"
+          title="Admin"
+          desc="Users, settings & accounts"
+          gradient="linear-gradient(135deg, #0f172a, #334155)"
+          onClick={() => navigate(`/${username}/section/admin`)}
         />
       </Box>
 

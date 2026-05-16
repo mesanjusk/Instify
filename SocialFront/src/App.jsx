@@ -1,7 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
-import MagicLogin from './pages/MagicLogin';
 
 import DashboardLayout from './layouts/DashboardLayout';
+import SectionLayout from './layouts/SectionLayout';
+import MagicLogin from './pages/MagicLogin';
+import AcademicHub from './pages/AcademicHub';
+import AdminHub from './pages/AdminHub';
+
 import Dashboard from './pages/Dashboard';
 import User from './pages/User';
 import Login from './components/Login';
@@ -32,7 +36,7 @@ import AllLeadByAdmission from './reports/allLeadByAdmission';
 import AddAttendance from './pages/AddAttendance';
 import AllAttendance from './reports/allAttendance';
 import AllBatches from './reports/allBatches';
-import AllBalance from './reports/allBalance'; // <-- ✅ NEW PAGE
+import AllBalance from './reports/allBalance';
 import AddAccount from './pages/AddAccount';
 import AllExams from './reports/allExams';
 import Institutes from './pages/Institutes';
@@ -50,16 +54,59 @@ import BulkDownload from './pages/BulkDownload';
 export default function App() {
   return (
     <Routes>
-      {/* 🌐 Public Routes */}
+      {/* ── Public ───────────────────────────────────────── */}
       <Route path="/" element={<Login />} />
       <Route path="/register" element={<Signup />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/upload" element={<ImageUploader />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:id" element={<ResetPassword />} />
+      <Route path="/access/:token" element={<MagicLogin />} />
 
-      {/* 🔐 Protected Routes under :username */}
-      <Route path="/:username" element={<PrivateRoute><DashboardLayout /></PrivateRoute>} >
+      {/* ── Section routes (no sidebar / FAB / bottom nav) ── */}
+      <Route
+        path="/:username/section/whatsapp"
+        element={
+          <PrivateRoute>
+            <SectionLayout title="WhatsApp Bot" subtitle="Automation & messaging" color="#075E54">
+              <BaileysWhatsApp />
+            </SectionLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/:username/section/canvas"
+        element={
+          <PrivateRoute>
+            <SectionLayout title="Document Maker" subtitle="ID cards · Certificates · Results" color="#7c3aed">
+              <CanvasEditor />
+            </SectionLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/:username/section/academic"
+        element={
+          <PrivateRoute>
+            <SectionLayout title="Academic" subtitle="Students, courses & attendance" color="#4f46e5">
+              <AcademicHub />
+            </SectionLayout>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/:username/section/admin"
+        element={
+          <PrivateRoute>
+            <SectionLayout title="Administration" subtitle="Settings, users & accounts" color="#0f172a">
+              <AdminHub />
+            </SectionLayout>
+          </PrivateRoute>
+        }
+      />
+
+      {/* ── Dashboard layout routes ───────────────────────── */}
+      <Route path="/:username" element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
         <Route index element={<Dashboard />} />
         <Route path="user" element={<User />} />
         <Route path="batches" element={<Batches />} />
@@ -85,26 +132,34 @@ export default function App() {
         <Route path="followup" element={<Followup />} />
         <Route path="addAttendance" element={<AddAttendance />} />
         <Route path="allAttendance" element={<AllAttendance />} />
-        <Route path="allBalance" element={<AllBalance />} /> {/* ✅ Added Route */}
-        <Route path="allBatches" element={<AllBatches />} /> {/* ✅ Added Route */}
+        <Route path="allBalance" element={<AllBalance />} />
+        <Route path="allBatches" element={<AllBatches />} />
         <Route path="whatsapp" element={<WhatsAppAdminPage />} />
         <Route path="dashboard/centers/:centerId/whatsapp" element={<WhatsAppIntegrationSettingsPage />} />
         <Route path="allExams" element={<AllExams />} />
         <Route path="fees" element={<Fees />} />
         <Route path="tools" element={<ToolsPanel />} />
         <Route path="allTransaction3" element={<AllTransaction3 />} />
-        <Route path="whatsapp-personal" element={<BaileysWhatsApp />} />
         <Route path="upi-payment" element={<UpiPayment />} />
         <Route path="csv-import" element={<CsvImport />} />
-        <Route path="canvas-editor" element={<CanvasEditor />} />
         <Route path="bulk-download" element={<BulkDownload />} />
+        {/* Legacy redirects → section routes */}
+        <Route path="whatsapp-personal" element={<RedirectToSection section="whatsapp" />} />
+        <Route path="canvas-editor" element={<RedirectToSection section="canvas" />} />
       </Route>
 
-      {/* 🔗 Magic link auto-login */}
-      <Route path="/access/:token" element={<MagicLogin />} />
-
-      {/* 🧭 Fallback */}
+      {/* ── Fallback ──────────────────────────────────────── */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
+}
+
+/* Redirects old direct routes to the new section URLs */
+function RedirectToSection({ section }) {
+  const { username } = (() => {
+    // Extract username from current pathname
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    return { username: parts[0] || 'admin' };
+  })();
+  return <Navigate to={`/${username}/section/${section}`} replace />;
 }

@@ -1,0 +1,83 @@
+import { Box, Card, CardContent, Stack, Typography } from '@mui/material';
+import { useNavigate, useParams } from 'react-router-dom';
+import CorporateFareIcon from '@mui/icons-material/CorporateFare';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import PaymentIcon from '@mui/icons-material/Payment';
+import CategoryIcon from '@mui/icons-material/Category';
+import SchoolIcon from '@mui/icons-material/School';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import DownloadIcon from '@mui/icons-material/Download';
+import QrCodeIcon from '@mui/icons-material/QrCode';
+import BusinessIcon from '@mui/icons-material/Business';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+
+function AdminCard({ icon, label, desc, color, onClick }) {
+  return (
+    <Card
+      onClick={onClick}
+      sx={{
+        cursor: 'pointer',
+        transition: 'transform 0.15s, box-shadow 0.15s',
+        '&:active': { transform: 'scale(0.97)' },
+        '&:hover': { boxShadow: '0 4px 20px rgba(15,23,42,0.12)' },
+      }}
+    >
+      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Box
+            sx={{
+              width: 44, height: 44, borderRadius: 2.5, flexShrink: 0,
+              bgcolor: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color,
+            }}
+          >
+            {icon}
+          </Box>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="subtitle2" fontWeight={700} noWrap>{label}</Typography>
+            <Typography variant="caption" color="text.secondary" noWrap>{desc}</Typography>
+          </Box>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function AdminHub() {
+  const navigate = useNavigate();
+  const { username } = useParams();
+  const go = (path) => navigate(`/${username}/${path}`);
+
+  const items = [
+    { icon: <CorporateFareIcon />,         label: 'Institute Profile',    desc: 'Edit logo, name, branding',        color: '#4f46e5', path: 'instituteProfile' },
+    { icon: <ManageAccountsIcon />,        label: 'Users & Staff',        desc: 'Manage roles and accounts',         color: '#7c3aed', path: 'user' },
+    { icon: <BusinessIcon />,             label: 'Institutes',           desc: 'All institutes (superadmin)',        color: '#0891b2', path: 'institutes' },
+    { icon: <PaymentIcon />,              label: 'Payment Modes',        desc: 'Cash, UPI, bank settings',           color: '#10b981', path: 'paymentmode' },
+    { icon: <CategoryIcon />,             label: 'Course Categories',    desc: 'Categorise your courses',            color: '#f59e0b', path: 'coursesCategory' },
+    { icon: <SchoolIcon />,              label: 'Education Types',      desc: 'UG, PG, Diploma etc.',               color: '#d97706', path: 'education' },
+    { icon: <AccountBalanceIcon />,       label: 'Org Categories',       desc: 'Organisation structure',             color: '#6366f1', path: 'orgcategories' },
+    { icon: <AccountBalanceWalletIcon />, label: 'Accounts',             desc: 'Chart of accounts / ledger',         color: '#059669', path: 'addAccount' },
+    { icon: <BarChartIcon />,            label: 'Transactions',         desc: 'Full transaction ledger',            color: '#0f172a', path: 'allTransaction3' },
+    { icon: <BarChartIcon />,            label: 'Balance Report',       desc: 'Account-wise balances',              color: '#374151', path: 'allBalance' },
+    { icon: <QrCodeIcon />,              label: 'UPI Payment',          desc: 'UPI QR & collection link',           color: '#7c3aed', path: 'upi-payment' },
+    { icon: <UploadFileIcon />,          label: 'CSV Import',           desc: 'Bulk import students/leads',         color: '#0284c7', path: 'csv-import' },
+    { icon: <DownloadIcon />,            label: 'Bulk Download',        desc: 'Export ZIP of records',              color: '#64748b', path: 'bulk-download' },
+  ];
+
+  return (
+    <Box sx={{ p: 2 }}>
+      <Typography variant="h6" fontWeight={700} mb={0.5}>Administration</Typography>
+      <Typography variant="body2" color="text.secondary" mb={2}>
+        Institute settings, users, accounts, and data tools.
+      </Typography>
+
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 1.5 }}>
+        {items.map((m) => (
+          <AdminCard key={m.path} {...m} onClick={() => go(m.path)} />
+        ))}
+      </Box>
+    </Box>
+  );
+}
