@@ -30,6 +30,8 @@ import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 import LayersIcon from '@mui/icons-material/Layers';
 import HomeIcon from '@mui/icons-material/Home';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import PrintIcon from '@mui/icons-material/Print';
+import TuneIcon from '@mui/icons-material/Tune';
 import ShareIcon from '@mui/icons-material/Share';
 import CheckIcon from '@mui/icons-material/Check';
 import SearchIcon from '@mui/icons-material/Search';
@@ -85,6 +87,30 @@ const TEMPLATES = {
     { id: 'indigo', label: 'Classic',   thumb: '#4f46e5', headerColor: '#4f46e5', bg: '#f0f4ff' },
     { id: 'dark',   label: 'Dark',      thumb: '#0f172a', headerColor: '#0f172a', bg: '#f8fafc' },
   ],
+};
+
+/* ─── Print / page-setup constants ───────────────────────────── */
+const MM_TO_PX = 3.7795275591; // 96 DPI
+
+const PAGE_SIZES = [
+  { key: 'a4',          label: 'A4',           w: 210,   h: 297   },
+  { key: 'a4l',         label: 'A4 Landscape', w: 297,   h: 210   },
+  { key: 'a3',          label: 'A3',           w: 297,   h: 420   },
+  { key: 'a3l',         label: 'A3 Landscape', w: 420,   h: 297   },
+  { key: 'a5',          label: 'A5',           w: 148,   h: 210   },
+  { key: 'a2',          label: 'A2',           w: 420,   h: 594   },
+  { key: 'letter',      label: 'Letter',       w: 216,   h: 279   },
+  { key: 'legal',       label: 'Legal',        w: 216,   h: 356   },
+  { key: 'id_card',     label: 'ID Card',      w: 85.6,  h: 53.98 },
+  { key: 'certificate', label: 'Certificate',  w: 297,   h: 210   },
+  { key: 'custom',      label: 'Custom…',      w: null,  h: null  },
+];
+
+const DEFAULT_SETUPS = {
+  id_card:     { pageKey: 'id_card',     w: 85.6,  h: 53.98, marginT: 0,  marginR: 0,  marginB: 0,  marginL: 0,  orientation: 'landscape' },
+  certificate: { pageKey: 'certificate', w: 297,   h: 210,   marginT: 10, marginR: 10, marginB: 10, marginL: 10, orientation: 'landscape' },
+  result:      { pageKey: 'a4',          w: 210,   h: 297,   marginT: 15, marginR: 15, marginB: 15, marginL: 15, orientation: 'portrait'  },
+  admit_card:  { pageKey: 'id_card',     w: 85.6,  h: 53.98, marginT: 0,  marginR: 0,  marginB: 0,  marginL: 0,  orientation: 'landscape' },
 };
 
 /* ─── Canvas seeder ──────────────────────────────────────────── */
@@ -307,7 +333,110 @@ export default function DocumentMaker() {
   const [uploadDocType, setUploadDocType] = useState('other');
   const [uploading, setUploading] = useState(false);
 
+  const pageSetupRef = useRef(null);
+  const [pageSetup,       setPageSetup]       = useState(null);
+  const [tempSetup,       setTempSetup]       = useState(null);
+  const [pageSetupDialog, setPageSetupDialog] = useState(false);
+  const [printCopies,     setPrintCopies]     = useState(1);
+  const [printing,        setPrinting]        = useState(false);
+
   function showAlert(type, text) { setAlert({ type, text }); setTimeout(() => setAlert(null), 4000); }
+
+  async function drawMGuides(fc, setup) {
+    if (!fc || !setup) return;
+    const { fabric } = await getFabric();
+    fc.getObjects().filter(o => o.__marginGuide).forEach(o => fc.remove(o));
+    const { marginT, marginR, marginB, marginL } = setup;
+    if ((marginT + marginR + marginB + marginL) === 0) { fc.renderAll(); return; }
+    const t = marginT * MM_TO_PX, r = marginR * MM_TO_PX;
+    const b = marginB * MM_TO_PX, l = marginL * MM_TO_PX;
+    const guide = new fabric.Rect({
+      left: l, top: t,
+      width: fc.width - l - r, height: fc.height - t - b,
+      fill: 'transparent',
+      stroke: 'rgba(99,102,241,0.7)',
+      strokeWidth: 1,
+      strokeDashArray: [6, 4],
+      selectable: false, evented: false,
+    });
+    guide.__marginGuide = true;
+    fc.add(guide);
+    fc.renderAll();
+  }
+
+  function hideMGuides() {
+    if (!fabricRef.current) return;
+    fabricRef.current.getObjects().filter(o => o.__marginGuide).forEach(o => o.set('visible', false));
+    fabricRef.current.renderAll();
+  }
+
+  function showMGuides() {
+    if (!fabricRef.current) return;
+    fabricRef.current.getObjects().filter(o => o.__marginGuide).forEach(o => o.set('visible', true));
+    fabricRef.current.renderAll();
+  }
+
+  async function printDocument() {
+    if (!fabricRef.current) return;
+    const setup = pageSetupRef.current;
+    if (!setup) return;
+    setPrinting(true);
+    try {
+      hideMGuides();
+      const dataUrl = fabricRef.current.toDataURL({ format: 'png', multiplier: 3 });
+      showMGuides();
+      const wMM = setup.w, hMM = setup.h;
+      const isLand = setup.orientation === 'landscape';
+      const pdf = new jsPDF({ orientation: isLand ? 'landscape' : 'portrait', unit: 'mm', format: [wMM, hMM] });
+      const pW = wMM - setup.marginL - setup.marginR;
+      const pH = hMM - setup.marginT - setup.marginB;
+      for (let i = 0; i < Math.max(1, printCopies); i++) {
+        if (i > 0) pdf.addPage([wMM, hMM], isLand ? 'landscape' : 'portrait');
+        pdf.addImage(dataUrl, 'PNG', setup.marginL, setup.marginT, pW, pH);
+      }
+      pdf.autoPrint();
+      window.open(pdf.output('bloburl'), '_blank');
+    } catch (err) {
+      showAlert('error', 'Print failed: ' + err.message);
+    } finally {
+      setPrinting(false);
+    }
+  }
+
+  async function generateBatchPDF() {
+    if (!batchStudents.length) return showAlert('error', 'No students in selected batch');
+    const setup = pageSetupRef.current;
+    if (!setup) return;
+    setGenerating(true);
+    const { fabric } = await getFabric();
+    const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
+    try {
+      const wMM = setup.w, hMM = setup.h;
+      const isLand = setup.orientation === 'landscape';
+      const pdf = new jsPDF({ orientation: isLand ? 'landscape' : 'portrait', unit: 'mm', format: [wMM, hMM] });
+      const pW = wMM - setup.marginL - setup.marginR;
+      const pH = hMM - setup.marginT - setup.marginB;
+      for (let idx = 0; idx < batchStudents.length; idx++) {
+        const s = batchStudents[idx];
+        const el = document.createElement('canvas'); document.body.appendChild(el);
+        const { w, h } = DOC_TYPES.find(d => d.key === docType).dims;
+        const fc = new fabric.Canvas(el, { width: w, height: h });
+        const data = {
+          name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.name || 'Student',
+          rollNo: s.rollNo || '—', course: s.course || '—', batch: s.batch || selBatch,
+        };
+        await seedCanvas(fc, docType, tpl, data, instituteName);
+        const imgData = fc.toDataURL({ format: 'png', multiplier: 3 });
+        if (idx > 0) pdf.addPage([wMM, hMM], isLand ? 'landscape' : 'portrait');
+        pdf.addImage(imgData, 'PNG', setup.marginL, setup.marginT, pW, pH);
+        fc.dispose(); document.body.removeChild(el);
+      }
+      pdf.autoPrint();
+      window.open(pdf.output('bloburl'), '_blank');
+      showAlert('success', `Batch PDF ready — ${batchStudents.length} pages!`);
+    } catch (err) { showAlert('error', err.message); }
+    finally { setGenerating(false); }
+  }
 
   const updateScale = useCallback(() => {
     if (!containerRef.current || !fabricRef.current) return;
@@ -407,6 +536,7 @@ export default function DocumentMaker() {
     fc.on('selection:updated', handleSelect);
     fc.on('selection:cleared', () => setSelectedObj(null));
     await seedCanvas(fc, type, tpl, {}, instituteName);
+    await drawMGuides(fc, pageSetupRef.current);
     setReady(true);
     setTimeout(updateScale, 50);
   }
@@ -425,6 +555,10 @@ export default function DocumentMaker() {
   }
 
   function openEditor(type, tplIdx = 0) {
+    const setup = { ...(DEFAULT_SETUPS[type] || DEFAULT_SETUPS.result) };
+    pageSetupRef.current = setup;
+    setPageSetup(setup);
+    setTempSetup(setup);
     setDocType(type);
     setSelectedTpl(tplIdx);
     setSelectedObj(null);
@@ -507,7 +641,9 @@ export default function DocumentMaker() {
 
   async function exportPNG() {
     if (!fabricRef.current) return;
+    hideMGuides();
     const url = fabricRef.current.toDataURL({ format: 'png', multiplier: 2 });
+    showMGuides();
     const a = document.createElement('a'); a.href = url; a.download = `${docType}.png`; a.click();
   }
 
@@ -515,8 +651,10 @@ export default function DocumentMaker() {
     if (!fabricRef.current) return;
     setExporting(true);
     try {
+      hideMGuides();
       const { w, h } = DOC_TYPES.find(d => d.key === docType).dims;
       const url = fabricRef.current.toDataURL({ format: 'png', multiplier: 2 });
+      showMGuides();
       const pdf = new jsPDF({ orientation: w > h ? 'landscape' : 'portrait', unit: 'px', format: [w * 2, h * 2] });
       pdf.addImage(url, 'PNG', 0, 0, w * 2, h * 2);
       pdf.save(`${docType}.pdf`);
@@ -904,6 +1042,16 @@ export default function DocumentMaker() {
             {currentDT?.label}
           </Typography>
         </Box>
+        <Tooltip title="Page Setup">
+          <IconButton size="small" onClick={() => { setTempSetup({ ...(pageSetup || DEFAULT_SETUPS[docType] || DEFAULT_SETUPS.result) }); setPageSetupDialog(true); }} sx={{ color: '#64748b' }}>
+            <TuneIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        <Tooltip title="Print">
+          <IconButton size="small" onClick={printDocument} disabled={printing} sx={{ color: '#4f46e5' }}>
+            {printing ? <CircularProgress size={16} color="inherit" /> : <PrintIcon fontSize="small" />}
+          </IconButton>
+        </Tooltip>
         <Tooltip title="More options">
           <IconButton size="small" sx={{ color: '#64748b' }}><MoreHorizIcon fontSize="small" /></IconButton>
         </Tooltip>
@@ -1074,6 +1222,21 @@ export default function DocumentMaker() {
                 <Button size="small" startIcon={<PictureAsPdfIcon />} onClick={exportPDF} disabled={exporting}
                   sx={{ flex: 1, bgcolor: '#7c3aed22', color: '#7c3aed', border: '1px solid #7c3aed33', '&:hover': { bgcolor: '#7c3aed33' } }}>PDF</Button>
               </Stack>
+              {/* Copies + direct Print */}
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Typography sx={{ fontSize: '0.72rem', color: '#64748b', flexShrink: 0 }}>Copies</Typography>
+                <TextField type="number" size="small" value={printCopies}
+                  onChange={e => setPrintCopies(Math.max(1, Math.min(99, Number(e.target.value))))}
+                  inputProps={{ min: 1, max: 99 }}
+                  sx={{ width: 64, '& .MuiOutlinedInput-root': { bgcolor: '#f1f5f9', '& fieldset': { borderColor: '#e2e8f0' } }, '& input': { py: 0.5, px: 1 } }}
+                />
+                <Button size="small"
+                  startIcon={printing ? <CircularProgress size={12} color="inherit" /> : <PrintIcon />}
+                  onClick={printDocument} disabled={printing}
+                  sx={{ flex: 1, bgcolor: '#4f46e522', color: '#4f46e5', border: '1px solid #4f46e533', '&:hover': { bgcolor: '#4f46e533' } }}>
+                  {printing ? 'Printing…' : 'Print'}
+                </Button>
+              </Stack>
               <Stack direction="row" spacing={1} alignItems="center">
                 <Select value={selBatch} onChange={e => setSelBatch(e.target.value)} displayEmpty size="small"
                   sx={{ flex: 1, bgcolor: '#f1f5f9', color: '#1e293b', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}>
@@ -1085,12 +1248,105 @@ export default function DocumentMaker() {
                   sx={{ flexShrink: 0, bgcolor: '#f1f5f9', color: '#1e293b', border: '1px solid #e2e8f0', '&:hover': { bgcolor: '#e2e8f0' } }}>
                   {generating ? '…' : `ZIP (${batchStudents.length})`}
                 </Button>
+                <Button size="small" startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <PictureAsPdfIcon />}
+                  onClick={generateBatchPDF} disabled={generating || !batchStudents.length}
+                  sx={{ flexShrink: 0, bgcolor: '#7c3aed22', color: '#7c3aed', border: '1px solid #7c3aed33', '&:hover': { bgcolor: '#7c3aed33' } }}>
+                  {generating ? '…' : `PDF`}
+                </Button>
               </Stack>
               {loadingBatch && <CircularProgress size={16} sx={{ mx: 'auto', color: '#7c3aed' }} />}
             </Stack>
           )}
         </Box>
       </Box>
+
+      {/* ── Page Setup Dialog ──────────────────────────────── */}
+      <Dialog open={pageSetupDialog} onClose={() => setPageSetupDialog(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem', pb: 0 }}>Page Setup</DialogTitle>
+        <DialogContent sx={{ pt: 1.5 }}>
+          <Stack spacing={2}>
+            <Box>
+              <Typography sx={{ fontSize: '0.75rem', color: '#64748b', mb: 1 }}>Paper Size</Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+                {PAGE_SIZES.map(ps => (
+                  <Chip key={ps.key} label={ps.label} size="small"
+                    onClick={() => setTempSetup(prev => ({
+                      ...prev,
+                      pageKey: ps.key,
+                      ...(ps.w && ps.h ? { w: ps.w, h: ps.h } : {}),
+                    }))}
+                    sx={{
+                      bgcolor: tempSetup?.pageKey === ps.key ? '#7c3aed' : '#f1f5f9',
+                      color: tempSetup?.pageKey === ps.key ? '#fff' : '#1e293b',
+                      borderRadius: 1, cursor: 'pointer', fontSize: '0.7rem', height: 26,
+                      '&:hover': { bgcolor: tempSetup?.pageKey === ps.key ? '#6d28d9' : '#e2e8f0' },
+                    }}
+                  />
+                ))}
+              </Box>
+            </Box>
+            {tempSetup?.pageKey === 'custom' && (
+              <Stack direction="row" spacing={1}>
+                <TextField label="Width (mm)" type="number" size="small" value={tempSetup?.w || ''}
+                  onChange={e => setTempSetup(prev => ({ ...prev, w: Number(e.target.value) }))}
+                  inputProps={{ min: 10, max: 2000 }} sx={{ flex: 1 }} />
+                <TextField label="Height (mm)" type="number" size="small" value={tempSetup?.h || ''}
+                  onChange={e => setTempSetup(prev => ({ ...prev, h: Number(e.target.value) }))}
+                  inputProps={{ min: 10, max: 2000 }} sx={{ flex: 1 }} />
+              </Stack>
+            )}
+            <Box>
+              <Typography sx={{ fontSize: '0.75rem', color: '#64748b', mb: 1 }}>Orientation</Typography>
+              <Stack direction="row" spacing={1}>
+                {[['portrait', '↕ Portrait'], ['landscape', '↔ Landscape']].map(([val, lbl]) => (
+                  <Button key={val} size="small" onClick={() => setTempSetup(prev => ({ ...prev, orientation: val }))}
+                    sx={{
+                      flex: 1, textTransform: 'none',
+                      bgcolor: tempSetup?.orientation === val ? '#7c3aed' : '#f1f5f9',
+                      color: tempSetup?.orientation === val ? '#fff' : '#64748b',
+                      border: `1px solid ${tempSetup?.orientation === val ? '#7c3aed' : '#e2e8f0'}`,
+                      '&:hover': { bgcolor: tempSetup?.orientation === val ? '#6d28d9' : '#e2e8f0' },
+                    }}>{lbl}</Button>
+                ))}
+              </Stack>
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: '0.75rem', color: '#64748b', mb: 1 }}>Margins (mm)</Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+                {[['marginT', 'Top'], ['marginR', 'Right'], ['marginB', 'Bottom'], ['marginL', 'Left']].map(([key, lbl]) => (
+                  <TextField key={key} label={lbl} type="number" size="small"
+                    value={tempSetup?.[key] ?? 0}
+                    onChange={e => setTempSetup(prev => ({ ...prev, [key]: Math.max(0, Number(e.target.value)) }))}
+                    inputProps={{ min: 0, max: 100 }} />
+                ))}
+              </Box>
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: '0.75rem', color: '#64748b', mb: 1 }}>Quick Margin Presets</Typography>
+              <Stack direction="row" spacing={0.75} flexWrap="wrap">
+                {[['None', 0], ['5mm', 5], ['10mm', 10], ['15mm', 15], ['20mm', 20]].map(([lbl, val]) => (
+                  <Chip key={lbl} label={lbl} size="small"
+                    onClick={() => setTempSetup(prev => ({ ...prev, marginT: val, marginR: val, marginB: val, marginL: val }))}
+                    sx={{ bgcolor: '#f1f5f9', color: '#64748b', fontSize: '0.7rem', height: 26, cursor: 'pointer', borderRadius: 1, '&:hover': { bgcolor: '#e2e8f0' } }}
+                  />
+                ))}
+              </Stack>
+            </Box>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setPageSetupDialog(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
+          <Button variant="contained" onClick={() => {
+            const s = { ...tempSetup };
+            pageSetupRef.current = s;
+            setPageSetup(s);
+            setPageSetupDialog(false);
+            if (fabricRef.current) drawMGuides(fabricRef.current, s);
+          }} sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' }, textTransform: 'none' }}>
+            Apply
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
