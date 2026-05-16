@@ -36,5 +36,8 @@
     "vite": "^6.3.5",
     "vite-plugin-pwa": "^1.0.0",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "eruda": "^3.4.3"
   }
 }

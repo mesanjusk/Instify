@@ -528,31 +528,37 @@ export default function DocumentMaker() {
   // tplIdx = 0..N  → seed canvas with that template design (Templates tab tiles)
   // pendingJSON     → restore a saved design JSON
   async function initCanvas(type, tplIdx = null, pendingJSON = null) {
-    const { fabric } = await getFabric();
-    if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
-    if (!canvasRef.current) { setReady(true); return; }
-    const { w, h } = DOC_TYPES.find(d => d.key === type).dims;
-    const fc = new fabric.Canvas(canvasRef.current, { width: w, height: h, selection: true });
-    fabricRef.current = fc;
-    attachCanvasListeners(fc);
-    suppressDirtyRef.current = true;
-    if (pendingJSON) {
-      await new Promise(res => fc.loadFromJSON(pendingJSON, () => { fc.renderAll(); res(); }));
-    } else if (tplIdx !== null) {
-      const tpl = (TEMPLATES[type] || [])[tplIdx] || (TEMPLATES[type] || [])[0];
-      if (tpl) await seedCanvas(fc, type, tpl, {}, instituteName);
-      else { fc.backgroundColor = '#ffffff'; fc.renderAll(); }
-      await drawMGuides(fc, pageSetupRef.current);
-    } else {
-      // Blank canvas — white background only
-      fc.backgroundColor = '#ffffff';
-      fc.renderAll();
-      await drawMGuides(fc, pageSetupRef.current);
+    try {
+      const { fabric } = await getFabric();
+      if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
+      if (!canvasRef.current) { setReady(true); return; }
+      const { w, h } = DOC_TYPES.find(d => d.key === type).dims;
+      const fc = new fabric.Canvas(canvasRef.current, { width: w, height: h, selection: true });
+      fabricRef.current = fc;
+      attachCanvasListeners(fc);
+      suppressDirtyRef.current = true;
+      if (pendingJSON) {
+        await new Promise(res => fc.loadFromJSON(pendingJSON, () => { fc.renderAll(); res(); }));
+      } else if (tplIdx !== null) {
+        const tpl = (TEMPLATES[type] || [])[tplIdx] || (TEMPLATES[type] || [])[0];
+        if (tpl) await seedCanvas(fc, type, tpl, {}, instituteName);
+        else { fc.backgroundColor = '#ffffff'; fc.renderAll(); }
+        await drawMGuides(fc, pageSetupRef.current);
+      } else {
+        fc.backgroundColor = '#ffffff';
+        fc.renderAll();
+        await drawMGuides(fc, pageSetupRef.current);
+      }
+      suppressDirtyRef.current = false;
+      setIsDirty(false);
+      setReady(true);
+      setTimeout(updateScale, 50);
+    } catch (err) {
+      console.error('[Canvas] initCanvas error:', err);
+      suppressDirtyRef.current = false;
+      setReady(true);   // always unblock the spinner even on error
+      showAlert('error', 'Canvas init failed: ' + (err?.message || err));
     }
-    suppressDirtyRef.current = false;
-    setIsDirty(false);
-    setReady(true);
-    setTimeout(updateScale, 50);
   }
 
   async function handleUseTemplate(imageUrl) {

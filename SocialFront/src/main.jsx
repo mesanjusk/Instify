@@ -1,5 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+
+// Mobile console — shows floating DevTools on the phone screen.
+// Activate by adding  ?debug=1  to the URL, e.g. https://app.sanjusk.in/?debug=1
+if (new URLSearchParams(window.location.search).get('debug') === '1') {
+  import('eruda').then(m => m.default.init());
+}
 import { BrowserRouter } from 'react-router-dom';
 import { ThemeProvider, CssBaseline, GlobalStyles } from '@mui/material';
 import App from './App';
