@@ -48,7 +48,12 @@ import apiClient from '../apiClient';
 /* ─── Fabric loader ──────────────────────────────────────────── */
 let fabricModule = null;
 async function getFabric() {
-  if (!fabricModule) fabricModule = await import('fabric');
+  if (!fabricModule) {
+    const mod = await import('fabric');
+    // fabric v5 can land in different spots depending on bundler/module format
+    const ns = mod.fabric ?? mod.default?.fabric ?? mod.default ?? mod;
+    fabricModule = { fabric: ns };
+  }
   return fabricModule;
 }
 
