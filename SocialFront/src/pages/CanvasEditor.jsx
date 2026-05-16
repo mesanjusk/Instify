@@ -338,6 +338,7 @@ export default function DocumentMaker() {
   const pageSetupRef     = useRef(null);
   const suppressDirtyRef = useRef(false);
   const carouselStatesRef = useRef({});
+  const initParamsRef    = useRef(null);   // { type, tplIdx } set by openEditor/switchTemplate
   const [pageSetup,       setPageSetup]       = useState(null);
   const [tempSetup,       setTempSetup]       = useState(null);
   const [pageSetupDialog, setPageSetupDialog] = useState(false);
@@ -523,17 +524,23 @@ export default function DocumentMaker() {
     fc.on('object:removed',  () => { if (!suppressDirtyRef.current) setIsDirty(true); });
   }
 
-  async function initCanvas(type, _tplIdx) {
+  async function initCanvas(type, _tplIdx, pendingJSON = null) {
     const { fabric } = await getFabric();
     if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
-    if (!canvasRef.current) return;
+    if (!canvasRef.current) { setReady(true); return; }  // failsafe: show blank rather than spin forever
     const { w, h } = DOC_TYPES.find(d => d.key === type).dims;
     const fc = new fabric.Canvas(canvasRef.current, { width: w, height: h, selection: true });
     fabricRef.current = fc;
     attachCanvasListeners(fc);
-    fc.backgroundColor = '#ffffff';
-    fc.renderAll();
-    await drawMGuides(fc, pageSetupRef.current);
+    if (pendingJSON) {
+      suppressDirtyRef.current = true;
+      await new Promise(res => fc.loadFromJSON(pendingJSON, () => { fc.renderAll(); res(); }));
+      suppressDirtyRef.current = false;
+    } else {
+      fc.backgroundColor = '#ffffff';
+      fc.renderAll();
+      await drawMGuides(fc, pageSetupRef.current);
+    }
     setIsDirty(false);
     setReady(true);
     setTimeout(updateScale, 50);
@@ -588,6 +595,7 @@ export default function DocumentMaker() {
   function openEditor(type, tplIdx = 0) {
     const setup = { ...(DEFAULT_SETUPS[type] || DEFAULT_SETUPS.result) };
     pageSetupRef.current = setup;
+    initParamsRef.current = { type, tplIdx };
     setPageSetup(setup);
     setTempSetup(setup);
     setDocType(type);
@@ -599,7 +607,7 @@ export default function DocumentMaker() {
     carouselStatesRef.current = {};
     setCarouselIdx(0);
     setView('editor');
-    setTimeout(() => initCanvas(type, tplIdx), 0);
+    // initCanvas is triggered by the useEffect([view]) — never call it here directly
   }
 
   async function goCarousel(newIdx) {
@@ -659,8 +667,16 @@ export default function DocumentMaker() {
   }
 
   useEffect(() => {
-    if (view === 'editor' && !fabricRef.current) initCanvas(docType, selectedTpl);
-    if (view !== 'editor' && fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
+    if (view === 'editor') {
+      // Always dispose any stale canvas before creating a fresh one
+      if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
+      const params = initParamsRef.current || { type: docType, tplIdx: selectedTpl, pendingJSON: null };
+      initParamsRef.current = null;
+      initCanvas(params.type, params.tplIdx, params.pendingJSON ?? null);
+    } else {
+      if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view]);
 
   useEffect(() => {
@@ -777,8 +793,11 @@ export default function DocumentMaker() {
 
   function switchTemplate(idx) {
     confirmThen(() => {
+      initParamsRef.current = { type: docType, tplIdx: idx };
       setSelectedTpl(idx); setSelectedObj(null); setReady(false); setIsDirty(false);
-      setTimeout(() => initCanvas(docType, idx), 0);
+      // Force the useEffect to re-run even though view hasn't changed
+      if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
+      initCanvas(docType, idx);
     });
   }
 
@@ -817,27 +836,16 @@ export default function DocumentMaker() {
   }
 
   async function loadDesign(design) {
+    // Store a pending JSON to restore after initCanvas creates the blank canvas
+    const pendingJSON = design.canvasJSON ? JSON.parse(design.canvasJSON) : null;
+    initParamsRef.current = { type: design.docType, tplIdx: 0, pendingJSON };
     setDocType(design.docType);
     setCurrentDesignId(design.design_uuid);
     setDesignName(design.name);
-    setView('editor');
+    setIsDirty(false);
     setReady(false);
-    setTimeout(async () => {
-      const { fabric } = await getFabric();
-      if (fabricRef.current) { fabricRef.current.dispose(); fabricRef.current = null; }
-      if (!canvasRef.current) return;
-      const { w, h } = DOC_TYPES.find(d => d.key === design.docType).dims;
-      const fc = new fabric.Canvas(canvasRef.current, { width: w, height: h, selection: true });
-      fabricRef.current = fc;
-      fc.on('selection:created', handleSelect);
-      fc.on('selection:updated', handleSelect);
-      fc.on('selection:cleared', () => setSelectedObj(null));
-      if (design.canvasJSON) {
-        fc.loadFromJSON(JSON.parse(design.canvasJSON), () => { fc.renderAll(); setReady(true); setTimeout(updateScale, 50); });
-      } else {
-        setReady(true);
-      }
-    }, 0);
+    // Trigger the useEffect which will call initCanvas with the pendingJSON
+    setView('editor');
   }
 
   async function deleteDesign(design) {
