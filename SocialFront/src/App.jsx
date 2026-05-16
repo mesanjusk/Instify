@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate, Suspense, lazy } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { CircularProgress, Box } from '@mui/material';
 
 import DashboardLayout from './layouts/DashboardLayout';
