@@ -10,7 +10,7 @@ import {
   Alert, Box, Button, Card, CardContent, CardMedia, Chip, CircularProgress,
   Dialog, DialogActions, DialogContent, DialogTitle, IconButton,
   MenuItem, Select, Slider, Stack, Tab, Tabs, TextField,
-  Tooltip, Typography, InputAdornment,
+  Tooltip, Typography, InputAdornment, useMediaQuery,
 } from '@mui/material';
 import BadgeIcon from '@mui/icons-material/Badge';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
@@ -320,6 +320,7 @@ function TemplateTile({ tpl, selected, onClick }) {
 export default function DocumentMaker() {
   const navigate = useNavigate();
   const { username } = useParams();
+  const isDesktop = useMediaQuery('(min-width:900px)');
 
   const canvasRef      = useRef(null);
   const fabricRef      = useRef(null);
@@ -1070,6 +1071,78 @@ export default function DocumentMaker() {
     finally { setGenerating(false); }
   }
 
+  async function exportMultiUpPDF(rows, cols) {
+    if (!fabricRef.current) return;
+    const setup = pageSetupRef.current;
+    setExporting(true);
+    try {
+      hideMGuides();
+      const cardDataURL = fabricRef.current.toDataURL({ format: 'png', multiplier: 2 });
+      showMGuides();
+      const cardW = setup?.w || 85.6;
+      const cardH = setup?.h || 53.98;
+      const pageW = 210, pageH = 297; // A4 portrait mm
+      const gapH = 3, gapV = 3;
+      const gridW = cols * cardW + (cols - 1) * gapH;
+      const gridH = rows * cardH + (rows - 1) * gapV;
+      const startX = Math.max(5, (pageW - gridW) / 2);
+      const startY = Math.max(5, (pageH - gridH) / 2);
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const x = startX + c * (cardW + gapH);
+          const y = startY + r * (cardH + gapV);
+          pdf.addImage(cardDataURL, 'PNG', x, y, cardW, cardH);
+        }
+      }
+      pdf.save(`${docType}_${rows}x${cols}_sheet.pdf`);
+      showAlert('success', `${rows * cols} cards per A4 sheet — downloaded!`);
+    } catch (err) {
+      showAlert('error', 'Multi-up export failed: ' + err.message);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function exportMultiUpBatchPDF(rows, cols) {
+    if (!batchStudents.length) return showAlert('error', 'Select a batch first');
+    const setup = pageSetupRef.current;
+    setGenerating(true);
+    const { fabric } = await getFabric();
+    const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
+    try {
+      const cardW = setup?.w || 85.6;
+      const cardH = setup?.h || 53.98;
+      const pageW = 210, pageH = 297;
+      const gapH = 3, gapV = 3;
+      const gridW = cols * cardW + (cols - 1) * gapH;
+      const gridH = rows * cardH + (rows - 1) * gapV;
+      const startX = Math.max(5, (pageW - gridW) / 2);
+      const startY = Math.max(5, (pageH - gridH) / 2);
+      const perPage = rows * cols;
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      let posOnPage = 0;
+      for (let si = 0; si < batchStudents.length; si++) {
+        const s = batchStudents[si];
+        const el = document.createElement('canvas'); document.body.appendChild(el);
+        const { w, h } = DOC_TYPES.find(d => d.key === docType).dims;
+        const fc = new fabric.Canvas(el, { width: w, height: h });
+        const data = { name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.name || 'Student', rollNo: s.rollNo || '—', course: s.course || '—', batch: s.batch || selBatch };
+        await seedCanvas(fc, docType, tpl, data, instituteName);
+        const imgData = fc.toDataURL({ format: 'png', multiplier: 2 });
+        fc.dispose(); document.body.removeChild(el);
+        if (posOnPage > 0 && posOnPage % perPage === 0) { pdf.addPage('a4', 'portrait'); posOnPage = 0; }
+        const r = Math.floor(posOnPage / cols);
+        const c = posOnPage % cols;
+        pdf.addImage(imgData, 'PNG', startX + c * (cardW + gapH), startY + r * (cardH + gapV), cardW, cardH);
+        posOnPage++;
+      }
+      pdf.save(`batch_${docType}_${rows}x${cols}.pdf`);
+      showAlert('success', `${batchStudents.length} cards printed ${rows}×${cols} per page!`);
+    } catch (err) { showAlert('error', err.message); }
+    finally { setGenerating(false); }
+  }
+
   function switchTemplate(idx) {
     confirmThen(() => {
       setSelectedTpl(idx); setSelectedObj(null); setReady(false); setIsDirty(false);
@@ -1507,6 +1580,9 @@ export default function DocumentMaker() {
         </Alert>
       )}
 
+      {/* ── Main body: canvas + sidebar (row on desktop, column on mobile) ── */}
+      <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
+
       {/* ── Canvas area ────────────────────────────────────── */}
       <Box
         ref={containerRef}
@@ -1551,8 +1627,8 @@ export default function DocumentMaker() {
         )}
       </Box>
 
-      {/* ── Contextual quick bar — appears when element selected ── */}
-      {selectedObj && ready && (
+      {/* ── Contextual quick bar — mobile: between canvas and toolbar; hidden on desktop (shown in sidebar) ── */}
+      {selectedObj && ready && !isDesktop && (
         <Box sx={{
           bgcolor: '#1e293b', flexShrink: 0, px: 1.25, height: 42,
           display: 'flex', alignItems: 'center', gap: 0.75,
@@ -1632,12 +1708,53 @@ export default function DocumentMaker() {
         </Box>
       )}
 
-      {/* Bottom toolbar — fixed height, scrollable tabs */}
+      {/* ── Sidebar / bottom toolbar ───────────────────────── */}
       <Box sx={{
-        bgcolor: '#ffffff', borderTop: '1px solid #e2e8f0',
-        flexShrink: 0, height: 168, display: 'flex', flexDirection: 'column',
-        boxShadow: '0 -1px 8px rgba(0,0,0,0.06)',
+        bgcolor: '#ffffff',
+        borderTop: { xs: '1px solid #e2e8f0', md: 'none' },
+        borderLeft: { xs: 'none', md: '1px solid #e2e8f0' },
+        flexShrink: 0,
+        width: { xs: '100%', md: 300 },
+        height: { xs: 'auto', md: '100%' },
+        display: 'flex', flexDirection: 'column',
+        boxShadow: { xs: '0 -1px 8px rgba(0,0,0,0.06)', md: '-2px 0 8px rgba(0,0,0,0.04)' },
       }}>
+        {/* Desktop-only contextual quick bar at top of sidebar */}
+        {isDesktop && selectedObj && ready && (
+          <Box sx={{ bgcolor: '#1e293b', flexShrink: 0, px: 1.25, height: 42, display: 'flex', alignItems: 'center', gap: 0.75, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            {(selectedObj.type === 'i-text' || selectedObj.type === 'text') && (<>
+              <input type="color" value={fontColor} onChange={e => { setFontColor(e.target.value); applyFontProp('fill', e.target.value); }}
+                style={{ width: 22, height: 22, border: '2px solid rgba(255,255,255,0.25)', borderRadius: 4, cursor: 'pointer', padding: 0, background: 'none', flexShrink: 0 }} />
+              <IconButton size="small" onClick={() => { const v = !isBold; setIsBold(v); applyFontProp('fontWeight', v ? 'bold' : 'normal'); }}
+                sx={{ color: isBold ? '#a78bfa' : 'rgba(255,255,255,0.6)', p: 0.4 }}><FormatBoldIcon sx={{ fontSize: 15 }} /></IconButton>
+              <IconButton size="small" onClick={() => { const v = !isItalic; setIsItalic(v); applyFontProp('fontStyle', v ? 'italic' : 'normal'); }}
+                sx={{ color: isItalic ? '#a78bfa' : 'rgba(255,255,255,0.6)', p: 0.4 }}><FormatItalicIcon sx={{ fontSize: 15 }} /></IconButton>
+              <Stack direction="row" alignItems="center" sx={{ bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 1, px: 0.25 }}>
+                <IconButton size="small" onClick={() => { const v = Math.max(8, fontSize - 1); setFontSize(v); applyFontProp('fontSize', v); }} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.25 }}>
+                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'inherit', lineHeight: 1 }}>−</Typography>
+                </IconButton>
+                <Typography sx={{ color: '#fff', fontSize: '0.62rem', minWidth: 18, textAlign: 'center' }}>{fontSize}</Typography>
+                <IconButton size="small" onClick={() => { const v = Math.min(200, fontSize + 1); setFontSize(v); applyFontProp('fontSize', v); }} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.25 }}>
+                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'inherit', lineHeight: 1 }}>+</Typography>
+                </IconButton>
+              </Stack>
+            </>)}
+            {selectedObj.type === 'image' && (<>
+              <WbSunnyIcon sx={{ fontSize: 14, color: '#fbbf24' }} />
+              <Box sx={{ width: 55 }}><Slider value={Math.round(imgBright * 100)} min={-100} max={100} size="small" onChange={(_, v) => { const n = v / 100; setImgBright(n); applyImageFilter('Brightness', n); }} sx={{ color: '#fbbf24', py: 0.5, '& .MuiSlider-thumb': { width: 10, height: 10 } }} /></Box>
+              <TonalityIcon sx={{ fontSize: 14, color: '#818cf8' }} />
+              <Box sx={{ width: 55 }}><Slider value={Math.round(imgContrast * 100)} min={-100} max={100} size="small" onChange={(_, v) => { const n = v / 100; setImgContrast(n); applyImageFilter('Contrast', n); }} sx={{ color: '#818cf8', py: 0.5, '& .MuiSlider-thumb': { width: 10, height: 10 } }} /></Box>
+            </>)}
+            {selectedObj.__frameType && (
+              <Button size="small" onClick={() => frameInputRef.current?.click()} startIcon={<ImageIcon sx={{ fontSize: 13 }} />}
+                sx={{ color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 1, textTransform: 'none', fontSize: '0.6rem', px: 0.75, py: 0.2 }}>Fill Photo</Button>
+            )}
+            <Box sx={{ flex: 1 }} />
+            <IconButton size="small" onClick={duplicateObj} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.3 }}><ContentCopyIcon sx={{ fontSize: 14 }} /></IconButton>
+            <IconButton size="small" onClick={deleteSelected} sx={{ color: '#f87171', p: 0.3 }}><DeleteOutlineIcon sx={{ fontSize: 15 }} /></IconButton>
+          </Box>
+        )}
+
         {/* Scrollable tab bar — 6 focused sections */}
         <Tabs
           value={toolTab} onChange={(_, v) => setToolTab(v)}
@@ -2010,9 +2127,40 @@ export default function DocumentMaker() {
                 </Button>
               </Stack>
               {loadingBatch && <CircularProgress size={16} sx={{ mx: 'auto', color: '#7c3aed' }} />}
+
+              {/* Multi-up sheet printing — like label software */}
+              <Box sx={{ bgcolor: '#f8fafc', borderRadius: 2, border: '1px solid #e2e8f0', p: 1.25 }}>
+                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#475569', mb: 0.75 }}>Multi-Up Sheet (A4)</Typography>
+                <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', mb: 1 }}>Print multiple cards per sheet</Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.75 }}>
+                  {[{ r: 1, c: 1, label: '1 per page' }, { r: 1, c: 2, label: '2 per row' }, { r: 2, c: 2, label: '4 per page' }, { r: 3, c: 2, label: '6 per page' }, { r: 4, c: 2, label: '8 per page' }, { r: 5, c: 2, label: '10 per page' }].map(({ r, c, label }) => (
+                    <Button key={`${r}x${c}`} size="small" onClick={() => exportMultiUpPDF(r, c)} disabled={exporting}
+                      sx={{ fontSize: '0.6rem', textTransform: 'none', bgcolor: '#fff', border: '1px solid #e2e8f0', color: '#475569', py: 0.5, '&:hover': { bgcolor: '#f1f5f9', borderColor: '#7c3aed55' } }}>
+                      {r}×{c}
+                    </Button>
+                  ))}
+                </Box>
+                {/* Batch multi-up */}
+                {batchStudents.length > 0 && (
+                  <>
+                    <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', mt: 1, mb: 0.75 }}>Batch — {batchStudents.length} students, multi-up:</Typography>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.75 }}>
+                      {[{ r: 2, c: 2 }, { r: 3, c: 2 }, { r: 4, c: 2 }, { r: 5, c: 2 }].map(({ r, c }) => (
+                        <Button key={`b${r}x${c}`} size="small" onClick={() => exportMultiUpBatchPDF(r, c)} disabled={generating}
+                          sx={{ fontSize: '0.6rem', textTransform: 'none', bgcolor: '#ede9fe', border: '1px solid #7c3aed33', color: '#7c3aed', py: 0.5, '&:hover': { bgcolor: '#ddd6fe' } }}>
+                          {r}×{c}
+                        </Button>
+                      ))}
+                    </Box>
+                  </>
+                )}
+              </Box>
             </Stack>
           )}
         </Box>
+      </Box>
+
+      {/* ── Close main body row ────────────────────────────── */}
       </Box>
 
       {/* ── Exit Confirmation Dialog ───────────────────────── */}
