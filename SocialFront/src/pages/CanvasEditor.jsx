@@ -145,6 +145,28 @@ const DEFAULT_SETUPS = {
   admit_card:  { pageKey: 'id_card',     w: 85.6,  h: 53.98, marginT: 0,  marginR: 0,  marginB: 0,  marginL: 0,  orientation: 'landscape' },
 };
 
+/* ─── Built-in print layout presets (18 layouts) ─────────────────── */
+const PRESET_LAYOUTS = [
+  { id: 'a4_1x1',   name: 'A4 — Full Page',    pageW: 210, pageH: 297, marginT: 10, marginR: 10, marginB: 10, marginL: 10, cols: 1, rows: 1, gapH: 0, gapV: 0 },
+  { id: 'a4_2x1',   name: 'A4 — 2 per row',    pageW: 210, pageH: 297, marginT: 10, marginR: 10, marginB: 10, marginL: 10, cols: 2, rows: 1, gapH: 5, gapV: 0 },
+  { id: 'a4_1x2',   name: 'A4 — 2 per col',    pageW: 210, pageH: 297, marginT: 10, marginR: 10, marginB: 10, marginL: 10, cols: 1, rows: 2, gapH: 0, gapV: 5 },
+  { id: 'a4_2x2',   name: 'A4 — 2×2 (4)',      pageW: 210, pageH: 297, marginT: 8,  marginR: 8,  marginB: 8,  marginL: 8,  cols: 2, rows: 2, gapH: 5, gapV: 5 },
+  { id: 'a4_2x3',   name: 'A4 — 2×3 (6)',      pageW: 210, pageH: 297, marginT: 8,  marginR: 8,  marginB: 8,  marginL: 8,  cols: 2, rows: 3, gapH: 5, gapV: 5 },
+  { id: 'a4_2x4',   name: 'A4 — 2×4 (8)',      pageW: 210, pageH: 297, marginT: 8,  marginR: 8,  marginB: 8,  marginL: 8,  cols: 2, rows: 4, gapH: 5, gapV: 5 },
+  { id: 'a4_2x5',   name: 'A4 — 2×5 (10)',     pageW: 210, pageH: 297, marginT: 5,  marginR: 5,  marginB: 5,  marginL: 5,  cols: 2, rows: 5, gapH: 4, gapV: 4 },
+  { id: 'a4_3x4',   name: 'A4 — 3×4 (12)',     pageW: 210, pageH: 297, marginT: 5,  marginR: 5,  marginB: 5,  marginL: 5,  cols: 3, rows: 4, gapH: 3, gapV: 3 },
+  { id: 'a4_3x5',   name: 'A4 — 3×5 (15)',     pageW: 210, pageH: 297, marginT: 5,  marginR: 5,  marginB: 5,  marginL: 5,  cols: 3, rows: 5, gapH: 3, gapV: 3 },
+  { id: 'a4_4x5',   name: 'A4 — 4×5 (20)',     pageW: 210, pageH: 297, marginT: 5,  marginR: 5,  marginB: 5,  marginL: 5,  cols: 4, rows: 5, gapH: 3, gapV: 3 },
+  { id: 'a4l_2x2',  name: 'A4 Land 2×2 (4)',   pageW: 297, pageH: 210, marginT: 8,  marginR: 8,  marginB: 8,  marginL: 8,  cols: 2, rows: 2, gapH: 5, gapV: 5 },
+  { id: 'a4l_3x2',  name: 'A4 Land 3×2 (6)',   pageW: 297, pageH: 210, marginT: 8,  marginR: 8,  marginB: 8,  marginL: 8,  cols: 3, rows: 2, gapH: 5, gapV: 5 },
+  { id: 'a4l_4x2',  name: 'A4 Land 4×2 (8)',   pageW: 297, pageH: 210, marginT: 8,  marginR: 8,  marginB: 8,  marginL: 8,  cols: 4, rows: 2, gapH: 5, gapV: 5 },
+  { id: 'a3_2x4',   name: 'A3 — 2×4 (8)',      pageW: 297, pageH: 420, marginT: 10, marginR: 10, marginB: 10, marginL: 10, cols: 2, rows: 4, gapH: 5, gapV: 5 },
+  { id: 'a3_3x5',   name: 'A3 — 3×5 (15)',     pageW: 297, pageH: 420, marginT: 8,  marginR: 8,  marginB: 8,  marginL: 8,  cols: 3, rows: 5, gapH: 4, gapV: 4 },
+  { id: 'a3_4x6',   name: 'A3 — 4×6 (24)',     pageW: 297, pageH: 420, marginT: 5,  marginR: 5,  marginB: 5,  marginL: 5,  cols: 4, rows: 6, gapH: 3, gapV: 3 },
+  { id: 'let_2x4',  name: 'Letter 2×4 (8)',    pageW: 216, pageH: 279, marginT: 8,  marginR: 8,  marginB: 8,  marginL: 8,  cols: 2, rows: 4, gapH: 5, gapV: 5 },
+  { id: 'leg_2x6',  name: 'Legal 2×6 (12)',    pageW: 216, pageH: 356, marginT: 8,  marginR: 8,  marginB: 8,  marginL: 8,  cols: 2, rows: 6, gapH: 5, gapV: 5 },
+];
+
 /* ─── Canvas seeder ──────────────────────────────────────────── */
 async function seedCanvas(canvas, docType, tpl, data, instName) {
   const { fabric } = await getFabric();
@@ -316,6 +338,40 @@ function TemplateTile({ tpl, selected, onClick }) {
   );
 }
 
+/* ─── Layout mini preview (SVG grid) ─────────────────────────── */
+function LayoutPreview({ layout, size = 56 }) {
+  const { pageW, pageH, marginT, marginR, marginB, marginL, cols, rows, gapH, gapV } = layout;
+  const isLand = pageW > pageH;
+  const aspect = pageH / pageW;
+  const dW = isLand ? size : Math.round(size * (pageW / pageH));
+  const dH = isLand ? Math.round(size * aspect) : size;
+  const sx = dW / pageW;
+  const sy = dH / pageH;
+  const cellW = (pageW - marginL - marginR - (cols - 1) * gapH) / cols;
+  const cellH = (pageH - marginT - marginB - (rows - 1) * gapV) / rows;
+  const cells = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      cells.push({
+        key: `${r}-${c}`,
+        x: (marginL + c * (cellW + gapH)) * sx,
+        y: (marginT + r * (cellH + gapV)) * sy,
+        w: cellW * sx,
+        h: cellH * sy,
+      });
+    }
+  }
+  return (
+    <svg width={dW} height={dH} style={{ display: 'block', borderRadius: 2, border: '1px solid #e2e8f0', flexShrink: 0 }}>
+      <rect width={dW} height={dH} fill="#f8fafc" />
+      {cells.map(cell => (
+        <rect key={cell.key} x={cell.x} y={cell.y} width={Math.max(0, cell.w)} height={Math.max(0, cell.h)}
+          fill="#ddd6fe" stroke="#7c3aed" strokeWidth="0.6" rx="0.8" />
+      ))}
+    </svg>
+  );
+}
+
 /* ─── Main component ──────────────────────────────────────────── */
 export default function DocumentMaker() {
   const navigate = useNavigate();
@@ -401,6 +457,12 @@ export default function DocumentMaker() {
   const [imgContrast,  setImgContrast]  = useState(0);
   const [canUndo,      setCanUndo]      = useState(false);
   const [canRedo,      setCanRedo]      = useState(false);
+
+  // Layout management
+  const [layoutDialog,   setLayoutDialog]   = useState(false);
+  const [editingLayout,  setEditingLayout]  = useState(null);
+  const [userLayouts,    setUserLayouts]    = useState([]);
+  const [presetsOpen,    setPresetsOpen]    = useState(false);
 
   function showAlert(type, text) { setAlert({ type, text }); setTimeout(() => setAlert(null), 4000); }
 
@@ -1071,76 +1133,82 @@ export default function DocumentMaker() {
     finally { setGenerating(false); }
   }
 
-  async function exportMultiUpPDF(rows, cols) {
-    if (!fabricRef.current) return;
-    const setup = pageSetupRef.current;
-    setExporting(true);
-    try {
-      hideMGuides();
-      const cardDataURL = fabricRef.current.toDataURL({ format: 'png', multiplier: 2 });
-      showMGuides();
-      const cardW = setup?.w || 85.6;
-      const cardH = setup?.h || 53.98;
-      const pageW = 210, pageH = 297; // A4 portrait mm
-      const gapH = 3, gapV = 3;
-      const gridW = cols * cardW + (cols - 1) * gapH;
-      const gridH = rows * cardH + (rows - 1) * gapV;
-      const startX = Math.max(5, (pageW - gridW) / 2);
-      const startY = Math.max(5, (pageH - gridH) / 2);
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const x = startX + c * (cardW + gapH);
-          const y = startY + r * (cardH + gapV);
-          pdf.addImage(cardDataURL, 'PNG', x, y, cardW, cardH);
-        }
-      }
-      pdf.save(`${docType}_${rows}x${cols}_sheet.pdf`);
-      showAlert('success', `${rows * cols} cards per A4 sheet — downloaded!`);
-    } catch (err) {
-      showAlert('error', 'Multi-up export failed: ' + err.message);
-    } finally {
-      setExporting(false);
-    }
+  /* ── Print layout management ─────────────────────────────────── */
+  function loadUserLayouts() {
+    try { setUserLayouts(JSON.parse(localStorage.getItem('instify_print_layouts') || '[]')); } catch { setUserLayouts([]); }
   }
 
-  async function exportMultiUpBatchPDF(rows, cols) {
-    if (!batchStudents.length) return showAlert('error', 'Select a batch first');
-    const setup = pageSetupRef.current;
-    setGenerating(true);
-    const { fabric } = await getFabric();
-    const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
+  function saveUserLayout(layout) {
+    const list = JSON.parse(localStorage.getItem('instify_print_layouts') || '[]');
+    const idx = list.findIndex(l => l.id === layout.id);
+    const entry = { ...layout, id: layout.id || String(Date.now()) };
+    if (idx >= 0) list[idx] = entry; else list.unshift(entry);
+    localStorage.setItem('instify_print_layouts', JSON.stringify(list));
+    setUserLayouts(list);
+    showAlert('success', 'Layout saved!');
+  }
+
+  function deleteUserLayout(id) {
+    const list = JSON.parse(localStorage.getItem('instify_print_layouts') || '[]').filter(l => l.id !== id);
+    localStorage.setItem('instify_print_layouts', JSON.stringify(list));
+    setUserLayouts(list);
+  }
+
+  function layoutCellDims(layout) {
+    const { pageW, pageH, marginT, marginR, marginB, marginL, cols, rows, gapH, gapV } = layout;
+    const cellW = (pageW - marginL - marginR - (cols - 1) * gapH) / cols;
+    const cellH = (pageH - marginT - marginB - (rows - 1) * gapV) / rows;
+    return { cellW, cellH };
+  }
+
+  async function exportWithLayout(layout, useBatch = false) {
+    if (!fabricRef.current) return;
+    const { pageW, pageH, marginT, marginR, marginB, marginL, cols, rows, gapH, gapV } = layout;
+    const { cellW, cellH } = layoutCellDims(layout);
+    const isLand = pageW > pageH;
+    const perPage = rows * cols;
+    const slug = layout.name.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_-]/g, '');
+    setExporting(true); setGenerating(true);
     try {
-      const cardW = setup?.w || 85.6;
-      const cardH = setup?.h || 53.98;
-      const pageW = 210, pageH = 297;
-      const gapH = 3, gapV = 3;
-      const gridW = cols * cardW + (cols - 1) * gapH;
-      const gridH = rows * cardH + (rows - 1) * gapV;
-      const startX = Math.max(5, (pageW - gridW) / 2);
-      const startY = Math.max(5, (pageH - gridH) / 2);
-      const perPage = rows * cols;
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-      let posOnPage = 0;
-      for (let si = 0; si < batchStudents.length; si++) {
-        const s = batchStudents[si];
-        const el = document.createElement('canvas'); document.body.appendChild(el);
-        const { w, h } = DOC_TYPES.find(d => d.key === docType).dims;
-        const fc = new fabric.Canvas(el, { width: w, height: h });
-        const data = { name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.name || 'Student', rollNo: s.rollNo || '—', course: s.course || '—', batch: s.batch || selBatch };
-        await seedCanvas(fc, docType, tpl, data, instituteName);
-        const imgData = fc.toDataURL({ format: 'png', multiplier: 2 });
-        fc.dispose(); document.body.removeChild(el);
-        if (posOnPage > 0 && posOnPage % perPage === 0) { pdf.addPage('a4', 'portrait'); posOnPage = 0; }
-        const r = Math.floor(posOnPage / cols);
-        const c = posOnPage % cols;
-        pdf.addImage(imgData, 'PNG', startX + c * (cardW + gapH), startY + r * (cardH + gapV), cardW, cardH);
-        posOnPage++;
+      if (!useBatch) {
+        hideMGuides();
+        const cardDataURL = fabricRef.current.toDataURL({ format: 'png', multiplier: 2 });
+        showMGuides();
+        const pdf = new jsPDF({ orientation: isLand ? 'landscape' : 'portrait', unit: 'mm', format: [pageW, pageH] });
+        for (let r = 0; r < rows; r++)
+          for (let c = 0; c < cols; c++)
+            pdf.addImage(cardDataURL, 'PNG', marginL + c * (cellW + gapH), marginT + r * (cellH + gapV), cellW, cellH);
+        pdf.save(`${docType}_${slug}.pdf`);
+        showAlert('success', `${perPage} cards per sheet — done!`);
+      } else {
+        if (!batchStudents.length) { showAlert('error', 'Select a batch first'); return; }
+        const { fabric } = await getFabric();
+        const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
+        const pdf = new jsPDF({ orientation: isLand ? 'landscape' : 'portrait', unit: 'mm', format: [pageW, pageH] });
+        let pos = 0;
+        for (let si = 0; si < batchStudents.length; si++) {
+          const s = batchStudents[si];
+          const el = document.createElement('canvas'); document.body.appendChild(el);
+          const { w, h } = DOC_TYPES.find(d => d.key === docType).dims;
+          const fc = new fabric.Canvas(el, { width: w, height: h });
+          await seedCanvas(fc, docType, tpl, {
+            name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.name || 'Student',
+            rollNo: s.rollNo || '—', course: s.course || '—', batch: s.batch || selBatch,
+          }, instituteName);
+          const imgData = fc.toDataURL({ format: 'png', multiplier: 2 });
+          fc.dispose(); document.body.removeChild(el);
+          if (pos > 0 && pos % perPage === 0) {
+            pdf.addPage([pageW, pageH], isLand ? 'landscape' : 'portrait'); pos = 0;
+          }
+          const r = Math.floor(pos / cols), c = pos % cols;
+          pdf.addImage(imgData, 'PNG', marginL + c * (cellW + gapH), marginT + r * (cellH + gapV), cellW, cellH);
+          pos++;
+        }
+        pdf.save(`batch_${docType}_${slug}.pdf`);
+        showAlert('success', `${batchStudents.length} students, ${perPage} per page — done!`);
       }
-      pdf.save(`batch_${docType}_${rows}x${cols}.pdf`);
-      showAlert('success', `${batchStudents.length} cards printed ${rows}×${cols} per page!`);
-    } catch (err) { showAlert('error', err.message); }
-    finally { setGenerating(false); }
+    } catch (err) { showAlert('error', 'Export failed: ' + err.message); }
+    finally { setExporting(false); setGenerating(false); }
   }
 
   function switchTemplate(idx) {
@@ -1230,6 +1298,7 @@ export default function DocumentMaker() {
       .catch(() => {});
     loadSavedDesigns();
     loadCustomTemplates();
+    loadUserLayouts();
     apiClient.get(`/api/students?institute_uuid=${uuid}`)
       .then(r => setStudents(Array.isArray(r.data?.result) ? r.data.result : []))
       .catch(() => {});
@@ -2128,32 +2197,85 @@ export default function DocumentMaker() {
               </Stack>
               {loadingBatch && <CircularProgress size={16} sx={{ mx: 'auto', color: '#7c3aed' }} />}
 
-              {/* Multi-up sheet printing — like label software */}
-              <Box sx={{ bgcolor: '#f8fafc', borderRadius: 2, border: '1px solid #e2e8f0', p: 1.25 }}>
-                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#475569', mb: 0.75 }}>Multi-Up Sheet (A4)</Typography>
-                <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', mb: 1 }}>Print multiple cards per sheet</Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.75 }}>
-                  {[{ r: 1, c: 1, label: '1 per page' }, { r: 1, c: 2, label: '2 per row' }, { r: 2, c: 2, label: '4 per page' }, { r: 3, c: 2, label: '6 per page' }, { r: 4, c: 2, label: '8 per page' }, { r: 5, c: 2, label: '10 per page' }].map(({ r, c, label }) => (
-                    <Button key={`${r}x${c}`} size="small" onClick={() => exportMultiUpPDF(r, c)} disabled={exporting}
-                      sx={{ fontSize: '0.6rem', textTransform: 'none', bgcolor: '#fff', border: '1px solid #e2e8f0', color: '#475569', py: 0.5, '&:hover': { bgcolor: '#f1f5f9', borderColor: '#7c3aed55' } }}>
-                      {r}×{c}
-                    </Button>
-                  ))}
-                </Box>
-                {/* Batch multi-up */}
-                {batchStudents.length > 0 && (
-                  <>
-                    <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', mt: 1, mb: 0.75 }}>Batch — {batchStudents.length} students, multi-up:</Typography>
-                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.75 }}>
-                      {[{ r: 2, c: 2 }, { r: 3, c: 2 }, { r: 4, c: 2 }, { r: 5, c: 2 }].map(({ r, c }) => (
-                        <Button key={`b${r}x${c}`} size="small" onClick={() => exportMultiUpBatchPDF(r, c)} disabled={generating}
-                          sx={{ fontSize: '0.6rem', textTransform: 'none', bgcolor: '#ede9fe', border: '1px solid #7c3aed33', color: '#7c3aed', py: 0.5, '&:hover': { bgcolor: '#ddd6fe' } }}>
-                          {r}×{c}
-                        </Button>
-                      ))}
-                    </Box>
-                  </>
+              {/* ── Print Layout System ──────────────────────── */}
+              <Box>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
+                  <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#475569' }}>Print Layouts</Typography>
+                  <Button size="small" onClick={() => { setEditingLayout({ id: null, name: '', pageW: 210, pageH: 297, marginT: 8, marginR: 8, marginB: 8, marginL: 8, cols: 2, rows: 4, gapH: 5, gapV: 5 }); setLayoutDialog(true); }}
+                    sx={{ fontSize: '0.62rem', textTransform: 'none', color: '#7c3aed', minWidth: 0 }}>+ New</Button>
+                </Stack>
+
+                {/* Saved layouts */}
+                {userLayouts.length > 0 && (
+                  <Stack spacing={0.5} mb={1}>
+                    <Typography sx={{ fontSize: '0.56rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Saved ({userLayouts.length})</Typography>
+                    {userLayouts.map(layout => {
+                      const { cellW, cellH } = layoutCellDims(layout);
+                      return (
+                        <Box key={layout.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 0.75, borderRadius: 1.5, border: '1px solid #e2e8f0', bgcolor: '#f8fafc' }}>
+                          <LayoutPreview layout={layout} size={44} />
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#1e293b' }} noWrap>{layout.name}</Typography>
+                            <Typography sx={{ fontSize: '0.56rem', color: '#94a3b8' }}>{layout.cols}×{layout.rows} · {cellW.toFixed(0)}×{cellH.toFixed(0)}mm · {layout.cols * layout.rows}/page</Typography>
+                          </Box>
+                          <Stack direction="row" gap={0.25}>
+                            <Tooltip title="Export current card">
+                              <IconButton size="small" onClick={() => exportWithLayout(layout)} disabled={exporting || generating} sx={{ color: '#4f46e5', p: 0.3 }}><DownloadIcon sx={{ fontSize: 14 }} /></IconButton>
+                            </Tooltip>
+                            {batchStudents.length > 0 && (
+                              <Tooltip title={`Batch (${batchStudents.length} students)`}>
+                                <IconButton size="small" onClick={() => exportWithLayout(layout, true)} disabled={exporting || generating} sx={{ color: '#7c3aed', p: 0.3 }}><PictureAsPdfIcon sx={{ fontSize: 14 }} /></IconButton>
+                              </Tooltip>
+                            )}
+                            <Tooltip title="Edit">
+                              <IconButton size="small" onClick={() => { setEditingLayout({ ...layout }); setLayoutDialog(true); }} sx={{ color: '#64748b', p: 0.3 }}><TuneIcon sx={{ fontSize: 13 }} /></IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete">
+                              <IconButton size="small" onClick={() => deleteUserLayout(layout.id)} sx={{ color: '#f87171', p: 0.3 }}><DeleteOutlineIcon sx={{ fontSize: 14 }} /></IconButton>
+                            </Tooltip>
+                          </Stack>
+                        </Box>
+                      );
+                    })}
+                  </Stack>
                 )}
+
+                {/* Presets — collapsible */}
+                <Box>
+                  <Box onClick={() => setPresetsOpen(v => !v)} sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', mb: 0.5 }}>
+                    <Typography sx={{ fontSize: '0.56rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1 }}>Presets (18)</Typography>
+                    <Typography sx={{ fontSize: '0.62rem', color: '#94a3b8' }}>{presetsOpen ? '▲' : '▼'}</Typography>
+                  </Box>
+                  {presetsOpen && (
+                    <Stack spacing={0.5}>
+                      {PRESET_LAYOUTS.map(layout => {
+                        const { cellW, cellH } = layoutCellDims(layout);
+                        return (
+                          <Box key={layout.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 0.75, borderRadius: 1.5, border: '1px solid #e2e8f0', bgcolor: '#fff' }}>
+                            <LayoutPreview layout={layout} size={40} />
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography sx={{ fontSize: '0.62rem', fontWeight: 600, color: '#374151' }} noWrap>{layout.name}</Typography>
+                              <Typography sx={{ fontSize: '0.55rem', color: '#94a3b8' }}>{cellW.toFixed(0)}×{cellH.toFixed(0)}mm · {layout.cols * layout.rows}/pg</Typography>
+                            </Box>
+                            <Stack direction="row" gap={0.25}>
+                              <Tooltip title="Export current card">
+                                <IconButton size="small" onClick={() => exportWithLayout(layout)} disabled={exporting || generating} sx={{ color: '#4f46e5', p: 0.3 }}><DownloadIcon sx={{ fontSize: 14 }} /></IconButton>
+                              </Tooltip>
+                              {batchStudents.length > 0 && (
+                                <Tooltip title="Batch export">
+                                  <IconButton size="small" onClick={() => exportWithLayout(layout, true)} disabled={exporting || generating} sx={{ color: '#7c3aed', p: 0.3 }}><PictureAsPdfIcon sx={{ fontSize: 14 }} /></IconButton>
+                                </Tooltip>
+                              )}
+                              <Tooltip title="Save as custom">
+                                <IconButton size="small" onClick={() => { setEditingLayout({ ...layout, id: null, name: layout.name + ' (copy)' }); setLayoutDialog(true); }} sx={{ color: '#64748b', p: 0.3 }}><CheckIcon sx={{ fontSize: 13 }} /></IconButton>
+                              </Tooltip>
+                            </Stack>
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+                  )}
+                </Box>
               </Box>
             </Stack>
           )}
@@ -2162,6 +2284,116 @@ export default function DocumentMaker() {
 
       {/* ── Close main body row ────────────────────────────── */}
       </Box>
+
+      {/* ── Print Layout Dialog ────────────────────────────── */}
+      {layoutDialog && editingLayout && (
+        <Dialog open={layoutDialog} onClose={() => setLayoutDialog(false)} maxWidth="xs" fullWidth>
+          <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem', pb: 0.5 }}>
+            {editingLayout.id ? 'Edit Layout' : 'New Print Layout'}
+          </DialogTitle>
+          <DialogContent sx={{ pt: 1 }}>
+            <Stack spacing={1.5}>
+              <TextField label="Layout Name" value={editingLayout.name} size="small"
+                onChange={e => setEditingLayout(p => ({ ...p, name: e.target.value }))}
+                placeholder="e.g. ID Card 2×4 A4"
+                sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#f8fafc' } }}
+              />
+
+              {/* Paper size selector */}
+              <Box>
+                <Typography sx={{ fontSize: '0.62rem', color: '#64748b', mb: 0.5 }}>Paper Size</Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {[{ label: 'A4', w: 210, h: 297 }, { label: 'A4L', w: 297, h: 210 }, { label: 'A3', w: 297, h: 420 }, { label: 'A5', w: 148, h: 210 }, { label: 'Letter', w: 216, h: 279 }, { label: 'Legal', w: 216, h: 356 }].map(ps => {
+                    const active = editingLayout.pageW === ps.w && editingLayout.pageH === ps.h;
+                    return (
+                      <Chip key={ps.label} label={ps.label} size="small" onClick={() => setEditingLayout(p => ({ ...p, pageW: ps.w, pageH: ps.h }))}
+                        sx={{ fontSize: '0.62rem', cursor: 'pointer', bgcolor: active ? '#7c3aed' : '#f1f5f9', color: active ? '#fff' : '#64748b', border: active ? 'none' : '1px solid #e2e8f0' }} />
+                    );
+                  })}
+                </Box>
+                <Stack direction="row" gap={1} mt={0.75}>
+                  <TextField label="Width (mm)" type="number" size="small" value={editingLayout.pageW}
+                    onChange={e => setEditingLayout(p => ({ ...p, pageW: +e.target.value }))}
+                    sx={{ flex: 1, '& input': { fontSize: '0.75rem' } }} />
+                  <TextField label="Height (mm)" type="number" size="small" value={editingLayout.pageH}
+                    onChange={e => setEditingLayout(p => ({ ...p, pageH: +e.target.value }))}
+                    sx={{ flex: 1, '& input': { fontSize: '0.75rem' } }} />
+                </Stack>
+              </Box>
+
+              {/* Margins */}
+              <Box>
+                <Typography sx={{ fontSize: '0.62rem', color: '#64748b', mb: 0.5 }}>Margins (mm)</Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.75 }}>
+                  {[['marginT', 'Top'], ['marginR', 'Right'], ['marginB', 'Bottom'], ['marginL', 'Left']].map(([k, lbl]) => (
+                    <TextField key={k} label={lbl} type="number" size="small" value={editingLayout[k]}
+                      onChange={e => setEditingLayout(p => ({ ...p, [k]: Math.max(0, +e.target.value) }))}
+                      sx={{ '& input': { fontSize: '0.75rem' } }} />
+                  ))}
+                </Box>
+              </Box>
+
+              {/* Grid */}
+              <Box>
+                <Typography sx={{ fontSize: '0.62rem', color: '#64748b', mb: 0.5 }}>Grid</Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.75 }}>
+                  <TextField label="Columns" type="number" size="small" value={editingLayout.cols}
+                    onChange={e => setEditingLayout(p => ({ ...p, cols: Math.max(1, Math.min(20, +e.target.value)) }))}
+                    sx={{ '& input': { fontSize: '0.75rem' } }} />
+                  <TextField label="Rows" type="number" size="small" value={editingLayout.rows}
+                    onChange={e => setEditingLayout(p => ({ ...p, rows: Math.max(1, Math.min(50, +e.target.value)) }))}
+                    sx={{ '& input': { fontSize: '0.75rem' } }} />
+                  <TextField label="H Gap (mm)" type="number" size="small" value={editingLayout.gapH}
+                    onChange={e => setEditingLayout(p => ({ ...p, gapH: Math.max(0, +e.target.value) }))}
+                    sx={{ '& input': { fontSize: '0.75rem' } }} />
+                  <TextField label="V Gap (mm)" type="number" size="small" value={editingLayout.gapV}
+                    onChange={e => setEditingLayout(p => ({ ...p, gapV: Math.max(0, +e.target.value) }))}
+                    sx={{ '& input': { fontSize: '0.75rem' } }} />
+                </Box>
+              </Box>
+
+              {/* Live preview + computed info */}
+              {(() => {
+                const { cellW, cellH } = layoutCellDims(editingLayout);
+                const perPage = editingLayout.cols * editingLayout.rows;
+                const valid = cellW > 0 && cellH > 0;
+                return (
+                  <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start', p: 1.25, bgcolor: '#f8fafc', borderRadius: 2, border: '1px solid #e2e8f0' }}>
+                    <LayoutPreview layout={editingLayout} size={72} />
+                    <Box>
+                      <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#1e293b' }}>
+                        {editingLayout.cols}×{editingLayout.rows} = {perPage} per sheet
+                      </Typography>
+                      {valid ? (
+                        <>
+                          <Typography sx={{ fontSize: '0.6rem', color: '#64748b', mt: 0.25 }}>
+                            Cell: {cellW.toFixed(1)} × {cellH.toFixed(1)} mm
+                          </Typography>
+                          <Typography sx={{ fontSize: '0.6rem', color: '#64748b' }}>
+                            Paper: {editingLayout.pageW}×{editingLayout.pageH} mm
+                          </Typography>
+                        </>
+                      ) : (
+                        <Typography sx={{ fontSize: '0.6rem', color: '#ef4444', mt: 0.25 }}>
+                          Grid too large for margins — reduce rows/cols or margins
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                );
+              })()}
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 2.5, pb: 2, gap: 0.5 }}>
+            <Button onClick={() => setLayoutDialog(false)} sx={{ textTransform: 'none', color: '#64748b' }}>Cancel</Button>
+            <Button variant="contained" onClick={() => { saveUserLayout(editingLayout); setLayoutDialog(false); }}
+              disabled={!editingLayout.name.trim() || layoutCellDims(editingLayout).cellW <= 0}
+              sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' }, textTransform: 'none' }}>
+              Save Layout
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
 
       {/* ── Exit Confirmation Dialog ───────────────────────── */}
       <Dialog open={exitConfirmDlg} onClose={() => setExitConfirmDlg(false)} maxWidth="xs" fullWidth>
