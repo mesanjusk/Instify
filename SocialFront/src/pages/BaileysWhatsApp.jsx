@@ -125,7 +125,10 @@ function parseJid(jid = '') {
 function dedupeChats(chats) {
   const seen = new Map();
   for (const c of (chats || [])) {
-    const key = c._id.split('@')[0].replace(/\D/g, '');
+    const jid = c._id || '';
+    if (jid.endsWith('@lid') || jid.endsWith('@g.us')) continue;
+    const key = jid.split('@')[0].replace(/\D/g, '');
+    if (!key || key.length < 7 || key.length > 15) continue;
     if (!seen.has(key)) seen.set(key, c);
   }
   return Array.from(seen.values());
@@ -133,7 +136,11 @@ function dedupeChats(chats) {
 
 /* ── Chat list row ───────────────────────────────────────────── */
 const ChatRow = memo(function ChatRow({ chat, onClick }) {
-  const name = parseJid(chat._id);
+  const phone = parseJid(chat._id);
+  const displayName = chat.name || chat.pushName || phone;
+  const initial = (chat.name || chat.pushName)
+    ? (displayName[0] || '?').toUpperCase()
+    : (phone.replace(/\D/g, '')[0] || '?');
   return (
     <Box onClick={onClick} sx={{
       display: 'flex', alignItems: 'center', px: 2, py: 1.25, gap: 1.5,
@@ -141,13 +148,18 @@ const ChatRow = memo(function ChatRow({ chat, onClick }) {
       borderBottom: `1px solid ${WA_DIVIDER}`,
     }}>
       <Avatar sx={{ bgcolor: avatarColor(chat._id), width: 50, height: 50, fontSize: '1.1rem', fontWeight: 700, flexShrink: 0 }}>
-        {(chat._id || '?').replace(/\D/g, '')[0] || '?'}
+        {initial}
       </Avatar>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography sx={{ color: WA_TEXT, fontWeight: 500, fontSize: '0.9rem' }} noWrap>
-            {name}
-          </Typography>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ color: WA_TEXT, fontWeight: 500, fontSize: '0.9rem' }} noWrap>
+              {displayName}
+            </Typography>
+            {(chat.name || chat.pushName) && (
+              <Typography sx={{ color: WA_MUTED, fontSize: '0.72rem' }} noWrap>{phone}</Typography>
+            )}
+          </Box>
           <Typography sx={{ color: chat.unread > 0 ? WA_LIGHT : WA_MUTED, fontSize: '0.7rem', flexShrink: 0 }}>
             {fmtTime(chat.lastTime)}
           </Typography>
