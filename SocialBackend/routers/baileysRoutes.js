@@ -102,7 +102,7 @@ router.get('/chats/:instituteId', async (req, res) => {
           lastMessage: { $first: '$message' },
           lastTime: { $first: '$createdAt' },
           fromMe: { $first: '$fromMe' },
-          name: { $first: { $cond: [{ $gt: ['$pushName', ''] }, '$pushName', null] } },
+          name: { $max: '$pushName' },
           unread: {
             $sum: { $cond: [{ $and: [{ $eq: ['$fromMe', false] }, { $ne: ['$status', 'read'] }] }, 1, 0] },
           },
