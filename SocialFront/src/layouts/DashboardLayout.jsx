@@ -46,14 +46,14 @@ export default function DashboardLayout() {
         onClose={() => setMobileOpen(false)}
       />
 
-      {/* Main content column */}
+      {/* Main content column — no ml needed; permanent Drawer root already takes DRAWER_WIDTH in flex */}
       <Box
         sx={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          ml: { md: `${DRAWER_WIDTH}px` },
           minWidth: 0,
+          maxWidth: '100%',
         }}
       >
         {/* Top AppBar */}

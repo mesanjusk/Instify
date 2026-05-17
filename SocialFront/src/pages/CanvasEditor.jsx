@@ -1385,6 +1385,31 @@ export default function DocumentMaker() {
             </Box>
           </Box>
 
+          {/* Batch quick-actions — Create tab */}
+          {homeNav === 0 && (
+            <Box sx={{ px: 2, pb: 2 }}>
+              <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '0.9rem', mb: 0.5 }}>Generate for Batch</Typography>
+              <Typography sx={{ color: '#64748b', fontSize: '0.72rem', mb: 1.25 }}>Create documents for an entire batch in one click</Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1 }}>
+                {[
+                  { label: 'ID Cards', icon: <BadgeIcon sx={{ color: '#fff', fontSize: 18 }} />, key: 'id_card', bg: 'linear-gradient(135deg, #4f46e5, #7c3aed)' },
+                  { label: 'Certificates', icon: <WorkspacePremiumIcon sx={{ color: '#fff', fontSize: 18 }} />, key: 'certificate', bg: 'linear-gradient(135deg, #d97706, #f59e0b)' },
+                  { label: 'Admit Cards', icon: <AssignmentIcon sx={{ color: '#fff', fontSize: 18 }} />, key: 'admit_card', bg: 'linear-gradient(135deg, #059669, #10b981)' },
+                  { label: 'Results', icon: <AutoAwesomeIcon sx={{ color: '#fff', fontSize: 18 }} />, key: 'result', bg: 'linear-gradient(135deg, #dc2626, #ef4444)' },
+                ].map(item => (
+                  <Box key={item.key} onClick={() => openEditor(item.key, 0)}
+                    sx={{ borderRadius: 2, p: 1.5, cursor: 'pointer', background: item.bg, display: 'flex', alignItems: 'center', gap: 1,
+                      '&:hover': { opacity: 0.88 }, '&:active': { transform: 'scale(0.97)' }, transition: 'opacity 0.15s, transform 0.1s' }}>
+                    <Box sx={{ width: 30, height: 30, borderRadius: 1.5, bgcolor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {item.icon}
+                    </Box>
+                    <Typography sx={{ color: '#fff', fontWeight: 600, fontSize: '0.78rem' }}>{item.label}</Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
+
           {/* Inspired by your designs */}
           {homeNav === 0 && (
             <Box sx={{ px: 2, pb: 3 }}>
@@ -1437,6 +1462,23 @@ export default function DocumentMaker() {
           {/* Templates tab */}
           {homeNav === 2 && (
             <Box sx={{ px: 2, pb: 3 }}>
+              {/* Upload CTA — prominent card for admins */}
+              {isAdmin && (
+                <Box
+                  onClick={() => setUploadDialog(true)}
+                  sx={{ mb: 2.5, borderRadius: 2.5, border: '2px dashed #7c3aed66', bgcolor: '#7c3aed08',
+                    p: 2, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2,
+                    '&:hover': { bgcolor: '#7c3aed14', borderColor: '#7c3aed99' } }}
+                >
+                  <Box sx={{ width: 44, height: 44, borderRadius: 2, bgcolor: '#7c3aed22', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <AddPhotoAlternateIcon sx={{ color: '#7c3aed', fontSize: 22 }} />
+                  </Box>
+                  <Box>
+                    <Typography sx={{ color: '#7c3aed', fontWeight: 700, fontSize: '0.875rem' }}>Upload Custom Template</Typography>
+                    <Typography sx={{ color: '#64748b', fontSize: '0.72rem', mt: 0.25 }}>Add your own Corel Draw / SVG / image templates</Typography>
+                  </Box>
+                </Box>
+              )}
               {DOC_TYPES.map(dt => (
                 <Box key={dt.key} sx={{ mb: 3 }}>
                   <Typography sx={{ color: '#1e293b', fontWeight: 600, fontSize: '0.85rem', mb: 1 }}>{dt.label}</Typography>

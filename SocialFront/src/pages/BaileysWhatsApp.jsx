@@ -56,6 +56,33 @@ const AUTOMATION_JOBS = [
   { key: 'magic_link', label: 'Magic Access Links',    description: 'On new user creation — one-click login',      preview: 'Hello {{name}}, access your account: {{link}} – Instify' },
 ];
 
+const BROADCAST_TEMPLATES = [
+  { id: 'fee_reminder',    label: 'Fee Reminder',      audience: 'students', icon: '💳',
+    text: 'Dear {{name}}, your fee of ₹{{amount}} is due on {{date}}. Please pay at the earliest to avoid late charges. – {{institute}}' },
+  { id: 'exam_schedule',   label: 'Exam Schedule',     audience: 'students', icon: '📝',
+    text: 'Dear {{name}}, your {{exam_name}} exam is scheduled on {{date}} at {{time}}, Venue: {{venue}}. Please carry your admit card. – {{institute}}' },
+  { id: 'result_ready',    label: 'Result Published',  audience: 'students', icon: '🏆',
+    text: 'Dear {{name}}, your {{exam_name}} results have been published. Visit the institute or log in to your portal to check your marks. – {{institute}}' },
+  { id: 'certificate',     label: 'Certificate Ready', audience: 'students', icon: '🎓',
+    text: 'Dear {{name}}, your {{certificate_type}} certificate is ready for collection. Please visit the institute during working hours. – {{institute}}' },
+  { id: 'welcome',         label: 'Welcome to Batch',  audience: 'students', icon: '👋',
+    text: 'Welcome to {{institute}}, {{name}}! 🎉 You have been enrolled in {{batch}} – {{course}}. Classes begin on {{start_date}}. Looking forward to seeing you!' },
+  { id: 'assignment',      label: 'Assignment Notice', audience: 'students', icon: '📚',
+    text: 'Dear {{name}}, a new assignment has been given in {{subject}}. Submission deadline: {{deadline}}. Please ensure timely submission. – {{institute}}' },
+  { id: 'attendance_alert',label: 'Attendance Alert',  audience: 'parents',  icon: '⚠️',
+    text: 'Dear Parent, {{student_name}} attendance is below {{percentage}}% this month. Regular attendance is crucial for exam eligibility. Please contact us. – {{institute}}' },
+  { id: 'parent_meeting',  label: 'Parent Meeting',    audience: 'parents',  icon: '👪',
+    text: "Dear Parent, we are organising a Parent-Teacher Meeting on {{date}} at {{time}}. Your presence is important for {{student_name}}'s academic progress. – {{institute}}" },
+  { id: 'holiday',         label: 'Holiday Notice',    audience: 'all',      icon: '🎉',
+    text: 'Dear {{name}}, {{institute}} will remain closed on {{date}} on account of {{occasion}}. Classes will resume on {{resume_date}}. – Management' },
+  { id: 'event_invite',    label: 'Event Invitation',  audience: 'all',      icon: '🎪',
+    text: 'You are cordially invited to {{event_name}} at {{institute}} on {{date}} at {{time}}, {{venue}}. We look forward to your presence!' },
+  { id: 'teacher_notice',  label: 'Staff Notice',      audience: 'faculty',  icon: '📋',
+    text: 'Dear {{name}}, this is to inform you that {{notice_text}}. Please acknowledge this message. – {{institute}} Management' },
+  { id: 'birthday',        label: 'Birthday Wishes',   audience: 'all',      icon: '🎂',
+    text: '🎂 Happy Birthday, {{name}}! Wishing you a wonderful day filled with joy and success. Best wishes from the entire team at {{institute}}! 🎉' },
+];
+
 const fieldSx = {
   '& .MuiOutlinedInput-root': {
     bgcolor: '#f0f2f5', color: WA_TEXT,
@@ -386,18 +413,100 @@ function AutomationPanel({ automation, isConnected, onToggle, instituteId }) {
   );
 }
 
+/* ── Template grid picker ─────────────────────────────────────── */
+function TemplateGrid({ onSelect }) {
+  const [audience, setAudience] = useState('all');
+  const filtered = audience === 'all'
+    ? BROADCAST_TEMPLATES
+    : BROADCAST_TEMPLATES.filter(t => t.audience === audience || t.audience === 'all');
+  return (
+    <Box sx={{ bgcolor: '#f0f2f5', borderRadius: 2, p: 1.5, border: `1px solid ${WA_DIVIDER}` }}>
+      <Stack direction="row" spacing={0.75} mb={1.25} sx={{ overflowX: 'auto', flexWrap: 'nowrap', pb: 0.5 }}>
+        {['all', 'students', 'parents', 'faculty'].map(a => (
+          <Chip key={a} label={a.charAt(0).toUpperCase() + a.slice(1)} size="small"
+            onClick={() => setAudience(a)}
+            sx={{ flexShrink: 0, fontSize: '0.65rem', cursor: 'pointer',
+              ...(audience === a
+                ? { bgcolor: WA_GREEN, color: '#fff', '& .MuiChip-label': { color: '#fff' } }
+                : { bgcolor: WA_SURFACE, borderColor: WA_DIVIDER, color: WA_MUTED, variant: 'outlined' }) }} />
+        ))}
+      </Stack>
+      <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 0.75 }}>
+        {filtered.map(tpl => (
+          <Box key={tpl.id} onClick={() => onSelect(tpl)}
+            sx={{ bgcolor: WA_SURFACE, borderRadius: 1.5, p: 1, cursor: 'pointer',
+              border: `1px solid ${WA_DIVIDER}`, '&:hover': { border: `1px solid ${WA_LIGHT}`, bgcolor: '#f0fff4' } }}>
+            <Typography sx={{ fontSize: '1rem', lineHeight: 1.2 }}>{tpl.icon}</Typography>
+            <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: WA_TEXT, mt: 0.25 }}>{tpl.label}</Typography>
+            <Typography sx={{ fontSize: '0.6rem', color: WA_MUTED }}>{tpl.audience}</Typography>
+          </Box>
+        ))}
+      </Box>
+    </Box>
+  );
+}
+
 /* ── Broadcast panel ─────────────────────────────────────────── */
 function BroadcastPanel({ isConnected, instituteId }) {
-  const [to, setTo] = useState(''); const [msg, setMsg] = useState(''); const [sending, setSending] = useState(false);
-  const [bulkNums, setBulkNums] = useState(''); const [bulkMsg, setBulkMsg] = useState('');
-  const [bulkSending, setBulkSending] = useState(false); const [bulkRes, setBulkRes] = useState(null);
+  const [mode, setMode] = useState(0); // 0=Single 1=By Batch 2=Manual
+  const [to, setTo] = useState('');
+  const [singleMsg, setSingleMsg] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const [batches, setBatches] = useState([]);
+  const [selBatch, setSelBatch] = useState('');
+  const [batchStudents, setBatchStudents] = useState([]);
+  const [loadingBatch, setLoadingBatch] = useState(false);
+
+  const [bulkNums, setBulkNums] = useState('');
+  const [bulkMsg, setBulkMsg] = useState('');
+  const [bulkSending, setBulkSending] = useState(false);
+  const [bulkRes, setBulkRes] = useState(null);
+
+  const [showTpl, setShowTpl] = useState(false);
   const [snack, setSnack] = useState(null);
 
+  const instituteName = localStorage.getItem('institute_title') || 'Instify';
+
+  useEffect(() => {
+    if (!instituteId) return;
+    apiClient.get(`/api/batches?institute_uuid=${instituteId}`)
+      .then(r => setBatches(Array.isArray(r.data?.result) ? r.data.result : []))
+      .catch(() => {});
+  }, [instituteId]);
+
+  useEffect(() => {
+    if (!selBatch) { setBatchStudents([]); setBulkNums(''); return; }
+    setLoadingBatch(true);
+    apiClient.get(`/api/students?institute_uuid=${instituteId}&batch=${selBatch}`)
+      .then(r => {
+        const students = Array.isArray(r.data?.result) ? r.data.result : [];
+        setBatchStudents(students);
+        const nums = students
+          .map(s => s.mobile || s.phone || s.contact || '')
+          .filter(Boolean)
+          .map(n => String(n).replace(/\D/g, ''))
+          .filter(n => n.length >= 10);
+        setBulkNums(nums.join('\n'));
+      })
+      .catch(() => {})
+      .finally(() => setLoadingBatch(false));
+  }, [selBatch, instituteId]);
+
+  function applyTemplate(tpl) {
+    const text = tpl.text.replace(/\{\{institute\}\}/g, instituteName);
+    if (mode === 0) setSingleMsg(text);
+    else setBulkMsg(text);
+    setShowTpl(false);
+  }
+
   async function sendSingle() {
-    if (!to || !msg) return setSnack({ type: 'error', text: 'Enter number and message' });
+    if (!to || !singleMsg) return setSnack({ type: 'error', text: 'Enter number and message' });
     setSending(true);
-    try { await apiClient.post('/api/baileys/send-text', { instituteId, to, message: msg }); setSnack({ type: 'success', text: 'Sent!' }); setTo(''); setMsg(''); }
-    catch (err) { setSnack({ type: 'error', text: err.response?.data?.message || 'Failed' }); }
+    try {
+      await apiClient.post('/api/baileys/send-text', { instituteId, to, message: singleMsg });
+      setSnack({ type: 'success', text: 'Sent!' }); setTo(''); setSingleMsg('');
+    } catch (err) { setSnack({ type: 'error', text: err.response?.data?.message || 'Failed' }); }
     finally { setSending(false); }
   }
 
@@ -407,40 +516,125 @@ function BroadcastPanel({ isConnected, instituteId }) {
     setBulkSending(true); setBulkRes(null);
     try {
       const res = await apiClient.post('/api/baileys/send-bulk', { instituteId, numbers, message: bulkMsg });
-      setBulkRes(res.data); setSnack({ type: 'success', text: `Sent: ${res.data.sent} | Failed: ${res.data.failed}` });
+      setBulkRes(res.data);
+      setSnack({ type: 'success', text: `Sent: ${res.data.sent} | Failed: ${res.data.failed}` });
     } catch (err) { setSnack({ type: 'error', text: err.response?.data?.message || 'Failed' }); }
     finally { setBulkSending(false); }
   }
+
+  const numCount = bulkNums.split(/[\n,]+/).map(n => n.trim()).filter(Boolean).length;
+
+  const tplButton = (
+    <Button size="small" onClick={() => setShowTpl(v => !v)}
+      sx={{ fontSize: '0.7rem', textTransform: 'none', color: WA_LIGHT, p: 0, minWidth: 0 }}>
+      {showTpl ? 'Hide templates' : '📋 Use template'}
+    </Button>
+  );
 
   return (
     <Box sx={{ p: 2 }}>
       <Snackbar open={!!snack} autoHideDuration={4000} onClose={() => setSnack(null)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
         <Alert severity={snack?.type || 'info'} onClose={() => setSnack(null)}>{snack?.text}</Alert>
       </Snackbar>
-      <Typography sx={{ color: WA_TEXT, fontWeight: 600, fontSize: '0.85rem', mb: 1 }}>Single Message</Typography>
-      <Stack spacing={1.5} mb={3}>
-        <TextField placeholder="Phone with country code (919876543210)" value={to} onChange={e => setTo(e.target.value)} fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
-        <TextField placeholder="Message" value={msg} onChange={e => setMsg(e.target.value)} multiline rows={3} fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
-        <Button variant="contained" startIcon={sending ? <CircularProgress size={14} color="inherit" /> : <SendIcon />} onClick={sendSingle} disabled={sending || !isConnected}
-          sx={{ bgcolor: WA_LIGHT, '&:hover': { bgcolor: '#1ebe57' }, alignSelf: 'flex-start' }}>Send</Button>
-      </Stack>
-      <Divider sx={{ borderColor: WA_DIVIDER, my: 2 }} />
-      <Typography sx={{ color: WA_TEXT, fontWeight: 600, fontSize: '0.85rem', mb: 0.5 }}>Bulk Broadcast</Typography>
-      <Typography sx={{ color: WA_MUTED, fontSize: '0.72rem', mb: 1.5 }}>One number per line. 2–4s delay between messages. Only enrolled users.</Typography>
-      <Stack spacing={1.5}>
-        <TextField placeholder="Numbers (one per line)" value={bulkNums} onChange={e => setBulkNums(e.target.value)} multiline rows={4} fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
-        <TextField placeholder="Message" value={bulkMsg} onChange={e => setBulkMsg(e.target.value)} multiline rows={3} fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
-        {bulkSending && <LinearProgress sx={{ borderRadius: 1, bgcolor: WA_DIVIDER, '& .MuiLinearProgress-bar': { bgcolor: WA_LIGHT } }} />}
-        <Button variant="contained" color="secondary" startIcon={bulkSending ? <CircularProgress size={14} color="inherit" /> : <BroadcastOnPersonalIcon />}
-          onClick={sendBulk} disabled={bulkSending || !isConnected} sx={{ alignSelf: 'flex-start' }}>
-          {bulkSending ? 'Sending…' : 'Broadcast'}
-        </Button>
-        {bulkRes && (
-          <Box sx={{ bgcolor: '#f0fff4', borderRadius: 2, p: 1.5, borderLeft: `3px solid ${WA_LIGHT}`, border: `1px solid ${WA_DIVIDER}` }}>
-            <Typography sx={{ color: WA_TEXT, fontSize: '0.8rem' }}>✓ Sent: {bulkRes.sent} &nbsp;|&nbsp; ✗ Failed: {bulkRes.failed}</Typography>
-          </Box>
-        )}
-      </Stack>
+
+      {!isConnected && (
+        <Box sx={{ bgcolor: '#fff3cd', border: '1px solid #ffc10744', borderRadius: 2, p: 1.5, mb: 2 }}>
+          <Typography sx={{ color: '#92400e', fontSize: '0.8rem' }}>Connect WhatsApp first to send messages.</Typography>
+        </Box>
+      )}
+
+      {/* Mode selector */}
+      <Box sx={{ display: 'flex', gap: 0.75, mb: 2.5 }}>
+        {['Single', 'By Batch', 'Manual'].map((label, i) => (
+          <Button key={i} size="small" onClick={() => { setMode(i); setShowTpl(false); setBulkRes(null); }}
+            sx={{ flex: 1, fontSize: '0.72rem', py: 0.75, textTransform: 'none', borderRadius: 1.5, border: '1px solid',
+              ...(mode === i
+                ? { bgcolor: WA_GREEN, color: '#fff', borderColor: WA_GREEN, '&:hover': { bgcolor: '#064944' } }
+                : { bgcolor: 'transparent', color: WA_MUTED, borderColor: WA_DIVIDER, '&:hover': { borderColor: WA_MUTED } }) }}>
+            {label}
+          </Button>
+        ))}
+      </Box>
+
+      {/* Single message */}
+      {mode === 0 && (
+        <Stack spacing={1.5}>
+          <TextField placeholder="Phone with country code (919876543210)" value={to} onChange={e => setTo(e.target.value)} fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Typography sx={{ color: WA_MUTED, fontSize: '0.72rem' }}>Message</Typography>
+            {tplButton}
+          </Stack>
+          {showTpl && <TemplateGrid onSelect={applyTemplate} />}
+          <TextField placeholder="Type your message…" value={singleMsg} onChange={e => setSingleMsg(e.target.value)} multiline rows={4} fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
+          <Button variant="contained" startIcon={sending ? <CircularProgress size={14} color="inherit" /> : <SendIcon />}
+            onClick={sendSingle} disabled={sending || !isConnected}
+            sx={{ bgcolor: WA_LIGHT, '&:hover': { bgcolor: '#1ebe57' }, alignSelf: 'flex-start', textTransform: 'none' }}>
+            {sending ? 'Sending…' : 'Send'}
+          </Button>
+        </Stack>
+      )}
+
+      {/* Batch broadcast */}
+      {mode === 1 && (
+        <Stack spacing={1.5}>
+          <Typography sx={{ color: WA_MUTED, fontSize: '0.72rem' }}>Select a batch to auto-load student phone numbers</Typography>
+          <Select value={selBatch} onChange={e => setSelBatch(e.target.value)} displayEmpty size="small" fullWidth disabled={!isConnected}
+            sx={{ bgcolor: '#f0f2f5', color: WA_TEXT, '& .MuiOutlinedInput-notchedOutline': { borderColor: WA_DIVIDER } }}>
+            <MenuItem value=""><em>Select Batch</em></MenuItem>
+            {batches.map(b => <MenuItem key={b.batch_uuid || b._id || b.batch_name} value={b.batch_name}>{b.batch_name}</MenuItem>)}
+          </Select>
+          {loadingBatch && <LinearProgress sx={{ borderRadius: 1, bgcolor: WA_DIVIDER, '& .MuiLinearProgress-bar': { bgcolor: WA_LIGHT } }} />}
+          {batchStudents.length > 0 && (
+            <Box sx={{ bgcolor: '#f0fff4', border: `1px solid ${WA_DIVIDER}`, borderRadius: 1.5, px: 1.5, py: 0.75 }}>
+              <Typography sx={{ color: WA_TEXT, fontSize: '0.75rem' }}>
+                ✓ {batchStudents.length} students loaded — {numCount} with phone numbers
+              </Typography>
+            </Box>
+          )}
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Typography sx={{ color: WA_MUTED, fontSize: '0.72rem' }}>Message (use {'{{name}}'}, {'{{course}}'} for merge fields)</Typography>
+            {tplButton}
+          </Stack>
+          {showTpl && <TemplateGrid onSelect={applyTemplate} />}
+          <TextField placeholder="Message" value={bulkMsg} onChange={e => setBulkMsg(e.target.value)} multiline rows={4} fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
+          {bulkSending && <LinearProgress sx={{ borderRadius: 1, bgcolor: WA_DIVIDER, '& .MuiLinearProgress-bar': { bgcolor: WA_LIGHT } }} />}
+          <Button variant="contained" startIcon={bulkSending ? <CircularProgress size={14} color="inherit" /> : <BroadcastOnPersonalIcon />}
+            onClick={sendBulk} disabled={bulkSending || !isConnected || numCount === 0}
+            sx={{ bgcolor: WA_GREEN, '&:hover': { bgcolor: '#064944' }, alignSelf: 'flex-start', textTransform: 'none' }}>
+            {bulkSending ? 'Sending…' : `Broadcast to ${numCount} student${numCount !== 1 ? 's' : ''}`}
+          </Button>
+          {bulkRes && (
+            <Box sx={{ bgcolor: '#f0fff4', borderRadius: 2, p: 1.5, border: `1px solid ${WA_DIVIDER}` }}>
+              <Typography sx={{ color: WA_TEXT, fontSize: '0.8rem' }}>✓ Sent: {bulkRes.sent} &nbsp;|&nbsp; ✗ Failed: {bulkRes.failed}</Typography>
+            </Box>
+          )}
+        </Stack>
+      )}
+
+      {/* Manual broadcast */}
+      {mode === 2 && (
+        <Stack spacing={1.5}>
+          <Typography sx={{ color: WA_MUTED, fontSize: '0.72rem' }}>One number per line, with country code. 2–4s delay between messages.</Typography>
+          <TextField placeholder="Numbers (one per line)" value={bulkNums} onChange={e => setBulkNums(e.target.value)} multiline rows={4} fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Typography sx={{ color: WA_MUTED, fontSize: '0.72rem' }}>Message</Typography>
+            {tplButton}
+          </Stack>
+          {showTpl && <TemplateGrid onSelect={applyTemplate} />}
+          <TextField placeholder="Message" value={bulkMsg} onChange={e => setBulkMsg(e.target.value)} multiline rows={3} fullWidth disabled={!isConnected} size="small" sx={fieldSx} />
+          {bulkSending && <LinearProgress sx={{ borderRadius: 1, bgcolor: WA_DIVIDER, '& .MuiLinearProgress-bar': { bgcolor: WA_LIGHT } }} />}
+          <Button variant="contained" startIcon={bulkSending ? <CircularProgress size={14} color="inherit" /> : <BroadcastOnPersonalIcon />}
+            onClick={sendBulk} disabled={bulkSending || !isConnected}
+            sx={{ bgcolor: WA_GREEN, '&:hover': { bgcolor: '#064944' }, alignSelf: 'flex-start', textTransform: 'none' }}>
+            {bulkSending ? 'Sending…' : `Broadcast${numCount > 0 ? ` (${numCount})` : ''}`}
+          </Button>
+          {bulkRes && (
+            <Box sx={{ bgcolor: '#f0fff4', borderRadius: 2, p: 1.5, border: `1px solid ${WA_DIVIDER}` }}>
+              <Typography sx={{ color: WA_TEXT, fontSize: '0.8rem' }}>✓ Sent: {bulkRes.sent} &nbsp;|&nbsp; ✗ Failed: {bulkRes.failed}</Typography>
+            </Box>
+          )}
+        </Stack>
+      )}
     </Box>
   );
 }
