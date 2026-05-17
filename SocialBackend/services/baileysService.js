@@ -11,6 +11,7 @@ const QRCode = require('qrcode');
 const { v2: cloudinary } = require('cloudinary');
 const Message = require('../repositories/Message');
 const WASession = require('../models/WASession');
+const LidMapping = require('../models/LidMapping');
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -53,15 +54,38 @@ function normaliseJid(jid = '') {
   return jid.split('@')[0].replace(/\D/g, '');
 }
 
-/** Resolve the actual WhatsApp JID for a phone number via onWhatsApp() */
-async function resolveJid(sock, number) {
+/** Resolve the actual WhatsApp JID for a phone number via onWhatsApp().
+ *  If WhatsApp returns a @lid JID, persist the LID→phone mapping so incoming
+ *  replies from that LID can be correlated to the actual phone number. */
+async function resolveJid(sock, phone, instituteId) {
   try {
-    const [result] = await sock.onWhatsApp(number + '@s.whatsapp.net');
-    if (result?.exists && result.jid) return result.jid;
+    const [result] = await sock.onWhatsApp(phone + '@s.whatsapp.net');
+    if (result?.exists && result.jid) {
+      if (result.jid.endsWith('@lid') && instituteId) {
+        const lid = result.jid.split('@')[0].replace(/\D/g, '');
+        LidMapping.updateOne(
+          { institute_uuid: instituteId, lid },
+          { $set: { phone } },
+          { upsert: true }
+        ).catch(() => {});
+      }
+      return result.jid;
+    }
   } catch (e) {
     console.error('[Baileys] onWhatsApp resolve error:', e.message);
   }
-  return number + '@s.whatsapp.net';
+  return phone + '@s.whatsapp.net';
+}
+
+/** Given a raw JID (may be @lid), return the actual phone digits to store. */
+async function resolveStoragePhone(instituteId, jid) {
+  if (jid.endsWith('@lid')) {
+    const lid = jid.split('@')[0].replace(/\D/g, '');
+    const map = await LidMapping.findOne({ institute_uuid: instituteId, lid }).lean().catch(() => null);
+    if (map?.phone) return map.phone;
+    return lid; // fallback: store under LID digits
+  }
+  return normaliseJid(jid);
 }
 
 /* ── Session persistence helpers ────────────────────────────── */
@@ -279,7 +303,9 @@ async function startSession(instituteId, onQR, onStatus) {
       if (jid.endsWith('@newsletter'))   continue;   // WhatsApp newsletters
       if (jid.endsWith('@call'))         continue;   // call events
       if (!normaliseJid(jid))           continue;   // any other non-phone JID
-      await saveMessage(instituteId, jid, m.message, m.key.fromMe, downloadContentFromMessage, m.pushName || '');
+      // Resolve LID → actual phone so reply threads under actual number
+      const storagePhone = await resolveStoragePhone(instituteId, jid);
+      await saveMessage(instituteId, storagePhone + '@s.whatsapp.net', m.message, m.key.fromMe, downloadContentFromMessage, m.pushName || '');
     }
   });
 }
@@ -291,9 +317,11 @@ async function sendText(instituteId, to, message) {
   }
   checkRateLimit(instituteId);
   const number = to.replace(/\D/g, '');
-  const jid = await resolveJid(session.sock, number);
+  // resolveJid saves LID→phone mapping if WhatsApp returns @lid
+  const jid = await resolveJid(session.sock, number, instituteId);
   await session.sock.sendMessage(jid, { text: message });
-  await saveMessage(instituteId, jid, { conversation: message }, true);
+  // Always store sent message under the actual phone number, not the LID
+  await saveMessage(instituteId, number + '@s.whatsapp.net', { conversation: message }, true);
 }
 
 async function sendMedia(instituteId, to, buffer, mimeType, fileName, caption) {
@@ -303,7 +331,7 @@ async function sendMedia(instituteId, to, buffer, mimeType, fileName, caption) {
   }
   checkRateLimit(instituteId);
   const number = to.replace(/\D/g, '');
-  const jid = await resolveJid(session.sock, number);
+  const jid = await resolveJid(session.sock, number, instituteId);
 
   let msgObj;
   if (mimeType.startsWith('image/')) {
