@@ -127,7 +127,7 @@ async function downloadMedia(mediaMsg, mediaType, downloadFn) {
   }
 }
 
-async function saveMessage(institute_uuid, jid, msg, fromMe, downloadFn) {
+async function saveMessage(institute_uuid, jid, msg, fromMe, downloadFn, pushName = '') {
   try {
     const number = normaliseJid(jid);
     if (!number) return;   // non-phone JIDs (status@broadcast, newsletter, etc.) produce empty string
@@ -135,6 +135,7 @@ async function saveMessage(institute_uuid, jid, msg, fromMe, downloadFn) {
       institute_uuid, jid: number, fromMe,
       sender: fromMe ? institute_uuid : number,
       receiver: fromMe ? number : institute_uuid,
+      pushName: fromMe ? '' : (pushName || ''),
     };
 
     if (msg?.imageMessage) {
@@ -278,7 +279,7 @@ async function startSession(instituteId, onQR, onStatus) {
       if (jid.endsWith('@newsletter'))   continue;   // WhatsApp newsletters
       if (jid.endsWith('@call'))         continue;   // call events
       if (!normaliseJid(jid))           continue;   // any other non-phone JID
-      await saveMessage(instituteId, jid, m.message, m.key.fromMe, downloadContentFromMessage);
+      await saveMessage(instituteId, jid, m.message, m.key.fromMe, downloadContentFromMessage, m.pushName || '');
     }
   });
 }

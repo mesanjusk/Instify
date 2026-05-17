@@ -14,6 +14,7 @@ const MessageSchema = new mongoose.Schema(
     mimeType: { type: String, default: '' },
     fileName: { type: String, default: '' },
     status: { type: String, enum: ['sent', 'delivered', 'read'], default: 'sent' },
+    pushName: { type: String, default: '' },
   },
   { timestamps: true }
 );
