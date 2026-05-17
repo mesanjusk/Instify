@@ -56,6 +56,9 @@ import Employees from './pages/Employees';
 import TrialBalance from './pages/TrialBalance';
 import ProfitLoss from './pages/ProfitLoss';
 import FunnelReport from './pages/FunnelReport';
+import PublicForm from './pages/PublicForm';
+import Forms from './pages/Forms';
+import FormResponses from './pages/FormResponses';
 
 function PageLoader() {
   return (
@@ -76,6 +79,7 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password/:id" element={<ResetPassword />} />
       <Route path="/access/:token" element={<MagicLogin />} />
+      <Route path="/f/:slug" element={<PublicForm />} />
 
       {/* ── Section routes (no sidebar / FAB / bottom nav) ── */}
       <Route
@@ -165,6 +169,8 @@ export default function App() {
         <Route path="trial-balance" element={<TrialBalance />} />
         <Route path="profit-loss" element={<ProfitLoss />} />
         <Route path="funnel-report" element={<FunnelReport />} />
+        <Route path="forms" element={<Forms />} />
+        <Route path="forms/:formId/responses" element={<FormResponses />} />
         {/* Legacy redirects → section routes */}
         <Route path="whatsapp-personal" element={<RedirectToSection section="whatsapp" />} />
         <Route path="canvas-editor" element={<RedirectToSection section="canvas" />} />
