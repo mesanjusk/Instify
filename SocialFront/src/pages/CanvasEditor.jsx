@@ -373,6 +373,7 @@ export default function DocumentMaker() {
   const carouselStatesRef = useRef({});
   const initParamsRef    = useRef(null);   // { type, tplIdx } set by openEditor/switchTemplate
   const frameInputRef    = useRef(null);
+  const svgInputRef      = useRef(null);
   const historyRef     = useRef([]);
   const historyIdxRef  = useRef(-1);
   const skipHistoryRef = useRef(false);
@@ -967,6 +968,40 @@ export default function DocumentMaker() {
     reader.readAsDataURL(file);
   }
 
+  async function importSVG(file) {
+    const { fabric } = await getFabric();
+    const fc = fabricRef.current; if (!fc) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      fabric.loadSVGFromString(ev.target.result, (objects, options) => {
+        if (!objects?.length) { showAlert('error', 'Could not parse SVG — try re-exporting from Corel Draw'); return; }
+        const group = fabric.util.groupSVGElements(objects, options);
+        const scaleX = fc.width  / (group.width  || fc.width);
+        const scaleY = fc.height / (group.height || fc.height);
+        const s = Math.min(scaleX, scaleY, 1);
+        group.set({ left: fc.width / 2, top: fc.height / 2, originX: 'center', originY: 'center', scaleX: s, scaleY: s });
+        fc.add(group); fc.setActiveObject(group); fc.renderAll();
+        pushHistory(); setIsDirty(true);
+        showAlert('success', `SVG imported — ${objects.length} objects. Tap "Ungroup" in Object tab to edit individually.`);
+      });
+    };
+    reader.readAsText(file);
+  }
+
+  async function ungroupSelected() {
+    const fc = fabricRef.current;
+    const obj = fc?.getActiveObject();
+    if (!fc || !obj || obj.type !== 'group') return;
+    const { fabric } = await getFabric();
+    const items = obj.getObjects();
+    obj._restoreObjectsState();
+    fc.remove(obj);
+    items.forEach(item => fc.add(item));
+    fc.renderAll();
+    pushHistory(); setIsDirty(true);
+    showAlert('success', `Ungrouped into ${items.length} objects`);
+  }
+
   async function addSignatureLine() {
     const { fabric } = await getFabric();
     const fc = fabricRef.current; if (!fc) return;
@@ -1388,6 +1423,7 @@ export default function DocumentMaker() {
       <input ref={fileInputRef}   type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleImageFile(e, 'Photo')} />
       <input ref={sigInputRef}    type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handleImageFile(e, 'Signature')} />
       <input ref={frameInputRef}  type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) fillFrameWithPhoto(e.target.files[0]); e.target.value = ''; }} />
+      <input ref={svgInputRef}    type="file" accept=".svg,image/svg+xml" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) importSVG(e.target.files[0]); e.target.value = ''; }} />
 
       {/* Top bar — compact, no dead-weight buttons */}
       <Box sx={{
@@ -1646,6 +1682,7 @@ export default function DocumentMaker() {
                   {btn('Gallery', <AddPhotoAlternateIcon sx={{ fontSize: 18 }} />, () => setGalleryDialog(true))}
                   {btn('Sig',     <DrawIcon sx={{ fontSize: 18 }} />,              () => sigInputRef.current?.click())}
                   {btn('Sig Line',<HorizontalRuleIcon sx={{ fontSize: 18 }} />,   addSignatureLine)}
+                  {btn('SVG',     <FolderOpenIcon sx={{ fontSize: 18 }} />,        () => svgInputRef.current?.click())}
                 </Box>
                 {/* Photo Frames (image placeholders) */}
                 <Typography sx={{ fontSize: '0.58rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Photo Frames</Typography>
@@ -1761,6 +1798,17 @@ export default function DocumentMaker() {
                     }}>
                       <ImageIcon sx={{ fontSize: 13, color: '#7c3aed' }} />
                       <Typography sx={{ fontSize: '0.56rem', color: '#7c3aed' }}>Fill Photo</Typography>
+                    </Box>
+                  )}
+                  {/* Ungroup if an SVG/group is selected */}
+                  {selectedObj.type === 'group' && (
+                    <Box onClick={ungroupSelected} sx={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.2,
+                      cursor: 'pointer', px: 0.75, py: 0.4, borderRadius: 1.5, border: '1px solid #0ea5e955',
+                      bgcolor: '#f0f9ff', minWidth: 52, '&:active': { opacity: 0.7 },
+                    }}>
+                      <LayersIcon sx={{ fontSize: 13, color: '#0ea5e9' }} />
+                      <Typography sx={{ fontSize: '0.56rem', color: '#0ea5e9' }}>Ungroup</Typography>
                     </Box>
                   )}
                 </Stack>
