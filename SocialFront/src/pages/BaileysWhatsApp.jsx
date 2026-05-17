@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Alert, Avatar, Box, Button, Chip, CircularProgress, Divider, Fab,
+  Alert, Avatar, Box, Button, Chip, CircularProgress, Dialog, DialogActions,
+  DialogContent, DialogContentText, DialogTitle, Divider, Fab,
   IconButton, InputAdornment, LinearProgress, ListItemIcon, ListItemText,
   Menu, MenuItem, Select, Snackbar, Stack, Switch, TextField, Typography,
 } from '@mui/material';
@@ -749,6 +750,8 @@ export default function BaileysWhatsApp() {
   const [attachMenu, setAttachMenu]   = useState(null);
   const [mediaFile, setMediaFile]     = useState(null);
   const [mediaType, setMediaType]     = useState(null);
+  const [clearConfirm, setClearConfirm] = useState(false);
+  const [clearing, setClearing]       = useState(false);
 
   const storageKey = `automation_${instituteId}`;
   const [automation, setAutomation] = useState(() => {
@@ -773,6 +776,23 @@ export default function BaileysWhatsApp() {
     setAutomation(next);
     localStorage.setItem(storageKey, JSON.stringify(next));
   }
+
+  const clearChatHistory = async () => {
+    if (!instituteId) return;
+    setClearing(true);
+    try {
+      await apiClient.delete(`/api/baileys/chats/${instituteId}`);
+      setChats([]);
+      setMessages([]);
+      setSelectedChat(null);
+      setSnack({ type: 'success', text: 'Chat history cleared. New chats will show real numbers.' });
+    } catch {
+      setSnack({ type: 'error', text: 'Failed to clear history. Try again.' });
+    } finally {
+      setClearing(false);
+      setClearConfirm(false);
+    }
+  };
 
   /* Load chat list — network first, IndexedDB fallback */
   const loadChats = useCallback(async () => {
@@ -1168,7 +1188,30 @@ export default function BaileysWhatsApp() {
           <ListItemIcon><SettingsIcon sx={{ color: WA_MUTED, fontSize: 18 }} /></ListItemIcon>
           <ListItemText>Settings</ListItemText>
         </MenuItem>
+        <Divider sx={{ borderColor: WA_DIVIDER }} />
+        <MenuItem onClick={() => { setMenuAnchor(null); setClearConfirm(true); }} sx={{ color: '#ef4444' }}>
+          <ListItemIcon><DeleteOutlineIcon sx={{ color: '#ef4444', fontSize: 18 }} /></ListItemIcon>
+          <ListItemText>Clear Chat History</ListItemText>
+        </MenuItem>
       </Menu>
+
+      {/* Clear history confirmation */}
+      <Dialog open={clearConfirm} onClose={() => !clearing && setClearConfirm(false)}>
+        <DialogTitle>Clear All Chat History?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This will permanently delete all stored messages and chats from the database.
+            After clearing, new incoming messages will show correct phone numbers.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setClearConfirm(false)} disabled={clearing}>Cancel</Button>
+          <Button onClick={clearChatHistory} color="error" variant="contained" disabled={clearing}>
+            {clearing ? <CircularProgress size={16} sx={{ mr: 1 }} /> : null}
+            Clear All
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Body */}
       <Box sx={{ flex: 1, overflowY: 'auto', bgcolor: WA_SURFACE }}>

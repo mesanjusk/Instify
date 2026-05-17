@@ -142,4 +142,12 @@ router.delete('/messages/:instituteId/:jid', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
+// Clear all chat history for an institute
+router.delete('/chats/:instituteId', async (req, res) => {
+  try {
+    const result = await Message.deleteMany({ institute_uuid: req.params.instituteId });
+    res.json({ success: true, deleted: result.deletedCount });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
 module.exports = router;
