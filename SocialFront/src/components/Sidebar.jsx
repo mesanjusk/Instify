@@ -30,6 +30,7 @@ import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import BalanceIcon from '@mui/icons-material/Balance';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import FunnelIcon from '@mui/icons-material/FilterAlt';
+import DynamicFormIcon from '@mui/icons-material/DynamicForm';
 
 const DRAWER_WIDTH = 256;
 
@@ -108,6 +109,13 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
           icon: <BadgeIcon fontSize="small" sx={{ color: '#7c3aed' }} />,
           path: `/${username}/section/canvas`,
           badge: 'Pro',
+          highlight: true,
+        },
+        {
+          label: 'Public Forms',
+          icon: <DynamicFormIcon fontSize="small" sx={{ color: '#0ea5e9' }} />,
+          path: `/${username}/forms`,
+          badge: 'New',
           highlight: true,
         },
         { label: 'Academic Hub', icon: <UploadFileIcon fontSize="small" />, path: `/${username}/section/academic`, highlight: true },
