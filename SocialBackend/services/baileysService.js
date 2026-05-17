@@ -292,6 +292,44 @@ async function startSession(instituteId, onQR, onStatus) {
 
   sock.ev.on('creds.update', saveCredsWithBackup);
 
+  /* When Baileys syncs the full contact list on connect, build LID→phone
+     mappings for ALL contacts so first-inbound messages resolve correctly. */
+  function syncContactMappings(contacts) {
+    for (const c of (contacts || [])) {
+      try {
+        const id = c.id || '';
+        const lid = c.lid || '';
+        // Format 1: id = "919399140933@s.whatsapp.net", lid = "369585299480@lid"
+        if (id.endsWith('@s.whatsapp.net') && lid) {
+          const phone = normaliseJid(id);
+          const lidDigits = lid.split('@')[0].replace(/\D/g, '');
+          if (phone && lidDigits) {
+            LidMapping.updateOne(
+              { institute_uuid: instituteId, lid: lidDigits },
+              { $set: { phone } },
+              { upsert: true }
+            ).catch(() => {});
+          }
+        }
+        // Format 2: id = "369585299480@lid", separate phone field
+        if (id.endsWith('@lid') && c.phone) {
+          const lidDigits = id.split('@')[0].replace(/\D/g, '');
+          const phone = c.phone.replace(/\D/g, '');
+          if (lidDigits && phone) {
+            LidMapping.updateOne(
+              { institute_uuid: instituteId, lid: lidDigits },
+              { $set: { phone } },
+              { upsert: true }
+            ).catch(() => {});
+          }
+        }
+      } catch { /* skip bad contact entries */ }
+    }
+  }
+
+  sock.ev.on('contacts.set', ({ contacts }) => syncContactMappings(contacts));
+  sock.ev.on('contacts.update', (contacts) => syncContactMappings(contacts));
+
   sock.ev.on('messages.upsert', async ({ messages, type }) => {
     if (type !== 'notify') return;
     for (const m of messages) {
