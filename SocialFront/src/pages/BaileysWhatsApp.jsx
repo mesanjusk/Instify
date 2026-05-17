@@ -118,8 +118,9 @@ function fmtBubbleTime(ts) {
 }
 
 function parseJid(jid = '') {
-  const num = jid.split('@')[0];
-  return num.startsWith('+') ? num : `+${num}`;
+  const raw = jid.split('@')[0];
+  const digits = raw.replace(/^\+/, '');
+  return `+${digits}`;
 }
 
 function dedupeChats(chats) {

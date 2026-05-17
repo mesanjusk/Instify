@@ -1023,8 +1023,9 @@ export default function DocumentMaker() {
         img.clipPath = clip;
         img.set({ left: tLeft + tW / 2, top: tTop + tH / 2, originX: 'center', originY: 'center' });
         if (obj) fc.remove(obj);
+        img.__frameType = shapeType;
         fc.add(img); fc.setActiveObject(img); fc.renderAll();
-        setSelectedObj(img); setToolTab(3);
+        setSelectedObj(img); setToolTab(0);
         pushHistory(); setIsDirty(true);
       }, { crossOrigin: 'anonymous' });
     };
@@ -1880,7 +1881,7 @@ export default function DocumentMaker() {
         borderLeft: { xs: 'none', md: '1px solid #e2e8f0' },
         flexShrink: 0,
         width: { xs: '100%', md: 300 },
-        height: { xs: 220, md: '100%' },
+        height: { xs: 180, md: '100%' },
         display: 'flex', flexDirection: 'column',
         boxShadow: { xs: '0 -1px 8px rgba(0,0,0,0.06)', md: '-2px 0 8px rgba(0,0,0,0.04)' },
       }}>
@@ -1923,10 +1924,10 @@ export default function DocumentMaker() {
         {/* Scrollable tab bar — 6 focused sections */}
         <Tabs
           value={toolTab} onChange={(_, v) => setToolTab(v)}
-          variant="scrollable" scrollButtons="auto"
+          variant="fullWidth"
           sx={{
-            minHeight: 44, flexShrink: 0, borderBottom: '1px solid #e2e8f0',
-            '& .MuiTab-root': { minHeight: 44, py: 0.5, fontSize: '0.75rem', fontWeight: 600, textTransform: 'none', color: '#64748b', px: 1.5 },
+            minHeight: 36, flexShrink: 0, borderBottom: '1px solid #e2e8f0',
+            '& .MuiTab-root': { minHeight: 36, py: 0, fontSize: '0.62rem', fontWeight: 600, textTransform: 'none', color: '#64748b', px: 0.25, minWidth: 0 },
             '& .Mui-selected': { color: '#7c3aed !important' },
             '& .MuiTabs-indicator': { bgcolor: '#7c3aed' },
           }}
