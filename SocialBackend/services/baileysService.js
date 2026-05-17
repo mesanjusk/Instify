@@ -277,6 +277,7 @@ async function startSession(instituteId, onQR, onStatus) {
       if (jid.endsWith('@broadcast'))    continue;   // status@broadcast updates
       if (jid.endsWith('@newsletter'))   continue;   // WhatsApp newsletters
       if (jid.endsWith('@call'))         continue;   // call events
+      if (jid.endsWith('@lid'))          continue;   // linked-device IDs, not phone numbers
       if (!normaliseJid(jid))           continue;   // any other non-phone JID
       await saveMessage(instituteId, jid, m.message, m.key.fromMe, downloadContentFromMessage);
     }

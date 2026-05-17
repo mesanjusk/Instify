@@ -107,6 +107,10 @@ router.get('/chats/:instituteId', async (req, res) => {
           },
         },
       },
+      { $match: { $expr: { $and: [
+        { $gte: [{ $strLenCP: '$_id' }, 7] },
+        { $lte: [{ $strLenCP: '$_id' }, 15] },
+      ] } } },
       { $sort: { lastTime: -1 } },
       { $limit: 100 },
     ]);
