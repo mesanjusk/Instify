@@ -118,8 +118,7 @@ function fmtBubbleTime(ts) {
 }
 
 function parseJid(jid = '') {
-  const raw = jid.split('@')[0];
-  const digits = raw.replace(/^\+/, '');
+  const digits = jid.split('@')[0].replace(/\D/g, '');
   return `+${digits}`;
 }
 
@@ -142,12 +141,12 @@ const ChatRow = memo(function ChatRow({ chat, onClick }) {
       borderBottom: `1px solid ${WA_DIVIDER}`,
     }}>
       <Avatar sx={{ bgcolor: avatarColor(chat._id), width: 50, height: 50, fontSize: '1.1rem', fontWeight: 700, flexShrink: 0 }}>
-        {(chat._id || '?')[0].toUpperCase()}
+        {(chat._id || '?').replace(/\D/g, '')[0] || '?'}
       </Avatar>
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center">
           <Typography sx={{ color: WA_TEXT, fontWeight: 500, fontSize: '0.9rem' }} noWrap>
-            +{name}
+            {name}
           </Typography>
           <Typography sx={{ color: chat.unread > 0 ? WA_LIGHT : WA_MUTED, fontSize: '0.7rem', flexShrink: 0 }}>
             {fmtTime(chat.lastTime)}
