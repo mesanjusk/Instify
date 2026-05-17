@@ -117,9 +117,23 @@ function fmtBubbleTime(ts) {
   return new Date(ts).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
 
+function parseJid(jid = '') {
+  const num = jid.split('@')[0];
+  return num.startsWith('+') ? num : `+${num}`;
+}
+
+function dedupeChats(chats) {
+  const seen = new Map();
+  for (const c of (chats || [])) {
+    const key = c._id.split('@')[0].replace(/\D/g, '');
+    if (!seen.has(key)) seen.set(key, c);
+  }
+  return Array.from(seen.values());
+}
+
 /* ── Chat list row ───────────────────────────────────────────── */
 const ChatRow = memo(function ChatRow({ chat, onClick }) {
-  const name = chat._id;
+  const name = parseJid(chat._id);
   return (
     <Box onClick={onClick} sx={{
       display: 'flex', alignItems: 'center', px: 2, py: 1.25, gap: 1.5,
@@ -754,7 +768,7 @@ export default function BaileysWhatsApp() {
     setChatsLoading(true);
     try {
       const res = await apiClient.get(`/api/baileys/chats/${instituteId}`);
-      const data = res.data?.result || [];
+      const data = dedupeChats(res.data?.result || []);
       setChats(data);
       saveChats(instituteId, data).catch(() => {});
     } catch {
@@ -891,7 +905,11 @@ export default function BaileysWhatsApp() {
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   const filteredChats = chats.filter(c => {
-    if (search && !c._id.includes(search.replace(/\D/g, ''))) return false;
+    if (search) {
+      const q = search.replace(/\D/g, '');
+      const num = c._id.split('@')[0];
+      if (!num.includes(q)) return false;
+    }
     if (filter === 1) return c.unread > 0;
     return true;
   });

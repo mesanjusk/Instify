@@ -1694,6 +1694,62 @@ export default function DocumentMaker() {
       {/* ── Main body: canvas + sidebar (row on desktop, column on mobile) ── */}
       <Box sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
 
+      {/* ── Desktop left sidebar — Add Elements ─────────────── */}
+      {isDesktop && (
+        <Box sx={{ width: 176, bgcolor: '#ffffff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+          <Box sx={{ px: 1.5, py: 1, borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
+            <Typography sx={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Add Elements</Typography>
+          </Box>
+          <Box sx={{ flex: 1, overflowY: 'auto', p: 1 }}>
+            <Stack spacing={1}>
+              <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Content</Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 0.75 }}>
+                {[
+                  ['Text',    <TextFieldsIcon sx={{ fontSize: 22, color: '#7c3aed' }} />,       addText],
+                  ['Photo',   <ImageIcon sx={{ fontSize: 22, color: '#7c3aed' }} />,            () => fileInputRef.current?.click()],
+                  ['Gallery', <AddPhotoAlternateIcon sx={{ fontSize: 22, color: '#7c3aed' }} />,() => setGalleryDialog(true)],
+                  ['SVG',     <FolderOpenIcon sx={{ fontSize: 22, color: '#7c3aed' }} />,       () => svgInputRef.current?.click()],
+                ].map(([label, icon, action]) => (
+                  <Box key={label} onClick={action} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, cursor: 'pointer', p: 1, borderRadius: 2, border: '1px solid #e2e8f0', bgcolor: '#f8fafc', '&:hover': { borderColor: '#7c3aed55', bgcolor: '#f1f5f9' } }}>
+                    {icon}
+                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 500, color: '#64748b' }}>{label}</Typography>
+                  </Box>
+                ))}
+              </Box>
+
+              <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', pt: 0.5 }}>Photo Frames</Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.5 }}>
+                {[
+                  ['Rect',   <Box sx={{ width: 20, height: 20, border: '2px dashed #7c3aed', borderRadius: 1 }} />,     () => addFrame('rect')],
+                  ['Circle', <Box sx={{ width: 20, height: 20, border: '2px dashed #7c3aed', borderRadius: '50%' }} />, () => addFrame('circle')],
+                  ['Round',  <Box sx={{ width: 20, height: 20, border: '2px dashed #7c3aed', borderRadius: 5 }} />,     () => addFrame('rounded')],
+                ].map(([label, icon, action]) => (
+                  <Box key={label} onClick={action} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4, cursor: 'pointer', p: 0.75, borderRadius: 2, border: '1px solid #e2e8f0', bgcolor: '#f8fafc', '&:hover': { borderColor: '#7c3aed55', bgcolor: '#f1f5f9' } }}>
+                    {icon}
+                    <Typography sx={{ fontSize: '0.6rem', fontWeight: 500, color: '#64748b' }}>{label}</Typography>
+                  </Box>
+                ))}
+              </Box>
+
+              <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', pt: 0.5 }}>Shapes</Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 0.75 }}>
+                {[
+                  ['Rect',     <LayersIcon sx={{ fontSize: 22, color: '#7c3aed' }} />,         () => addShape('rect')],
+                  ['Circle',   <LayersIcon sx={{ fontSize: 22, color: '#7c3aed' }} />,         () => addShape('circle')],
+                  ['Triangle', <ChangeHistoryIcon sx={{ fontSize: 22, color: '#7c3aed' }} />,  () => addShape('triangle')],
+                  ['Line',     <HorizontalRuleIcon sx={{ fontSize: 22, color: '#7c3aed' }} />, () => addShape('line')],
+                ].map(([label, icon, action]) => (
+                  <Box key={label} onClick={action} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, cursor: 'pointer', p: 1, borderRadius: 2, border: '1px solid #e2e8f0', bgcolor: '#f8fafc', '&:hover': { borderColor: '#7c3aed55', bgcolor: '#f1f5f9' } }}>
+                    {icon}
+                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 500, color: '#64748b' }}>{label}</Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Stack>
+          </Box>
+        </Box>
+      )}
+
       {/* ── Canvas area ────────────────────────────────────── */}
       <Box
         ref={containerRef}
@@ -1741,80 +1797,78 @@ export default function DocumentMaker() {
       {/* ── Contextual quick bar — mobile: between canvas and toolbar; hidden on desktop (shown in sidebar) ── */}
       {selectedObj && ready && !isDesktop && (
         <Box sx={{
-          bgcolor: '#1e293b', flexShrink: 0, px: 1.25, height: 42,
-          display: 'flex', alignItems: 'center', gap: 0.75,
+          bgcolor: '#1e293b', flexShrink: 0, px: 1.5, height: 54,
+          display: 'flex', alignItems: 'center', gap: 1,
           boxShadow: '0 -2px 10px rgba(0,0,0,0.18)',
         }}>
           {/* TEXT quick tools */}
           {(selectedObj.type === 'i-text' || selectedObj.type === 'text') && (<>
             <input type="color" value={fontColor}
               onChange={e => { setFontColor(e.target.value); applyFontProp('fill', e.target.value); }}
-              style={{ width: 24, height: 24, border: '2px solid rgba(255,255,255,0.25)', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'none', flexShrink: 0 }} />
+              style={{ width: 28, height: 28, border: '2px solid rgba(255,255,255,0.25)', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'none', flexShrink: 0 }} />
             <IconButton size="small" onClick={() => { const v = !isBold; setIsBold(v); applyFontProp('fontWeight', v ? 'bold' : 'normal'); }}
-              sx={{ color: isBold ? '#a78bfa' : 'rgba(255,255,255,0.6)', bgcolor: isBold ? 'rgba(167,139,250,0.15)' : 'transparent', p: 0.4, borderRadius: 1 }}>
-              <FormatBoldIcon sx={{ fontSize: 16 }} />
+              sx={{ color: isBold ? '#a78bfa' : 'rgba(255,255,255,0.6)', bgcolor: isBold ? 'rgba(167,139,250,0.15)' : 'transparent', p: 0.6, borderRadius: 1 }}>
+              <FormatBoldIcon sx={{ fontSize: 20 }} />
             </IconButton>
             <IconButton size="small" onClick={() => { const v = !isItalic; setIsItalic(v); applyFontProp('fontStyle', v ? 'italic' : 'normal'); }}
-              sx={{ color: isItalic ? '#a78bfa' : 'rgba(255,255,255,0.6)', bgcolor: isItalic ? 'rgba(167,139,250,0.15)' : 'transparent', p: 0.4, borderRadius: 1 }}>
-              <FormatItalicIcon sx={{ fontSize: 16 }} />
+              sx={{ color: isItalic ? '#a78bfa' : 'rgba(255,255,255,0.6)', bgcolor: isItalic ? 'rgba(167,139,250,0.15)' : 'transparent', p: 0.6, borderRadius: 1 }}>
+              <FormatItalicIcon sx={{ fontSize: 20 }} />
             </IconButton>
-            <Stack direction="row" alignItems="center" sx={{ bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 1.5, px: 0.5 }}>
-              <IconButton size="small" onClick={() => { const v = Math.max(8, fontSize - 1); setFontSize(v); applyFontProp('fontSize', v); }} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.3 }}>
-                <Typography sx={{ fontSize: '0.75rem', lineHeight: 1, fontWeight: 700, color: 'inherit' }}>−</Typography>
+            <Stack direction="row" alignItems="center" sx={{ bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 1.5, px: 0.75 }}>
+              <IconButton size="small" onClick={() => { const v = Math.max(8, fontSize - 1); setFontSize(v); applyFontProp('fontSize', v); }} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.4 }}>
+                <Typography sx={{ fontSize: '0.9rem', lineHeight: 1, fontWeight: 700, color: 'inherit' }}>−</Typography>
               </IconButton>
-              <Typography sx={{ color: '#fff', fontSize: '0.65rem', minWidth: 20, textAlign: 'center' }}>{fontSize}</Typography>
-              <IconButton size="small" onClick={() => { const v = Math.min(200, fontSize + 1); setFontSize(v); applyFontProp('fontSize', v); }} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.3 }}>
-                <Typography sx={{ fontSize: '0.75rem', lineHeight: 1, fontWeight: 700, color: 'inherit' }}>+</Typography>
+              <Typography sx={{ color: '#fff', fontSize: '0.75rem', minWidth: 22, textAlign: 'center' }}>{fontSize}</Typography>
+              <IconButton size="small" onClick={() => { const v = Math.min(200, fontSize + 1); setFontSize(v); applyFontProp('fontSize', v); }} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.4 }}>
+                <Typography sx={{ fontSize: '0.9rem', lineHeight: 1, fontWeight: 700, color: 'inherit' }}>+</Typography>
               </IconButton>
             </Stack>
           </>)}
 
           {/* IMAGE quick tools */}
           {selectedObj.type === 'image' && (<>
-            <WbSunnyIcon sx={{ fontSize: 15, color: '#fbbf24' }} />
-            <Box sx={{ width: 60 }}>
+            <WbSunnyIcon sx={{ fontSize: 20, color: '#fbbf24' }} />
+            <Box sx={{ width: 64 }}>
               <Slider value={Math.round(imgBright * 100)} min={-100} max={100} size="small"
                 onChange={(_, v) => { const n = v / 100; setImgBright(n); applyImageFilter('Brightness', n); }}
-                sx={{ color: '#fbbf24', py: 0.5, '& .MuiSlider-thumb': { width: 10, height: 10 } }} />
+                sx={{ color: '#fbbf24', py: 0.5, '& .MuiSlider-thumb': { width: 12, height: 12 } }} />
             </Box>
-            <TonalityIcon sx={{ fontSize: 15, color: '#818cf8' }} />
-            <Box sx={{ width: 60 }}>
+            <TonalityIcon sx={{ fontSize: 20, color: '#818cf8' }} />
+            <Box sx={{ width: 64 }}>
               <Slider value={Math.round(imgContrast * 100)} min={-100} max={100} size="small"
                 onChange={(_, v) => { const n = v / 100; setImgContrast(n); applyImageFilter('Contrast', n); }}
-                sx={{ color: '#818cf8', py: 0.5, '& .MuiSlider-thumb': { width: 10, height: 10 } }} />
+                sx={{ color: '#818cf8', py: 0.5, '& .MuiSlider-thumb': { width: 12, height: 12 } }} />
             </Box>
-            <IconButton size="small" onClick={() => applyObjProp('flipX', !selectedObj.flipX)} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.4 }}>
-              <SwapHorizIcon sx={{ fontSize: 16 }} />
+            <IconButton size="small" onClick={() => applyObjProp('flipX', !selectedObj.flipX)} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.6 }}>
+              <SwapHorizIcon sx={{ fontSize: 20 }} />
             </IconButton>
           </>)}
 
           {/* FRAME quick tool — fill photo */}
           {selectedObj.__frameType && (
             <Button size="small" onClick={() => frameInputRef.current?.click()}
-              startIcon={<ImageIcon sx={{ fontSize: 14 }} />}
-              sx={{ color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 1.5, textTransform: 'none', fontSize: '0.65rem', px: 1, py: 0.3, '&:hover': { bgcolor: 'rgba(167,139,250,0.1)' } }}>
+              startIcon={<ImageIcon sx={{ fontSize: 18 }} />}
+              sx={{ color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 1.5, textTransform: 'none', fontSize: '0.75rem', px: 1.5, py: 0.5, '&:hover': { bgcolor: 'rgba(167,139,250,0.1)' } }}>
               Fill Photo
             </Button>
           )}
 
           {/* SHAPE quick tool — fill color */}
           {(selectedObj.type === 'rect' || selectedObj.type === 'circle' || selectedObj.type === 'triangle' || selectedObj.type === 'polygon') && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <Typography sx={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.5)' }}>Fill</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>Fill</Typography>
               <input type="color" value={selectedObj.fill || '#e0e7ff'}
                 onChange={e => applyObjProp('fill', e.target.value)}
-                style={{ width: 24, height: 24, border: '2px solid rgba(255,255,255,0.25)', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'none' }} />
+                style={{ width: 28, height: 28, border: '2px solid rgba(255,255,255,0.25)', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'none' }} />
             </Box>
           )}
 
           <Box sx={{ flex: 1 }} />
-
-          {/* Always: Tab hint + Copy + Delete */}
-          <IconButton size="small" onClick={duplicateObj} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.4 }}>
-            <ContentCopyIcon sx={{ fontSize: 15 }} />
+          <IconButton size="small" onClick={duplicateObj} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.6 }}>
+            <ContentCopyIcon sx={{ fontSize: 20 }} />
           </IconButton>
-          <IconButton size="small" onClick={deleteSelected} sx={{ color: '#f87171', p: 0.4 }}>
-            <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+          <IconButton size="small" onClick={deleteSelected} sx={{ color: '#f87171', p: 0.6 }}>
+            <DeleteOutlineIcon sx={{ fontSize: 20 }} />
           </IconButton>
         </Box>
       )}
@@ -1826,43 +1880,43 @@ export default function DocumentMaker() {
         borderLeft: { xs: 'none', md: '1px solid #e2e8f0' },
         flexShrink: 0,
         width: { xs: '100%', md: 300 },
-        height: { xs: 'auto', md: '100%' },
+        height: { xs: 220, md: '100%' },
         display: 'flex', flexDirection: 'column',
         boxShadow: { xs: '0 -1px 8px rgba(0,0,0,0.06)', md: '-2px 0 8px rgba(0,0,0,0.04)' },
       }}>
         {/* Desktop-only contextual quick bar at top of sidebar */}
         {isDesktop && selectedObj && ready && (
-          <Box sx={{ bgcolor: '#1e293b', flexShrink: 0, px: 1.25, height: 42, display: 'flex', alignItems: 'center', gap: 0.75, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <Box sx={{ bgcolor: '#1e293b', flexShrink: 0, px: 1.5, height: 52, display: 'flex', alignItems: 'center', gap: 1, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
             {(selectedObj.type === 'i-text' || selectedObj.type === 'text') && (<>
               <input type="color" value={fontColor} onChange={e => { setFontColor(e.target.value); applyFontProp('fill', e.target.value); }}
-                style={{ width: 22, height: 22, border: '2px solid rgba(255,255,255,0.25)', borderRadius: 4, cursor: 'pointer', padding: 0, background: 'none', flexShrink: 0 }} />
+                style={{ width: 26, height: 26, border: '2px solid rgba(255,255,255,0.25)', borderRadius: 4, cursor: 'pointer', padding: 0, background: 'none', flexShrink: 0 }} />
               <IconButton size="small" onClick={() => { const v = !isBold; setIsBold(v); applyFontProp('fontWeight', v ? 'bold' : 'normal'); }}
-                sx={{ color: isBold ? '#a78bfa' : 'rgba(255,255,255,0.6)', p: 0.4 }}><FormatBoldIcon sx={{ fontSize: 15 }} /></IconButton>
+                sx={{ color: isBold ? '#a78bfa' : 'rgba(255,255,255,0.6)', p: 0.5 }}><FormatBoldIcon sx={{ fontSize: 18 }} /></IconButton>
               <IconButton size="small" onClick={() => { const v = !isItalic; setIsItalic(v); applyFontProp('fontStyle', v ? 'italic' : 'normal'); }}
-                sx={{ color: isItalic ? '#a78bfa' : 'rgba(255,255,255,0.6)', p: 0.4 }}><FormatItalicIcon sx={{ fontSize: 15 }} /></IconButton>
-              <Stack direction="row" alignItems="center" sx={{ bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 1, px: 0.25 }}>
-                <IconButton size="small" onClick={() => { const v = Math.max(8, fontSize - 1); setFontSize(v); applyFontProp('fontSize', v); }} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.25 }}>
-                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'inherit', lineHeight: 1 }}>−</Typography>
+                sx={{ color: isItalic ? '#a78bfa' : 'rgba(255,255,255,0.6)', p: 0.5 }}><FormatItalicIcon sx={{ fontSize: 18 }} /></IconButton>
+              <Stack direction="row" alignItems="center" sx={{ bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 1, px: 0.5 }}>
+                <IconButton size="small" onClick={() => { const v = Math.max(8, fontSize - 1); setFontSize(v); applyFontProp('fontSize', v); }} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.35 }}>
+                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'inherit', lineHeight: 1 }}>−</Typography>
                 </IconButton>
-                <Typography sx={{ color: '#fff', fontSize: '0.62rem', minWidth: 18, textAlign: 'center' }}>{fontSize}</Typography>
-                <IconButton size="small" onClick={() => { const v = Math.min(200, fontSize + 1); setFontSize(v); applyFontProp('fontSize', v); }} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.25 }}>
-                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: 'inherit', lineHeight: 1 }}>+</Typography>
+                <Typography sx={{ color: '#fff', fontSize: '0.72rem', minWidth: 22, textAlign: 'center' }}>{fontSize}</Typography>
+                <IconButton size="small" onClick={() => { const v = Math.min(200, fontSize + 1); setFontSize(v); applyFontProp('fontSize', v); }} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.35 }}>
+                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'inherit', lineHeight: 1 }}>+</Typography>
                 </IconButton>
               </Stack>
             </>)}
             {selectedObj.type === 'image' && (<>
-              <WbSunnyIcon sx={{ fontSize: 14, color: '#fbbf24' }} />
-              <Box sx={{ width: 55 }}><Slider value={Math.round(imgBright * 100)} min={-100} max={100} size="small" onChange={(_, v) => { const n = v / 100; setImgBright(n); applyImageFilter('Brightness', n); }} sx={{ color: '#fbbf24', py: 0.5, '& .MuiSlider-thumb': { width: 10, height: 10 } }} /></Box>
-              <TonalityIcon sx={{ fontSize: 14, color: '#818cf8' }} />
-              <Box sx={{ width: 55 }}><Slider value={Math.round(imgContrast * 100)} min={-100} max={100} size="small" onChange={(_, v) => { const n = v / 100; setImgContrast(n); applyImageFilter('Contrast', n); }} sx={{ color: '#818cf8', py: 0.5, '& .MuiSlider-thumb': { width: 10, height: 10 } }} /></Box>
+              <WbSunnyIcon sx={{ fontSize: 18, color: '#fbbf24' }} />
+              <Box sx={{ width: 60 }}><Slider value={Math.round(imgBright * 100)} min={-100} max={100} size="small" onChange={(_, v) => { const n = v / 100; setImgBright(n); applyImageFilter('Brightness', n); }} sx={{ color: '#fbbf24', py: 0.5, '& .MuiSlider-thumb': { width: 12, height: 12 } }} /></Box>
+              <TonalityIcon sx={{ fontSize: 18, color: '#818cf8' }} />
+              <Box sx={{ width: 60 }}><Slider value={Math.round(imgContrast * 100)} min={-100} max={100} size="small" onChange={(_, v) => { const n = v / 100; setImgContrast(n); applyImageFilter('Contrast', n); }} sx={{ color: '#818cf8', py: 0.5, '& .MuiSlider-thumb': { width: 12, height: 12 } }} /></Box>
             </>)}
             {selectedObj.__frameType && (
-              <Button size="small" onClick={() => frameInputRef.current?.click()} startIcon={<ImageIcon sx={{ fontSize: 13 }} />}
-                sx={{ color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 1, textTransform: 'none', fontSize: '0.6rem', px: 0.75, py: 0.2 }}>Fill Photo</Button>
+              <Button size="small" onClick={() => frameInputRef.current?.click()} startIcon={<ImageIcon sx={{ fontSize: 16 }} />}
+                sx={{ color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 1, textTransform: 'none', fontSize: '0.7rem', px: 1, py: 0.4 }}>Fill Photo</Button>
             )}
             <Box sx={{ flex: 1 }} />
-            <IconButton size="small" onClick={duplicateObj} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.3 }}><ContentCopyIcon sx={{ fontSize: 14 }} /></IconButton>
-            <IconButton size="small" onClick={deleteSelected} sx={{ color: '#f87171', p: 0.3 }}><DeleteOutlineIcon sx={{ fontSize: 15 }} /></IconButton>
+            <IconButton size="small" onClick={duplicateObj} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.5 }}><ContentCopyIcon sx={{ fontSize: 18 }} /></IconButton>
+            <IconButton size="small" onClick={deleteSelected} sx={{ color: '#f87171', p: 0.5 }}><DeleteOutlineIcon sx={{ fontSize: 18 }} /></IconButton>
           </Box>
         )}
 
@@ -1871,8 +1925,8 @@ export default function DocumentMaker() {
           value={toolTab} onChange={(_, v) => setToolTab(v)}
           variant="scrollable" scrollButtons="auto"
           sx={{
-            minHeight: 36, flexShrink: 0, borderBottom: '1px solid #e2e8f0',
-            '& .MuiTab-root': { minHeight: 36, py: 0, fontSize: '0.68rem', fontWeight: 600, textTransform: 'none', color: '#64748b', px: 1.25 },
+            minHeight: 44, flexShrink: 0, borderBottom: '1px solid #e2e8f0',
+            '& .MuiTab-root': { minHeight: 44, py: 0.5, fontSize: '0.75rem', fontWeight: 600, textTransform: 'none', color: '#64748b', px: 1.5 },
             '& .Mui-selected': { color: '#7c3aed !important' },
             '& .MuiTabs-indicator': { bgcolor: '#7c3aed' },
           }}
