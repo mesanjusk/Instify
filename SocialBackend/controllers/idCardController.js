@@ -57,7 +57,7 @@ exports.createProject = async (req, res) => {
     });
 
     await project.save();
-    res.status(201).json({ success: true, data: project });
+    res.status(201).json({ success: true, result: project });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: err.message });
@@ -73,7 +73,7 @@ exports.getProjects = async (req, res) => {
     if (institute_uuid) filter.institute_uuid = institute_uuid;
 
     const projects = await IDCardProject.find(filter).sort({ createdAt: -1 });
-    res.json({ success: true, data: projects });
+    res.json({ success: true, result: projects });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: err.message });
@@ -86,7 +86,7 @@ exports.getProject = async (req, res) => {
   try {
     const project = await IDCardProject.findOne({ project_uuid: req.params.uuid });
     if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
-    res.json({ success: true, data: project });
+    res.json({ success: true, result: project });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: err.message });
@@ -103,7 +103,7 @@ exports.updateProject = async (req, res) => {
       { new: true }
     );
     if (!project) return res.status(404).json({ success: false, message: 'Project not found' });
-    res.json({ success: true, data: project });
+    res.json({ success: true, result: project });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: err.message });
@@ -156,7 +156,7 @@ exports.getStudents = async (req, res) => {
     if (req.query.card_status) filter.card_status = req.query.card_status;
 
     const students = await IDCardStudent.find(filter).sort({ class_name: 1, roll_number: 1 });
-    res.json({ success: true, data: students });
+    res.json({ success: true, result: students });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: err.message });
@@ -179,7 +179,7 @@ exports.uploadStudentPhoto = [
       student.use_bg_removed = false;
 
       await student.save();
-      res.json({ success: true, data: student });
+      res.json({ success: true, result: student });
     } catch (err) {
       console.error(err);
       res.status(500).json({ success: false, message: err.message });
@@ -277,7 +277,7 @@ exports.removeBackground = async (req, res) => {
     student.use_bg_removed = true;
     await student.save();
 
-    res.json({ success: true, data: student });
+    res.json({ success: true, result: student, bg_removed_url: bgRemovedUrl });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: err.message });
@@ -299,7 +299,7 @@ exports.updateStudentStatus = async (req, res) => {
       { new: true }
     );
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
-    res.json({ success: true, data: student });
+    res.json({ success: true, result: student });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: err.message });
@@ -347,7 +347,7 @@ exports.getStudentPublic = async (req, res) => {
 
     res.json({
       success: true,
-      data: {
+      result: {
         student: {
           idcard_uuid: student.idcard_uuid,
           display_name: student.student_name_override || student.student_name,
@@ -421,7 +421,7 @@ exports.approveStudent = async (req, res) => {
       { new: true }
     );
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
-    res.json({ success: true, data: student });
+    res.json({ success: true, result: student });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: err.message });
@@ -444,7 +444,7 @@ exports.rejectStudent = async (req, res) => {
       { new: true }
     );
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
-    res.json({ success: true, data: student });
+    res.json({ success: true, result: student });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: err.message });
@@ -464,7 +464,7 @@ exports.getPrintData = async (req, res) => {
       card_status: status,
     }).sort({ class_name: 1, roll_number: 1 });
 
-    res.json({ success: true, data: { project, students } });
+    res.json({ success: true, result: { project, students } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: err.message });
