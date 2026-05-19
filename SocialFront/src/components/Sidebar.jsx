@@ -31,6 +31,7 @@ import BalanceIcon from '@mui/icons-material/Balance';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import FunnelIcon from '@mui/icons-material/FilterAlt';
 import DynamicFormIcon from '@mui/icons-material/DynamicForm';
+import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 
 const DRAWER_WIDTH = 256;
 
@@ -116,6 +117,12 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
           icon: <DynamicFormIcon fontSize="small" sx={{ color: '#0ea5e9' }} />,
           path: `/${username}/forms`,
           badge: 'New',
+          highlight: true,
+        },
+        {
+          label: 'ID Card Manager',
+          icon: <BadgeOutlinedIcon fontSize="small" sx={{ color: '#e11d48' }} />,
+          path: `/${username}/idcard`,
           highlight: true,
         },
         { label: 'Academic Hub', icon: <UploadFileIcon fontSize="small" />, path: `/${username}/section/academic`, highlight: true },

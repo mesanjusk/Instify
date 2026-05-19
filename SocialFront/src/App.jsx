@@ -59,6 +59,9 @@ import FunnelReport from './pages/FunnelReport';
 import PublicForm from './pages/PublicForm';
 import Forms from './pages/Forms';
 import FormResponses from './pages/FormResponses';
+import IDCardManager from './pages/IDCardManager';
+import IDCardStudentSelfEdit from './pages/IDCardStudentSelfEdit';
+import IDCardPrint from './pages/IDCardPrint';
 
 function PageLoader() {
   return (
@@ -80,6 +83,7 @@ export default function App() {
       <Route path="/reset-password/:id" element={<ResetPassword />} />
       <Route path="/access/:token" element={<MagicLogin />} />
       <Route path="/f/:slug" element={<PublicForm />} />
+      <Route path="/idcard-preview/:token" element={<IDCardStudentSelfEdit />} />
 
       {/* ── Section routes (no sidebar / FAB / bottom nav) ── */}
       <Route
@@ -171,6 +175,8 @@ export default function App() {
         <Route path="funnel-report" element={<FunnelReport />} />
         <Route path="forms" element={<Forms />} />
         <Route path="forms/:formId/responses" element={<FormResponses />} />
+        <Route path="idcard" element={<IDCardManager />} />
+        <Route path="idcard/:projectUuid/print" element={<IDCardPrint />} />
         {/* Legacy redirects → section routes */}
         <Route path="whatsapp-personal" element={<RedirectToSection section="whatsapp" />} />
         <Route path="canvas-editor" element={<RedirectToSection section="canvas" />} />

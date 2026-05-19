@@ -80,6 +80,7 @@ app.use('/api/message-templates', require('./routers/messageTemplateRoutes'));
 app.use('/api/reports', require('./routers/reportsRoutes'));
 app.use('/api/custom-templates', require('./routers/customTemplateRoutes'));
 app.use('/api/forms', require('./routers/formRoutes'));
+app.use('/api/idcard', require('./routers/idCardRoutes'));
 
 
 // ✅ 404 fallback
