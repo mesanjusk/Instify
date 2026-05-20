@@ -1,11 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import BASE_URL from '../config';
-import { getThemeColor } from '../utils/storageUtils';
 import { formatDisplayDate } from '../utils/dateUtils';
+import {
+  Box,
+  Stack,
+  Typography,
+  Button,
+  IconButton,
+  Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from '@mui/material';
+import { Delete, Business } from '@mui/icons-material';
 
 const Institutes = () => {
   const { user } = useApp();
@@ -48,46 +63,64 @@ const Institutes = () => {
     }
   };
 
-  const themeColor = getThemeColor();
-
   return (
-    <div className="min-h-screen p-6" style={{ backgroundColor: themeColor }}>
-      <Toaster position="top-right" />
-      <h1 className="text-3xl font-bold text-gray-800 mb-4">Manage Institutes</h1>
-      <div className="overflow-x-auto max-h-[70vh]">
-        <table className="min-w-full border border-gray-300 rounded-md">
-          <thead className="sticky top-0 bg-gray-200">
-            <tr className="bg-gray-200 text-center text-sm">
-              <th className="p-2 border">Name</th>
-              <th className="p-2 border hidden md:table-cell">Center Code</th>
-              <th className="p-2 border hidden md:table-cell">Plan</th>
-              <th className="p-2 border">Start Date</th>
-              <th className="p-2 border">Expiry</th>
-              <th className="p-2 border">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {institutes.map((inst) => (
-              <tr key={inst.institute_uuid || inst._id} className="text-center text-sm">
-                <td className="p-2 border truncate">{inst.institute_title}</td>
-                <td className="p-2 border truncate hidden md:table-cell">{inst.center_code}</td>
-                <td className="p-2 border truncate hidden md:table-cell">{inst.plan_type || 'trial'}</td>
-                <td className="p-2 border">{inst.start_date ? formatDisplayDate(inst.start_date) : '-'}</td>
-                <td className="p-2 border">{inst.expiry_date ? formatDisplayDate(inst.expiry_date) : '-'}</td>
-                <td className="p-2 border space-x-2">
-                  <button
-                    onClick={() => handleDelete(inst.institute_uuid || inst._id)}
-                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <Box sx={{ p: { xs: 2, sm: 3 } }}>
+      {/* Header */}
+      <Stack direction="row" alignItems="center" spacing={2} mb={3}>
+        <Business color="primary" sx={{ fontSize: 28 }} />
+        <Box>
+          <Typography variant="h5" fontWeight={700}>Manage Institutes</Typography>
+          <Typography variant="body2" color="text.secondary">View and manage all registered institutes</Typography>
+        </Box>
+      </Stack>
+
+      {/* Table */}
+      <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '70vh' }}>
+        <Table stickyHeader size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell><strong>Name</strong></TableCell>
+              <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}><strong>Center Code</strong></TableCell>
+              <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}><strong>Plan</strong></TableCell>
+              <TableCell><strong>Start Date</strong></TableCell>
+              <TableCell><strong>Expiry</strong></TableCell>
+              <TableCell align="center"><strong>Actions</strong></TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {institutes.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                  No institutes found
+                </TableCell>
+              </TableRow>
+            ) : (
+              institutes.map((inst) => (
+                <TableRow key={inst.institute_uuid || inst._id} hover>
+                  <TableCell>{inst.institute_title}</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{inst.center_code}</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                    <Chip label={inst.plan_type || 'trial'} size="small" variant="outlined" />
+                  </TableCell>
+                  <TableCell>{inst.start_date ? formatDisplayDate(inst.start_date) : '-'}</TableCell>
+                  <TableCell>{inst.expiry_date ? formatDisplayDate(inst.expiry_date) : '-'}</TableCell>
+                  <TableCell align="center">
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => handleDelete(inst.institute_uuid || inst._id)}
+                      aria-label="Delete"
+                    >
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Box>
   );
 };
 
