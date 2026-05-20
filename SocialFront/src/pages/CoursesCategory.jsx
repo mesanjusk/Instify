@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import toast, { Toaster } from 'react-hot-toast';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
-import { Edit, Delete, Add, PictureAsPdf, FileDownload } from '@mui/icons-material';
+import toast from 'react-hot-toast';
+import {
+  Box, Card, CardContent, Stack, Typography, TextField, Button,
+  Dialog, DialogTitle, DialogContent, DialogActions, IconButton,
+  Tooltip, InputAdornment, CircularProgress
+} from '@mui/material';
+import { Edit, Delete, Add, Search } from '@mui/icons-material';
 import BASE_URL from '../config';
-import { getThemeColor } from '../utils/storageUtils';
 
 const CoursesCategory = () => {
   const [courses, setCourses] = useState([]);
@@ -16,14 +17,17 @@ const CoursesCategory = () => {
   const [editingId, setEditingId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
-  const themeColor = getThemeColor();
+  const [fetchLoading, setFetchLoading] = useState(true);
 
   const fetchCourses = async () => {
     try {
+      setFetchLoading(true);
       const res = await axios.get(`${BASE_URL}/api/courseCategory`);
       setCourses(res.data || []);
     } catch (err) {
       toast.error('Failed to fetch courseCategory');
+    } finally {
+      setFetchLoading(false);
     }
   };
 
@@ -35,7 +39,6 @@ const CoursesCategory = () => {
     e.preventDefault();
 
     const payload = { ...form };
-
 
     try {
       if (editingId) {
@@ -74,7 +77,6 @@ const CoursesCategory = () => {
     }
   };
 
- 
   useEffect(() => {
     fetchCourses();
   }, []);
@@ -84,64 +86,121 @@ const CoursesCategory = () => {
   );
 
   return (
-    <div className="min-h-screen p-4 relative" style={{ backgroundColor: themeColor }}>
-      <Toaster />
-      <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
-        <input
-          placeholder="Search course"
+    <Box sx={{ minHeight: '100vh', p: { xs: 1, sm: 2 }, bgcolor: 'background.default' }}>
+      {/* Header bar */}
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'stretch', sm: 'center' }}
+        spacing={1}
+        sx={{ mb: 3 }}
+      >
+        <TextField
+          placeholder="Search course category"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="border p-2 rounded w-full max-w-sm"
+          size="small"
+          sx={{ width: { xs: '100%', sm: 320 } }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search fontSize="small" />
+              </InputAdornment>
+            )
+          }}
         />
-        <div className="flex gap-2">
-          <button onClick={() => { setForm({ name: ''}); setEditingId(null); setShowModal(true); }} className="bg-blue-600 text-white px-4 py-2 rounded" title="Add CourseCategory">
-            <Add fontSize="small" />
-          </button>
-        </div>
-      </div>
+        <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-end', sm: 'flex-end' } }}>
+          <Tooltip title="Add Course Category">
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => {
+                setForm({ name: '' });
+                setEditingId(null);
+                setShowModal(true);
+              }}
+              sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' }, textTransform: 'none' }}
+            >
+              Add Category
+            </Button>
+          </Tooltip>
+        </Box>
+      </Stack>
 
-      <div className="overflow-x-auto max-h-[70vh]">
-      <table className="min-w-full border">
-        <thead className="bg-gray-100 sticky top-0">
-          <tr>
-            <th className="p-2 border">Name</th>
-            <th className="p-2 border">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredCourses.map((c, i) => (
-            <tr key={i} className="text-center">
-              <td className="border p-2 truncate">{c.name}</td>
-              <td className="border p-2 space-x-2">
-                <button onClick={() => handleEdit(c)} className="bg-yellow-500 text-white px-2 py-1 rounded" title="Edit">
-                  <Edit fontSize="small" />
-                </button>
-                <button onClick={() => handleDelete(c._id)} className="bg-red-600 text-white px-2 py-1 rounded" title="Delete">
-                  <Delete fontSize="small" />
-                </button>
-              </td>
-            </tr>
+      {/* Content */}
+      {fetchLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
+          <CircularProgress sx={{ color: '#4f46e5' }} />
+        </Box>
+      ) : filteredCourses.length === 0 ? (
+        <Box sx={{ textAlign: 'center', p: 6 }}>
+          <Typography color="text.secondary">No course categories found.</Typography>
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(5, 1fr)' },
+            gap: 1.5
+          }}
+        >
+          {filteredCourses.map((c) => (
+            <Card
+              key={c._id}
+              sx={{ cursor: 'pointer', '&:hover': { boxShadow: '0 4px 16px rgba(79,70,229,0.12)' } }}
+            >
+              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography variant="subtitle2" fontWeight={700} noWrap>
+                      {c.name}
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0, ml: 0.5 }}>
+                    <IconButton size="small" onClick={() => handleEdit(c)} sx={{ color: '#f59e0b' }}>
+                      <Edit fontSize="small" />
+                    </IconButton>
+                    <IconButton size="small" onClick={() => handleDelete(c._id)} sx={{ color: '#ef4444' }}>
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                </Stack>
+              </CardContent>
+            </Card>
           ))}
-        </tbody>
-      </table>
-      </div>
-
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 overflow-y-auto z-[60]">
-          <div className="bg-white p-6 rounded w-full max-w-md max-h-screen overflow-y-auto shadow">
-            <h2 className="text-xl font-semibold mb-4">{editingId ? 'Edit Course' : 'Add New Course Category'}</h2>
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
-              <input type="text" value={form.name} onChange={handleChange('name')} className="border p-2 w-full" placeholder="Category Name" required />
-              <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setShowModal(false)} className="bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
-                <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">{editingId ? 'Update' : 'Save'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
+        </Box>
       )}
-    </div>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={showModal} onClose={() => setShowModal(false)} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ pb: 1 }}>
+          {editingId ? 'Edit Course Category' : 'Add New Course Category'}
+        </DialogTitle>
+        <Box component="form" onSubmit={handleSubmit}>
+          <DialogContent>
+            <Stack spacing={2} sx={{ pt: 1 }}>
+              <TextField
+                label="Category Name"
+                value={form.name}
+                onChange={handleChange('name')}
+                fullWidth
+                required
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button variant="outlined" onClick={() => setShowModal(false)}>Cancel</Button>
+            <Button
+              type="submit"
+              variant="contained"
+              sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' } }}
+            >
+              {editingId ? 'Update' : 'Save'}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+    </Box>
   );
 };
 
