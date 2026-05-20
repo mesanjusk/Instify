@@ -33,7 +33,7 @@ import FunnelIcon from '@mui/icons-material/FilterAlt';
 import DynamicFormIcon from '@mui/icons-material/DynamicForm';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 
-const DRAWER_WIDTH = 256;
+const DRAWER_WIDTH = 260;
 
 export default function Sidebar({ username, open, onClose, variant = 'permanent' }) {
   const navigate = useNavigate();
@@ -160,11 +160,18 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
   const content = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper' }}>
       {/* Brand */}
-      <Box sx={{ px: 3, py: 2.5, borderBottom: '1px solid #e2e8f0' }}>
-        <Typography variant="h6" fontWeight={800} sx={{ color: 'primary.main', letterSpacing: '-0.5px' }}>
+      <Box
+        sx={{
+          px: 3, py: 2.5, borderBottom: '1px solid #e2e8f0',
+          background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+          cursor: 'pointer',
+        }}
+        onClick={() => go(`/${username}`)}
+      >
+        <Typography variant="h6" fontWeight={800} sx={{ color: '#fff', letterSpacing: '-0.5px' }}>
           Instify
         </Typography>
-        <Typography variant="caption" color="text.secondary">Institute Management System</Typography>
+        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.75)' }}>Institute Management System</Typography>
       </Box>
 
       {/* Dashboard */}
@@ -245,7 +252,12 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
       <Drawer
         open={open}
         onClose={onClose}
-        sx={{ '& .MuiDrawer-paper': { width: DRAWER_WIDTH } }}
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: DRAWER_WIDTH,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+          },
+        }}
       >
         {content}
       </Drawer>
@@ -264,6 +276,7 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
           boxSizing: 'border-box',
           border: 'none',
           borderRight: '1px solid #e2e8f0',
+          boxShadow: 'none',
         },
       }}
     >

@@ -3,6 +3,21 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { formatDisplayDate } from '../utils/dateUtils';
 import BASE_URL from '../config';
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Paper,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Typography,
+} from '@mui/material';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 
 export default function AddAttendance() {
     const [attendanceData, setAttendanceData] = useState([]);
@@ -78,9 +93,9 @@ export default function AddAttendance() {
 
             if (response.data.success) {
                 alert(`Attendance saved successfully for ${type}`);
-                
+
                 await initAttendanceState(userName);
-                await fetchAttendanceData(userName); 
+                await fetchAttendanceData(userName);
             } else {
                 alert("Failed to save attendance.");
             }
@@ -194,62 +209,94 @@ export default function AddAttendance() {
     };
 
     return (
-        <div className="bg-[#e5ddd5] pt-5 max-w-8xl mx-auto px-2">
-            <div className="shadow-lg overflow-hidden">
-                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 p-2">
-                    <div className="bg-white overflow-x-auto max-h-[70vh] w-full md:w-3/4">
-                        <table className="min-w-full text-sm text-center border">
-                            <thead className="bg-gray-100 sticky top-0">
-                                <tr>
-                                    <th className="px-4 py-2 border">In</th>
-                                    <th className="px-4 py-2 border hidden md:table-cell">Lunch</th>
-                                    <th className="px-4 py-2 border hidden md:table-cell">Start</th>
-                                    <th className="px-4 py-2 border">Out</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {attendance.length === 0 ? (
-                                    <tr>
-                                        <td className="px-4 py-2 border" colSpan="4">No attendance records found.</td>
-                                    </tr>
-                                ) : (
-                                    attendance.map((record, index) => (
-                                        <tr key={index} className="hover:bg-gray-50 border-t">
-                                            <td className="px-4 py-2 border truncate">{record.In}</td>
-                                            <td className="px-4 py-2 border truncate hidden md:table-cell">{record.Break}</td>
-                                            <td className="px-4 py-2 border truncate hidden md:table-cell">{record.Start}</td>
-                                            <td className="px-4 py-2 border truncate">{record.Out}</td>
-                                        </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
+        <Box sx={{ bgcolor: '#e5ddd5', pt: 2.5, minHeight: '100vh' }}>
+            <Box sx={{ maxWidth: '100%', mx: 'auto', px: { xs: 1, md: 2 } }}>
+                <Paper elevation={3} sx={{ overflow: 'hidden' }}>
+                    <Stack
+                        direction={{ xs: 'column', md: 'row' }}
+                        alignItems={{ xs: 'stretch', md: 'flex-end' }}
+                        justifyContent="space-between"
+                        gap={2}
+                        sx={{ p: 2 }}
+                    >
+                        {/* Attendance Table */}
+                        <TableContainer
+                            sx={{
+                                flex: 1,
+                                maxHeight: '70vh',
+                                overflow: 'auto',
+                                width: { xs: '100%', md: '75%' },
+                            }}
+                        >
+                            <Table size="small" stickyHeader>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell align="center" sx={{ fontWeight: 700, bgcolor: 'grey.100' }}>In</TableCell>
+                                        <TableCell align="center" sx={{ fontWeight: 700, bgcolor: 'grey.100', display: { xs: 'none', md: 'table-cell' } }}>Lunch</TableCell>
+                                        <TableCell align="center" sx={{ fontWeight: 700, bgcolor: 'grey.100', display: { xs: 'none', md: 'table-cell' } }}>Start</TableCell>
+                                        <TableCell align="center" sx={{ fontWeight: 700, bgcolor: 'grey.100' }}>Out</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {attendance.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={4} align="center" sx={{ py: 3, color: 'text.secondary' }}>
+                                                No attendance records found.
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        attendance.map((record, index) => (
+                                            <TableRow key={index} hover>
+                                                <TableCell align="center" sx={{ maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {record.In}
+                                                </TableCell>
+                                                <TableCell align="center" sx={{ maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: { xs: 'none', md: 'table-cell' } }}>
+                                                    {record.Break}
+                                                </TableCell>
+                                                <TableCell align="center" sx={{ maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: { xs: 'none', md: 'table-cell' } }}>
+                                                    {record.Start}
+                                                </TableCell>
+                                                <TableCell align="center" sx={{ maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {record.Out}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
 
-                    </div>
-
-                    {showButtons && attendanceState && (
-                        <div className="w-full md:w-1/4">
-                            <button
-                                onClick={async () => {
-                                    setShowButtons(false);
-                                    await saveAttendance(attendanceState);
-                                    setShowButtons(true);
-                                }}
-                                disabled={!showButtons}
-                                className={`w-full text-white font-semibold py-3 rounded-md transition-all ${
-                                    showButtons
-                                        ? "bg-green-500 hover:bg-green-600 cursor-pointer"
-                                        : "bg-gray-400 cursor-not-allowed"
-                                }`}
-                            >
-                                {showButtons
-                                    ? `${userName}   ${attendanceState}   -   ${formatDisplayDate(new Date())}`
-                                    : "Saving..."}
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
+                        {/* Attendance Action Button */}
+                        {showButtons && attendanceState && (
+                            <Box sx={{ width: { xs: '100%', md: '25%' } }}>
+                                <Button
+                                    variant="contained"
+                                    fullWidth
+                                    size="large"
+                                    startIcon={showButtons ? <AccessTimeIcon /> : <CircularProgress size={18} color="inherit" />}
+                                    onClick={async () => {
+                                        setShowButtons(false);
+                                        await saveAttendance(attendanceState);
+                                        setShowButtons(true);
+                                    }}
+                                    disabled={!showButtons}
+                                    sx={{
+                                        bgcolor: showButtons ? '#10b981' : 'grey.400',
+                                        '&:hover': { bgcolor: showButtons ? '#059669' : 'grey.400' },
+                                        py: 1.5,
+                                        fontWeight: 600,
+                                        textTransform: 'none',
+                                    }}
+                                >
+                                    {showButtons
+                                        ? `${userName}   ${attendanceState}   -   ${formatDisplayDate(new Date())}`
+                                        : "Saving..."}
+                                </Button>
+                            </Box>
+                        )}
+                    </Stack>
+                </Paper>
+            </Box>
+        </Box>
     );
 }

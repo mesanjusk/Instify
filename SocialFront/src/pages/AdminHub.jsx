@@ -24,23 +24,29 @@ function AdminCard({ icon, label, desc, color, onClick }) {
         cursor: 'pointer',
         transition: 'transform 0.15s, box-shadow 0.15s',
         '&:active': { transform: 'scale(0.97)' },
-        '&:hover': { boxShadow: '0 4px 20px rgba(15,23,42,0.12)' },
+        '&:hover': { boxShadow: `0 4px 20px ${color}22`, transform: 'translateY(-1px)' },
       }}
     >
-      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+      <CardContent sx={{ p: { xs: 1.75, md: 2 }, '&:last-child': { pb: { xs: 1.75, md: 2 } } }}>
         <Stack direction="row" spacing={1.5} alignItems="center">
           <Box
             sx={{
-              width: 44, height: 44, borderRadius: 2.5, flexShrink: 0,
-              bgcolor: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: { xs: 40, md: 44 }, height: { xs: 40, md: 44 },
+              borderRadius: 2.5, flexShrink: 0,
+              bgcolor: `${color}15`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
               color,
             }}
           >
             {icon}
           </Box>
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="subtitle2" fontWeight={700} noWrap>{label}</Typography>
-            <Typography variant="caption" color="text.secondary" noWrap>{desc}</Typography>
+            <Typography variant="subtitle2" fontWeight={700} noWrap sx={{ fontSize: { xs: '0.82rem', md: '0.875rem' } }}>
+              {label}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: { xs: '0.72rem', md: '0.75rem' } }}>
+              {desc}
+            </Typography>
           </Box>
         </Stack>
       </CardContent>
@@ -73,13 +79,19 @@ export default function AdminHub() {
   ];
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h6" fontWeight={700} mb={0.5}>Administration</Typography>
-      <Typography variant="body2" color="text.secondary" mb={2}>
-        Institute settings, users, accounts, and data tools.
-      </Typography>
+    <Box>
+      <Box mb={3}>
+        <Typography variant="h5" fontWeight={700} mb={0.5}>Administration</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Institute settings, users, accounts, and data management tools.
+        </Typography>
+      </Box>
 
-      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' }, gap: 1.5 }}>
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(5, 1fr)' },
+        gap: { xs: 1.25, md: 1.5 },
+      }}>
         {items.map((m) => (
           <AdminCard key={m.path} {...m} onClick={() => go(m.path)} />
         ))}

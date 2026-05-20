@@ -1,16 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import toast, { Toaster } from 'react-hot-toast';
-import { FaPhoneAlt, FaWhatsapp } from 'react-icons/fa';
+import toast from 'react-hot-toast';
+import { FaWhatsapp } from 'react-icons/fa';
 
-
-import { Add, PictureAsPdf, FileDownload } from '@mui/icons-material';
+import {
+  Add,
+  PictureAsPdf,
+  FileDownload,
+  Edit,
+  Delete,
+  Phone,
+  SwapHoriz,
+  Close,
+} from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  FormControl,
+  FormControlLabel,
+  IconButton,
+  InputAdornment,
+  InputLabel,
+  MenuItem,
+  Radio,
+  RadioGroup,
+  Select,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography,
+  Alert,
+  Paper,
+} from '@mui/material';
+
 import BASE_URL from '../config';
-import { getThemeColor } from '../utils/storageUtils';
 import { useMetadata } from '../context/MetadataContext';
 
 const Followup = () => {
@@ -39,15 +74,12 @@ const Followup = () => {
   const [search, setSearch] = useState('');
   const [actionModal, setActionModal] = useState(null);
   const institute_uuid = localStorage.getItem('institute_uuid');
-  const themeColor = getThemeColor();
-  const today = new Date().toISOString().substring(0, 10); 
-  
+  const today = new Date().toISOString().substring(0, 10);
+
   const todaysFollowups = enquiries.filter(e => {
-  const followDate = e.followupDate?.substring(0, 10); 
-  return followDate === today;
-});
-
-
+    const followDate = e.followupDate?.substring(0, 10);
+    return followDate === today;
+  });
 
   const handleChange = (field) => (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -80,7 +112,6 @@ const Followup = () => {
     }
   };
 
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!institute_uuid) return toast.error("Missing institute UUID");
@@ -89,7 +120,6 @@ const Followup = () => {
       institute_uuid: institute_uuid,
       type: 'enquiry'
     };
-
 
     try {
       if (editingId) {
@@ -201,264 +231,545 @@ const Followup = () => {
     refreshMeta();
   }, []);
 
- const filtered = enquiries.filter(e =>
-  e.studentData?.firstName?.toLowerCase().includes(search.toLowerCase()) ||
-  e.studentData?.mobileSelf?.includes(search)
-);
+  const filtered = enquiries.filter(e =>
+    e.studentData?.firstName?.toLowerCase().includes(search.toLowerCase()) ||
+    e.studentData?.mobileSelf?.includes(search)
+  );
 
   return (
-    <div className="min-h-screen p-4" style={{ backgroundColor: themeColor }}>
-      <Toaster />
-      <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
-        <input
+    <Box sx={{ minHeight: '100vh', p: { xs: 2, md: 3 }, bgcolor: '#f5f5f5' }}>
+      {/* Header toolbar */}
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'stretch', sm: 'center' }}
+        spacing={2}
+        mb={3}
+      >
+        <TextField
+          size="small"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search"
-          className="border p-2 rounded w-full max-w-xs"
+          placeholder="Search by name or mobile"
+          sx={{ maxWidth: { sm: 300 }, width: '100%' }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Phone fontSize="small" />
+              </InputAdornment>
+            )
+          }}
         />
-        <div className="flex gap-2">
-          <button onClick={exportPDF} className="bg-red-600 text-white px-4 py-2 rounded" title="Export PDF">
-            <PictureAsPdf fontSize="small" />
-          </button>
-          <button onClick={exportExcel} className="bg-green-600 text-white px-4 py-2 rounded" title="Export Excel">
-            <FileDownload fontSize="small" />
-          </button>
-          <button onClick={handleAdd} className="bg-blue-600 text-white px-4 py-2 rounded" title="Add Enquiry">
-            <Add fontSize="small" />
-          </button>
-        </div>
-      </div>
+        <Stack direction="row" spacing={1}>
+          <Tooltip title="Export PDF">
+            <Button
+              variant="contained"
+              color="error"
+              size="small"
+              onClick={exportPDF}
+              startIcon={<PictureAsPdf />}
+            >
+              PDF
+            </Button>
+          </Tooltip>
+          <Tooltip title="Export Excel">
+            <Button
+              variant="contained"
+              color="success"
+              size="small"
+              onClick={exportExcel}
+              startIcon={<FileDownload />}
+            >
+              Excel
+            </Button>
+          </Tooltip>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleAdd}
+            startIcon={<Add />}
+            sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' } }}
+          >
+            Add Enquiry
+          </Button>
+        </Stack>
+      </Stack>
 
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-8 gap-3">
+      {/* Today's follow-ups banner */}
+      {todaysFollowups.length > 0 && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <Typography variant="body2" fontWeight={600}>
+            {todaysFollowups.length} follow-up{todaysFollowups.length > 1 ? 's' : ''} scheduled for today
+          </Typography>
+        </Alert>
+      )}
+
+      {/* Cards grid */}
+      <Box
+        sx={{
+          display: 'grid',
+          gap: 2,
+          gridTemplateColumns: {
+            xs: '1fr',
+            sm: 'repeat(2, 1fr)',
+            md: 'repeat(3, 1fr)',
+            lg: 'repeat(4, 1fr)',
+          }
+        }}
+      >
         {todaysFollowups.map((e) => (
-          <div
+          <Card
             key={e._id}
-            className="bg-white p-4 rounded shadow cursor-pointer hover:ring hover:ring-blue-400"
+            sx={{
+              cursor: 'pointer',
+              transition: 'box-shadow 0.2s',
+              '&:hover': { boxShadow: 6 },
+              borderLeft: '4px solid #4f46e5',
+            }}
             onClick={() => setActionModal(e)}
           >
-            <div className="font-semibold text-lg">
-              {e.studentData?.firstName || ''} {e.studentData?.lastName || ''}
-            </div>
-            <div className="flex items-center gap-2 text-gray-600 text-sm">
-              <a
-                 href={`tel:${e.studentData?.mobileSelf || ''}`}
-                onClick={ev => ev.stopPropagation()}
-                className="hover:text-blue-600 flex items-center"
-              >
-              
-                {e.studentData?.mobileSelf}
-              </a>
-              <a
-                href={`https://wa.me/${e.studentData?.mobileSelf}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={ev => ev.stopPropagation()}
-                className="text-green-600 text-2xl"
-              >
-                <FaWhatsapp />
-              </a>
-
-
-            </div>
-           
-          </div>
+            <CardContent sx={{ pb: '12px !important' }}>
+              <Typography variant="subtitle1" fontWeight={700} noWrap>
+                {e.studentData?.firstName || ''} {e.studentData?.lastName || ''}
+              </Typography>
+              <Stack direction="row" alignItems="center" spacing={1} mt={0.5}>
+                <Typography
+                  component="a"
+                  href={`tel:${e.studentData?.mobileSelf || ''}`}
+                  onClick={ev => ev.stopPropagation()}
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ textDecoration: 'none', '&:hover': { color: '#4f46e5' } }}
+                >
+                  {e.studentData?.mobileSelf}
+                </Typography>
+                <IconButton
+                  component="a"
+                  href={`https://wa.me/${e.studentData?.mobileSelf}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={ev => ev.stopPropagation()}
+                  size="small"
+                  sx={{ color: '#25d366', p: 0.5 }}
+                >
+                  <FaWhatsapp size={18} />
+                </IconButton>
+              </Stack>
+              {e.studentData?.course && (
+                <Chip label={e.studentData.course} size="small" sx={{ mt: 1 }} />
+              )}
+            </CardContent>
+          </Card>
         ))}
-      </div>
+      </Box>
 
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 overflow-y-auto z-[60]">
-            <div className="bg-white p-6 rounded shadow w-full max-w-3xl mx-2">
-            <h2 className="text-xl font-bold mb-4">{editingId ? 'Edit Enquiry' : 'Add Enquiry'}</h2>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-              <input value={form.firstName} onChange={handleChange('firstName')} placeholder="First Name" className="border p-2" />
-              <input value={form.lastName} onChange={handleChange('lastName')} placeholder="Last Name" className="border p-2" />
-              <input
+      {todaysFollowups.length === 0 && (
+        <Paper sx={{ p: 4, textAlign: 'center', mt: 2 }}>
+          <Typography color="text.secondary">No follow-ups scheduled for today.</Typography>
+        </Paper>
+      )}
+
+      {/* Add/Edit Lead Dialog */}
+      <Dialog
+        open={showModal}
+        onClose={() => { setShowModal(false); setForm(initialForm); setEditingId(null); }}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { mx: 2 } }}
+      >
+        <DialogTitle>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6" fontWeight={700}>
+              {editingId ? 'Edit Enquiry' : 'Add Enquiry'}
+            </Typography>
+            <IconButton onClick={() => { setShowModal(false); setForm(initialForm); setEditingId(null); }} size="small">
+              <Close />
+            </IconButton>
+          </Stack>
+        </DialogTitle>
+        <Divider />
+        <DialogContent>
+          <Box component="form" id="lead-form" onSubmit={handleSubmit}>
+            <Stack spacing={2} mt={1}>
+              <TextField
+                label="First Name"
+                size="small"
+                value={form.firstName}
+                onChange={handleChange('firstName')}
+                fullWidth
+              />
+              <TextField
+                label="Last Name"
+                size="small"
+                value={form.lastName}
+                onChange={handleChange('lastName')}
+                fullWidth
+              />
+              <TextField
+                label="Mobile"
+                size="small"
                 value={form.mobileSelf}
                 onChange={handleChange('mobileSelf')}
-                placeholder="Mobile"
-                inputMode="numeric"
-                pattern="[0-9]{10}"
-                maxLength={10}
-                className="border p-2"
+                inputProps={{ inputMode: 'numeric', pattern: '[0-9]{10}', maxLength: 10 }}
+                fullWidth
               />
-              <select value={form.course} onChange={handleChange('course')} className="border p-2">
-                <option value="">Select Course</option>
-                {courses.map(c => (
-                  <option key={c._id} value={c.name}>{c.name}</option>
-                ))}
-              </select>
-              <div className="flex items-center gap-4">
-                <label className="w-32 text-sm font-medium">Follow-Up</label>
-                <input
-                  type="date"
-                  value={form.followUpDate?.substring(0, 10)}
-                  onChange={handleChange('followUpDate')}
-                  className="border p-2 flex-1"
-                  required
-                />
-              </div>
-              <input value={form.remarks} onChange={handleChange('remarks')} placeholder="Remark" className="border p-2" />
-              <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => { setShowModal(false); setForm(initialForm); setEditingId(null); }} className="bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
-                <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">{editingId ? 'Update' : 'Add'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+              <FormControl size="small" fullWidth>
+                <InputLabel>Course</InputLabel>
+                <Select
+                  value={form.course}
+                  label="Course"
+                  onChange={handleChange('course')}
+                >
+                  <MenuItem value="">Select Course</MenuItem>
+                  {courses.map(c => (
+                    <MenuItem key={c._id} value={c.name}>{c.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <TextField
+                label="Follow-Up Date"
+                type="date"
+                size="small"
+                value={form.followUpDate?.substring(0, 10) || ''}
+                onChange={handleChange('followUpDate')}
+                InputLabelProps={{ shrink: true }}
+                required
+                fullWidth
+              />
+              <TextField
+                label="Remarks"
+                size="small"
+                value={form.remarks}
+                onChange={handleChange('remarks')}
+                fullWidth
+              />
+            </Stack>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => { setShowModal(false); setForm(initialForm); setEditingId(null); }}
+            color="inherit"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="lead-form"
+            variant="contained"
+            sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' } }}
+          >
+            {editingId ? 'Update' : 'Add'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-      {/* Admission Convert Modal */}
-      {showAdmission && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 overflow-y-auto z-[60]">
-          <div className="bg-white p-6 rounded shadow max-w-xl w-full max-h-screen overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4 text-green-700">Convert to Admission</h2>
-            <form onSubmit={submitAdmission} className="flex flex-col gap-3">
-
-              <input type="date" value={admissionForm.admissionDate} onChange={handleAdmissionChange('admissionDate')} className="border p-2" />
-
-              <input value={admissionForm.firstName} onChange={handleAdmissionChange('firstName')} placeholder="First Name" className="border p-2" />
-              <input value={admissionForm.middleName} onChange={handleAdmissionChange('middleName')} placeholder="Middle Name" className="border p-2" />
-              <input value={admissionForm.lastName} onChange={handleAdmissionChange('lastName')} placeholder="Last Name" className="border p-2" />
-
-              <input type="date" value={admissionForm.dob?.substring(0, 10)} onChange={handleAdmissionChange('dob')} className="border p-2" />
-
-              <div className="flex gap-4">
-                <label><input type="radio" name="gender" value="Male" checked={admissionForm.gender === 'Male'} onChange={handleAdmissionChange('gender')} /> Male</label>
-                <label><input type="radio" name="gender" value="Female" checked={admissionForm.gender === 'Female'} onChange={handleAdmissionChange('gender')} /> Female</label>
-              </div>
-
-              <input
-                placeholder="Mobile (Self)"
+      {/* Convert to Admission Dialog */}
+      <Dialog
+        open={showAdmission}
+        onClose={() => setShowAdmission(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { mx: 2 } }}
+        scroll="paper"
+      >
+        <DialogTitle>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6" fontWeight={700} color="success.main">
+              Convert to Admission
+            </Typography>
+            <IconButton onClick={() => setShowAdmission(false)} size="small">
+              <Close />
+            </IconButton>
+          </Stack>
+        </DialogTitle>
+        <Divider />
+        <DialogContent>
+          <Box component="form" id="admission-form" onSubmit={submitAdmission}>
+            <Stack spacing={2} mt={1}>
+              <TextField
+                label="Admission Date"
+                type="date"
+                size="small"
+                value={admissionForm.admissionDate}
+                onChange={handleAdmissionChange('admissionDate')}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+              <TextField
+                label="First Name"
+                size="small"
+                value={admissionForm.firstName}
+                onChange={handleAdmissionChange('firstName')}
+                fullWidth
+              />
+              <TextField
+                label="Middle Name"
+                size="small"
+                value={admissionForm.middleName}
+                onChange={handleAdmissionChange('middleName')}
+                fullWidth
+              />
+              <TextField
+                label="Last Name"
+                size="small"
+                value={admissionForm.lastName}
+                onChange={handleAdmissionChange('lastName')}
+                fullWidth
+              />
+              <TextField
+                label="Date of Birth"
+                type="date"
+                size="small"
+                value={admissionForm.dob?.substring(0, 10) || ''}
+                onChange={handleAdmissionChange('dob')}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+              <FormControl>
+                <Typography variant="body2" mb={0.5}>Gender</Typography>
+                <RadioGroup
+                  row
+                  value={admissionForm.gender}
+                  onChange={handleAdmissionChange('gender')}
+                >
+                  <FormControlLabel value="Male" control={<Radio size="small" />} label="Male" />
+                  <FormControlLabel value="Female" control={<Radio size="small" />} label="Female" />
+                </RadioGroup>
+              </FormControl>
+              <TextField
+                label="Mobile (Self)"
+                size="small"
                 value={admissionForm.mobileSelf}
                 onChange={handleAdmissionChange('mobileSelf')}
-                inputMode="numeric"
-                pattern="[0-9]{10}"
-                maxLength={10}
-                className="border p-2"
+                inputProps={{ inputMode: 'numeric', pattern: '[0-9]{10}', maxLength: 10 }}
+                fullWidth
               />
-              <input
-                placeholder="Mobile (Parent)"
+              <TextField
+                label="Mobile (Parent)"
+                size="small"
                 value={admissionForm.mobileParent}
                 onChange={handleAdmissionChange('mobileParent')}
-                inputMode="numeric"
-                pattern="[0-9]{10}"
-                maxLength={10}
-                className="border p-2"
+                inputProps={{ inputMode: 'numeric', pattern: '[0-9]{10}', maxLength: 10 }}
+                fullWidth
               />
-              <input placeholder="Address" value={admissionForm.address} onChange={handleAdmissionChange('address')} className="border p-2" />
-
-              <select value={admissionForm.education} onChange={handleAdmissionChange('education')} className="border p-2">
-                <option value="">-- Select Education --</option>
-                {educations.map(e => <option key={e._id} value={e.education}>{e.education}</option>)}
-              </select>
-
-              <select
-                value={admissionForm.course}
-                onChange={(e) => {
-                  const selectedCourse = courses.find(c => c.name === e.target.value);
-                  const courseFee = Number(selectedCourse?.courseFees || 0);
-                  const discount = Number(admissionForm.discount || 0);
-                  const feePaid = Number(admissionForm.feePaid || 0);
-                  const total = courseFee - discount;
-                  const balance = total - feePaid;
-
-                  setAdmissionForm(prev => ({
-                    ...prev,
-                    course: e.target.value,
-                    fees: courseFee,
-                    total,
-                    balance
-                  }));
-                }}
-                className="border p-2"
-              >
-                <option value="">-- Select Course --</option>
-                {courses.map(c => <option key={c._id} value={c.name}>{c.name}</option>)}
-              </select>
-
-              <select value={admissionForm.batchTime} onChange={handleAdmissionChange('batchTime')} className="border p-2">
-                <option value="">-- Select Batch --</option>
-                {batches.map(b => (
-                  <option key={b._id} value={b.time || b.batchTime || b.name || ''}>
-                    {b.time || b.batchTime || b.name || 'Unnamed Batch'}
-                  </option>
-                ))}
-              </select>
-
-              <select value={admissionForm.examEvent} onChange={handleAdmissionChange('examEvent')} className="border p-2">
-                <option value="">-- Select Exam --</option>
-                {exams.map(e => <option key={e._id} value={e.exam}>{e.exam}</option>)}
-              </select>
-
-              <input placeholder="Installment" value={admissionForm.installment} onChange={handleAdmissionChange('installment')} className="border p-2" />
-              <input placeholder="Fees" value={admissionForm.fees} type="number" className="border p-2" readOnly />
-              <input placeholder="Discount" value={admissionForm.discount} type="number" onChange={handleAdmissionChange('discount')} className="border p-2" />
-              <input placeholder="Total" value={admissionForm.total} type="number" className="border p-2" readOnly />
-              <input placeholder="Fee Paid" value={admissionForm.feePaid} type="number" onChange={handleAdmissionChange('feePaid')} className="border p-2" />
-
-              <select value={admissionForm.paidBy} onChange={handleAdmissionChange('paidBy')} className="border p-2">
-                <option value="">-- Select Payment Mode --</option>
-                {paymentModes.map(p => <option key={p._id} value={p.mode}>{p.mode}</option>)}
-              </select>
-
-              <input placeholder="Balance" value={admissionForm.balance} type="number" className="border p-2" readOnly />
-
-              <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setShowAdmission(false)} className="bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
-                <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded">Save</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+              <TextField
+                label="Address"
+                size="small"
+                value={admissionForm.address}
+                onChange={handleAdmissionChange('address')}
+                fullWidth
+              />
+              <FormControl size="small" fullWidth>
+                <InputLabel>Education</InputLabel>
+                <Select
+                  value={admissionForm.education}
+                  label="Education"
+                  onChange={handleAdmissionChange('education')}
+                >
+                  <MenuItem value="">-- Select Education --</MenuItem>
+                  {educations.map(e => (
+                    <MenuItem key={e._id} value={e.education}>{e.education}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl size="small" fullWidth>
+                <InputLabel>Course</InputLabel>
+                <Select
+                  value={admissionForm.course}
+                  label="Course"
+                  onChange={(e) => {
+                    const selectedCourse = courses.find(c => c.name === e.target.value);
+                    const courseFee = Number(selectedCourse?.courseFees || 0);
+                    const discount = Number(admissionForm.discount || 0);
+                    const feePaid = Number(admissionForm.feePaid || 0);
+                    const total = courseFee - discount;
+                    const balance = total - feePaid;
+                    setAdmissionForm(prev => ({
+                      ...prev,
+                      course: e.target.value,
+                      fees: courseFee,
+                      total,
+                      balance
+                    }));
+                  }}
+                >
+                  <MenuItem value="">-- Select Course --</MenuItem>
+                  {courses.map(c => (
+                    <MenuItem key={c._id} value={c.name}>{c.name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl size="small" fullWidth>
+                <InputLabel>Batch</InputLabel>
+                <Select
+                  value={admissionForm.batchTime}
+                  label="Batch"
+                  onChange={handleAdmissionChange('batchTime')}
+                >
+                  <MenuItem value="">-- Select Batch --</MenuItem>
+                  {batches.map(b => (
+                    <MenuItem key={b._id} value={b.time || b.batchTime || b.name || ''}>
+                      {b.time || b.batchTime || b.name || 'Unnamed Batch'}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl size="small" fullWidth>
+                <InputLabel>Exam</InputLabel>
+                <Select
+                  value={admissionForm.examEvent}
+                  label="Exam"
+                  onChange={handleAdmissionChange('examEvent')}
+                >
+                  <MenuItem value="">-- Select Exam --</MenuItem>
+                  {exams.map(e => (
+                    <MenuItem key={e._id} value={e.exam}>{e.exam}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <TextField
+                label="Installment"
+                size="small"
+                value={admissionForm.installment}
+                onChange={handleAdmissionChange('installment')}
+                fullWidth
+              />
+              <TextField
+                label="Fees"
+                type="number"
+                size="small"
+                value={admissionForm.fees}
+                InputProps={{ readOnly: true }}
+                fullWidth
+              />
+              <TextField
+                label="Discount"
+                type="number"
+                size="small"
+                value={admissionForm.discount}
+                onChange={handleAdmissionChange('discount')}
+                fullWidth
+              />
+              <TextField
+                label="Total"
+                type="number"
+                size="small"
+                value={admissionForm.total}
+                InputProps={{ readOnly: true }}
+                fullWidth
+              />
+              <TextField
+                label="Fee Paid"
+                type="number"
+                size="small"
+                value={admissionForm.feePaid}
+                onChange={handleAdmissionChange('feePaid')}
+                fullWidth
+              />
+              <FormControl size="small" fullWidth>
+                <InputLabel>Payment Mode</InputLabel>
+                <Select
+                  value={admissionForm.paidBy}
+                  label="Payment Mode"
+                  onChange={handleAdmissionChange('paidBy')}
+                >
+                  <MenuItem value="">-- Select Payment Mode --</MenuItem>
+                  {paymentModes.map(p => (
+                    <MenuItem key={p._id} value={p.mode}>{p.mode}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <TextField
+                label="Balance"
+                type="number"
+                size="small"
+                value={admissionForm.balance}
+                InputProps={{ readOnly: true }}
+                fullWidth
+              />
+            </Stack>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setShowAdmission(false)} color="inherit">Cancel</Button>
+          <Button
+            type="submit"
+            form="admission-form"
+            variant="contained"
+            color="success"
+          >
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Action Modal */}
-      {actionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 overflow-y-auto z-[60]">
-          <div className="bg-white p-6 rounded shadow w-full h-full overflow-y-auto">
-            <h2 className="text-lg font-bold mb-4">
-              {actionModal.firstName} {actionModal.lastName}
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => {
-                  handleEdit(actionModal);
-                  setActionModal(null);
-                }}
-                className="bg-yellow-500 text-white px-4 py-2 rounded text-sm"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => {
-                  handleDelete(actionModal._id);
-                  setActionModal(null);
-                }}
-                className="bg-red-500 text-white px-4 py-2 rounded text-sm"
-              >
-                Delete
-              </button>
-              <button
-                onClick={() => {
-                  handleConvert(actionModal);
-                  setActionModal(null);
-                }}
-                className="bg-green-600 text-white px-4 py-2 rounded text-sm"
-              >
-                Convert
-              </button>
-              <button
-                onClick={() => setActionModal(null)}
-                className="bg-gray-400 text-white px-4 py-2 rounded text-sm ml-auto"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-    </div>
+      <Dialog
+        open={Boolean(actionModal)}
+        onClose={() => setActionModal(null)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { mx: 2 } }}
+      >
+        <DialogTitle>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6" fontWeight={700}>
+              {actionModal?.studentData?.firstName} {actionModal?.studentData?.lastName}
+            </Typography>
+            <IconButton onClick={() => setActionModal(null)} size="small">
+              <Close />
+            </IconButton>
+          </Stack>
+        </DialogTitle>
+        <Divider />
+        <DialogContent>
+          <Stack spacing={1.5} pt={1}>
+            <Button
+              variant="contained"
+              color="warning"
+              startIcon={<Edit />}
+              fullWidth
+              onClick={() => {
+                handleEdit(actionModal);
+                setActionModal(null);
+              }}
+            >
+              Edit
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<Delete />}
+              fullWidth
+              onClick={() => {
+                handleDelete(actionModal._id);
+                setActionModal(null);
+              }}
+            >
+              Delete
+            </Button>
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<SwapHoriz />}
+              fullWidth
+              onClick={() => {
+                handleConvert(actionModal);
+                setActionModal(null);
+              }}
+            >
+              Convert to Admission
+            </Button>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setActionModal(null)} color="inherit" fullWidth>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 

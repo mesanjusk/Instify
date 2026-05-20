@@ -1,12 +1,12 @@
 /**
  * SectionLayout — full-screen isolated layout for app sections.
- * No sidebar, no bottom nav, no FAB. Just a colored header + back arrow.
+ * No sidebar, no FAB. Minimal header with back arrow + title.
  * Used for: WhatsApp, Document Maker, Academic Hub, Admin Hub.
  */
 
-import { AppBar, Box, IconButton, Toolbar, Typography } from '@mui/material';
+import { AppBar, Box, IconButton, Stack, Toolbar, Typography } from '@mui/material';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Outlet, useNavigate, useParams } from 'react-router-dom';
 
 export default function SectionLayout({ title, color = '#4f46e5', subtitle, children }) {
   const navigate = useNavigate();
@@ -14,26 +14,35 @@ export default function SectionLayout({ title, color = '#4f46e5', subtitle, chil
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden', bgcolor: 'background.default' }}>
-      {/* Minimal header — back arrow + title only */}
+      {/* Header */}
       <AppBar
         position="static"
         elevation={0}
-        sx={{ bgcolor: color, flexShrink: 0 }}
+        sx={{
+          bgcolor: color,
+          flexShrink: 0,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+          borderBottom: 'none',
+        }}
       >
-        <Toolbar sx={{ gap: 1, minHeight: { xs: 52, sm: 56 } }}>
+        <Toolbar sx={{ gap: 1, minHeight: { xs: 52, sm: 60 }, px: { xs: 1.5, sm: 2 } }}>
           <IconButton
             edge="start"
             onClick={() => navigate(`/${username}`)}
-            sx={{ color: '#fff', mr: 0.5 }}
+            sx={{
+              color: '#fff',
+              mr: 0.5,
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.12)' },
+            }}
           >
             <ArrowBackIosNewIcon fontSize="small" />
           </IconButton>
-          <Box>
-            <Typography variant="subtitle1" fontWeight={700} sx={{ color: '#fff', lineHeight: 1.2 }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="subtitle1" fontWeight={700} sx={{ color: '#fff', lineHeight: 1.2 }} noWrap>
               {title}
             </Typography>
             {subtitle && (
-              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.75)', display: 'block', lineHeight: 1 }}>
+              <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.75)', display: 'block', lineHeight: 1 }} noWrap>
                 {subtitle}
               </Typography>
             )}
@@ -41,9 +50,9 @@ export default function SectionLayout({ title, color = '#4f46e5', subtitle, chil
         </Toolbar>
       </AppBar>
 
-      {/* Content fills remaining height, scrollable */}
+      {/* Content */}
       <Box sx={{ flex: 1, overflow: 'auto' }}>
-        {children}
+        {children ?? <Outlet />}
       </Box>
     </Box>
   );

@@ -1,6 +1,14 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
+import {
+  Alert,
+  Box,
+  Button,
+  Typography,
+} from '@mui/material';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import BuildIcon from '@mui/icons-material/Build';
 
 const ToolsPanel = () => {
   const { user } = useApp();
@@ -8,20 +16,33 @@ const ToolsPanel = () => {
 
   if (!user || user.role !== 'super_admin') {
     return (
-      <div className="p-6">
-        <h2 className="text-xl font-semibold text-red-600">Access Denied</h2>
-      </div>
+      <Box sx={{ p: 3 }}>
+        <Alert severity="error">
+          <Typography variant="body1" fontWeight={600}>Access Denied</Typography>
+          <Typography variant="body2">You need super admin privileges to access this page.</Typography>
+        </Alert>
+      </Box>
     );
   }
 
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-bold">Superadmin Tools</h1>
-      <p className="text-gray-600">Future tools will appear here.</p>
-      <button onClick={() => navigate(-1)} className="text-blue-600 underline">
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
+      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
+        <BuildIcon sx={{ color: '#4f46e5', fontSize: 28 }} />
+        <Typography variant="h5" fontWeight={700}>Superadmin Tools</Typography>
+      </Box>
+      <Typography color="text.secondary" sx={{ mb: 3 }}>
+        Future tools will appear here.
+      </Typography>
+      <Button
+        variant="text"
+        startIcon={<ArrowBackIcon />}
+        onClick={() => navigate(-1)}
+        sx={{ color: '#4f46e5' }}
+      >
         Go Back
-      </button>
-    </div>
+      </Button>
+    </Box>
   );
 };
 
