@@ -1,8 +1,30 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import BASE_URL from '../config';
+import {
+  Box,
+  Card,
+  CardContent,
+  Stack,
+  Typography,
+  TextField,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  CircularProgress,
+  Divider,
+  Autocomplete,
+} from '@mui/material';
+import { Close, Payment, WhatsApp } from '@mui/icons-material';
 
 export default function AddPayment() {
   const navigate = useNavigate();
@@ -200,148 +222,172 @@ export default function AddPayment() {
   }
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto bg-black bg-opacity-50 z-[60]">
-      <Toaster />
-      <div className="bg-white rounded shadow-lg p-6 w-full max-w-lg relative">
-        {/* X Close Button */}
-        <button
-          className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-2xl font-bold p-2 rounded-full focus:outline-none"
-          onClick={() => navigate("/home")}
-          aria-label="Close"
-          title="Close"
-          type="button"
-        >
-          ×
-        </button>
+    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.100', display: 'flex', alignItems: 'center', justifyContent: 'center', p: { xs: 2, sm: 3 } }}>
+      <Card sx={{ width: '100%', maxWidth: 560, borderRadius: 3, boxShadow: 4 }}>
+        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+          {/* Header */}
+          <Stack direction="row" alignItems="center" justifyContent="space-between" mb={2}>
+            <Box>
+              <Typography variant="h6" fontWeight={700}>Add Payment</Typography>
+              <Typography variant="body2" color="text.secondary">Record an outgoing payment</Typography>
+            </Box>
+            <IconButton onClick={() => navigate("/home")} size="small" aria-label="Close">
+              <Close />
+            </IconButton>
+          </Stack>
+          <Divider sx={{ mb: 2.5 }} />
 
-        <h2 className="text-lg font-semibold mb-4 text-center">Add Payment</h2>
-        <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
-          <div>
-            <label className="block mb-1 font-medium">Date</label>
-            <input type="date"
-              className="border p-2 rounded w-full"
-              value={transactionDate}
-              onChange={e => setTransactionDate(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label className="block mb-1 font-medium">Customer</label>
-            <input
-              type="text"
-              className="border p-2 rounded w-full"
-              value={customerSearch}
-              placeholder="Search customer"
-              onChange={e => setCustomerSearch(e.target.value)}
-              onFocus={() => { if (!isValidCustomer) setShowCustomerList(true); }}
-              onKeyDown={handleCustomerInputKeyDown}
-              autoComplete="off"
-              disabled={isValidCustomer}
-              required
-            />
-            {showCustomerList && !isValidCustomer && customerOptions.length > 0 && (
-              <ul className="border rounded bg-white mt-1 absolute w-full max-h-40 overflow-y-auto z-50">
-                {customerOptions.map(opt =>
-                  <li key={opt.uuid} className="px-3 py-2 hover:bg-gray-200 cursor-pointer"
-                    onClick={() => handleCustomerPick(opt)}>
-                    {opt.Account_name}
-                  </li>
+          <form onSubmit={handleSubmit} autoComplete="off">
+            <Stack spacing={2.5}>
+              {/* Date */}
+              <TextField
+                label="Transaction Date"
+                type="date"
+                value={transactionDate}
+                onChange={e => setTransactionDate(e.target.value)}
+                required
+                fullWidth
+                size="small"
+                InputLabelProps={{ shrink: true }}
+              />
+
+              {/* Customer Autocomplete */}
+              <Autocomplete
+                freeSolo
+                options={customerOptions}
+                getOptionLabel={(option) =>
+                  typeof option === 'string' ? option : option.Account_name
+                }
+                inputValue={customerSearch}
+                onInputChange={(event, newValue, reason) => {
+                  if (reason === 'input') {
+                    setCustomerSearch(newValue);
+                    if (!newValue) {
+                      setCreditAccount('');
+                      lastSelectedCustomerName.current = '';
+                    }
+                  }
+                }}
+                onChange={(event, newValue) => {
+                  if (newValue && typeof newValue === 'object') {
+                    handleCustomerPick(newValue);
+                  }
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Customer"
+                    placeholder="Search customer"
+                    size="small"
+                    required
+                    error={!!customerSearch && !isValidCustomer}
+                    helperText={customerSearch && !isValidCustomer ? 'Please select a customer from the list.' : ''}
+                    onKeyDown={handleCustomerInputKeyDown}
+                  />
                 )}
-              </ul>
-            )}
-          </div>
-          {customerSearch && !isValidCustomer && (
-            <div className="text-red-600 text-sm mb-2">
-              Please select a customer from the list.
-            </div>
-          )}
-          <div>
-            <label className="block mb-1 font-medium">Amount</label>
-            <input
-              type="number"
-              className="border p-2 rounded w-full"
-              value={amount}
-              onChange={e => setAmount(e.target.value.replace(/^0+/, ''))}
-              min="1"
-              required
-            />
-          </div>
-          <div>
-            <label className="block mb-1 font-medium">Payment Mode</label>
-            <select className="border p-2 rounded w-full"
-              value={debitAccount}
-              onChange={e => setDebitAccount(e.target.value)}
-              required
-            >
-              <option value="">Select Payment</option>
-              {paymentModes.map(pm =>
-                <option key={pm.uuid} value={pm.uuid}>{pm.Account_name}</option>
-              )}
-            </select>
-          </div>
-          <div>
-            <label className="block mb-1 font-medium">Description</label>
-            <input
-              type="text"
-              className="border p-2 rounded w-full"
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder="Description"
-            />
-          </div>
-          {/* Centered Save Button */}
-          <button
-            type="submit"
-            disabled={loading || !isValidCustomer || !isValidPaymentMode || !amount}
-            className="w-full mt-6 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold transition"
-          >
-            {loading ? 'Processing...' : 'Save '}
-          </button>
-        </form>
-      </div>
+              />
 
-      {/* WhatsApp Confirmation Modal */}
-      {showWhatsAppModal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 overflow-y-auto bg-black bg-opacity-40">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm relative animate-fadeIn">
-            <button
-              className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-xl p-2 rounded-full focus:outline-none"
-              onClick={() => { setShowWhatsAppModal(false); navigate("/home"); }}
-              aria-label="Close Modal"
-            >
-              ×
-            </button>
-            <div className="flex flex-col items-center text-center">
-              <div className="text-green-600 mb-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="inline h-10 w-10" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.031-.967-.273-.099-.471-.148-.67.151-.197.297-.767.966-.94 1.164-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.654-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.5-.67-.51-.173-.007-.371-.009-.57-.009s-.521.074-.793.372c-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.199 5.077 4.366.709.305 1.262.486 1.694.621.712.227 1.36.195 1.872.118.571-.085 1.758-.718 2.007-1.412.248-.694.248-1.289.173-1.412-.074-.124-.272-.198-.57-.347z" />
-                  <path d="M20.52 3.48C18.19 1.151 15.157 0 12.001 0 5.372 0 0 5.373 0 12c0 2.119.553 4.188 1.607 5.991L0 24l6.182-1.605C8.021 23.447 9.997 24 12.001 24c6.627 0 12-5.373 12-12 0-3.157-1.151-6.19-3.48-8.52zm-8.519 19.021c-1.783 0-3.534-.472-5.061-1.362l-.363-.214-3.672.954.982-3.583-.236-.368C2.133 15.858 1.613 13.956 1.613 12c0-5.729 4.658-10.388 10.387-10.388 2.778 0 5.388 1.082 7.345 3.041 1.958 1.958 3.04 4.567 3.04 7.345 0 5.729-4.659 10.388-10.388 10.388z" />
-                </svg>
-              </div>
-              <h3 className="text-lg font-semibold mb-2">Send WhatsApp Message?</h3>
-              <p className="mb-4">
-                Do you want to send a WhatsApp payment receipt to <span className="font-bold">{whatsAppInfo?.name}</span>?
-              </p>
-              <div className="flex gap-3 w-full">
-                <button
-                  className="flex-1 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium flex items-center justify-center"
-                  onClick={handleWhatsAppSend}
-                  disabled={sendingWhatsApp}
+              {/* Amount */}
+              <TextField
+                label="Amount"
+                type="number"
+                value={amount}
+                onChange={e => setAmount(e.target.value.replace(/^0+/, ''))}
+                inputProps={{ min: 1 }}
+                required
+                fullWidth
+                size="small"
+              />
+
+              {/* Payment Mode */}
+              <FormControl fullWidth size="small" required>
+                <InputLabel>Payment Mode</InputLabel>
+                <Select
+                  value={debitAccount}
+                  onChange={e => setDebitAccount(e.target.value)}
+                  label="Payment Mode"
                 >
-                  {sendingWhatsApp ? "Sending..." : "Send"}
-                </button>
-                <button
-                  className="flex-1 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium"
-                  onClick={() => { setShowWhatsAppModal(false); navigate("/home"); }}
-                  disabled={sendingWhatsApp}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+                  <MenuItem value=""><em>Select Payment Mode</em></MenuItem>
+                  {paymentModes.map(pm => (
+                    <MenuItem key={pm.uuid} value={pm.uuid}>{pm.Account_name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Description */}
+              <TextField
+                label="Description"
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                placeholder="Optional description"
+                fullWidth
+                size="small"
+              />
+
+              {/* Submit */}
+              <Button
+                type="submit"
+                variant="contained"
+                fullWidth
+                disabled={loading || !isValidCustomer || !isValidPaymentMode || !amount}
+                startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <Payment />}
+                sx={{ bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' }, py: 1.2, fontWeight: 700 }}
+              >
+                {loading ? 'Processing...' : 'Save Payment'}
+              </Button>
+            </Stack>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* WhatsApp Confirmation Dialog */}
+      <Dialog
+        open={showWhatsAppModal}
+        onClose={() => { setShowWhatsAppModal(false); navigate("/home"); }}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <WhatsApp sx={{ color: '#25D366' }} />
+            <Typography variant="h6" fontWeight={700}>Send WhatsApp Message?</Typography>
+          </Stack>
+          <IconButton
+            onClick={() => { setShowWhatsAppModal(false); navigate("/home"); }}
+            size="small"
+          >
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <Divider />
+        <DialogContent>
+          <Typography variant="body1" textAlign="center" mt={1}>
+            Do you want to send a WhatsApp payment receipt to{' '}
+            <Typography component="span" fontWeight={700}>{whatsAppInfo?.name}</Typography>?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button
+            variant="outlined"
+            color="inherit"
+            fullWidth
+            onClick={() => { setShowWhatsAppModal(false); navigate("/home"); }}
+            disabled={sendingWhatsApp}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={handleWhatsAppSend}
+            disabled={sendingWhatsApp}
+            startIcon={sendingWhatsApp ? <CircularProgress size={16} color="inherit" /> : <WhatsApp />}
+            sx={{ bgcolor: '#25D366', '&:hover': { bgcolor: '#1ebe5d' } }}
+          >
+            {sendingWhatsApp ? 'Sending...' : 'Send'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }
