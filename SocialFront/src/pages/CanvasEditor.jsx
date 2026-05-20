@@ -66,6 +66,8 @@ import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import FitScreenIcon from '@mui/icons-material/FitScreen';
+import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import jsPDF from 'jspdf';
 import JSZip from 'jszip';
 import apiClient from '../apiClient';
@@ -166,6 +168,35 @@ const PRESET_LAYOUTS = [
   { id: 'let_2x4',  name: 'Letter 2×4 (8)',    pageW: 216, pageH: 279, marginT: 8,  marginR: 8,  marginB: 8,  marginL: 8,  cols: 2, rows: 4, gapH: 5, gapV: 5 },
   { id: 'leg_2x6',  name: 'Legal 2×6 (12)',    pageW: 216, pageH: 356, marginT: 8,  marginR: 8,  marginB: 8,  marginL: 8,  cols: 2, rows: 6, gapH: 5, gapV: 5 },
 ];
+
+/* ─── Placeholder fields ─────────────────────────────────── */
+const PLACEHOLDER_FIELDS = [
+  { key: 'name',        label: 'Name' },
+  { key: 'roll_number', label: 'Roll No' },
+  { key: 'course',      label: 'Course' },
+  { key: 'batch',       label: 'Batch' },
+  { key: 'mobile',      label: 'Mobile' },
+  { key: 'father_name', label: "Father's Name" },
+  { key: 'class',       label: 'Class' },
+  { key: 'section',     label: 'Section' },
+  { key: 'email',       label: 'Email' },
+  { key: 'photo',       label: 'Photo Frame' },
+];
+
+function studentToRow(s, batchName) {
+  return {
+    name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.name || 'Student',
+    roll_number: s.rollNo || s.roll_number || '—',
+    course: s.course || '—',
+    batch: s.batch || batchName || '—',
+    mobile: s.mobileSelf || s.mobile || '—',
+    father_name: s.fatherName || s.father_name || '—',
+    class: s.class_name || s.class || '—',
+    section: s.section || '—',
+    email: s.email || '—',
+    photo_url: s.photo_url || s.bg_removed_url || null,
+  };
+}
 
 /* ─── Canvas seeder ──────────────────────────────────────────── */
 async function seedCanvas(canvas, docType, tpl, data, instName) {
@@ -457,6 +488,12 @@ export default function DocumentMaker() {
   const [imgContrast,  setImgContrast]  = useState(0);
   const [canUndo,      setCanUndo]      = useState(false);
   const [canRedo,      setCanRedo]      = useState(false);
+
+  const [dataSource,    setDataSource]    = useState('batch'); // 'batch' | 'csv'
+  const [csvRows,       setCsvRows]       = useState([]);
+  const [csvFile,       setCsvFile]       = useState('');
+  const csvInputRef = useRef(null);
+  const [customPh,      setCustomPh]      = useState('');
 
   // Layout management
   const [layoutDialog,   setLayoutDialog]   = useState(false);
@@ -1110,26 +1147,119 @@ export default function DocumentMaker() {
     } finally { setExporting(false); }
   }
 
+  /* ── Placeholder helpers ──────────────────────────────────── */
+  async function addPlaceholder(field) {
+    const { fabric } = await getFabric();
+    const fc = fabricRef.current; if (!fc) return;
+    if (field === 'photo') {
+      const frame = new fabric.Rect({
+        left: fc.width / 2 - 40, top: fc.height / 2 - 50,
+        width: 80, height: 100,
+        fill: '#f5f3ff', stroke: '#7c3aed', strokeWidth: 2,
+        strokeDashArray: [5, 3], rx: 4, ry: 4,
+        __placeholder: 'photo', __frameType: 'rect',
+      });
+      fc.add(frame); fc.setActiveObject(frame);
+    } else {
+      const obj = new fabric.IText(`{{${field}}}`, {
+        left: fc.width / 2, top: fc.height / 2,
+        originX: 'center', originY: 'center',
+        fontSize: 14, fill: '#7c3aed',
+        backgroundColor: '#f5f3ff', fontFamily: 'Arial',
+        __placeholder: field,
+      });
+      fc.add(obj); fc.setActiveObject(obj);
+    }
+    fc.renderAll(); pushHistory(); setIsDirty(true);
+  }
+
+  function getActiveRows() {
+    if (dataSource === 'csv' && csvRows.length) return csvRows;
+    return batchStudents.map(s => studentToRow(s, selBatch));
+  }
+
+  async function renderRowToCanvas(fc, templateJSON, row) {
+    const { fabric } = await getFabric();
+    const json = JSON.parse(JSON.stringify(templateJSON));
+    json.objects = (json.objects || []).map(obj => {
+      if (!obj.__placeholder) return obj;
+      const field = obj.__placeholder;
+      if (field === 'photo') return obj; // handled below
+      const val = row[field] ?? `{{${field}}}`;
+      if (obj.type === 'i-text' || obj.type === 'text') return { ...obj, text: String(val) };
+      return obj;
+    });
+    await new Promise(r => fc.loadFromJSON(json, r));
+    if (row.photo_url) {
+      const frame = fc.getObjects().find(o => o.__placeholder === 'photo');
+      if (frame) {
+        await new Promise(r => {
+          fabric.Image.fromURL(row.photo_url, img => {
+            const scaleX = frame.width / (img.width || 1);
+            const scaleY = frame.height / (img.height || 1);
+            const scale = Math.max(scaleX, scaleY);
+            img.set({
+              left: frame.left, top: frame.top, scaleX: scale, scaleY: scale,
+              clipPath: new fabric.Rect({ left: frame.left, top: frame.top, width: frame.width, height: frame.height, absolutePositioned: true }),
+            });
+            fc.remove(frame); fc.add(img); fc.renderAll(); r();
+          }, { crossOrigin: 'anonymous' });
+        });
+      }
+    }
+    fc.renderAll();
+  }
+
+  async function handleCsvUpload(file) {
+    if (!file) return;
+    setCsvFile(file.name);
+    const ext = file.name.split('.').pop().toLowerCase();
+    try {
+      if (ext === 'csv') {
+        const Papa = (await import('papaparse')).default;
+        Papa.parse(file, {
+          header: true, skipEmptyLines: true,
+          complete: r => { setCsvRows(r.data); setDataSource('csv'); showAlert('success', `Loaded ${r.data.length} rows from CSV`); },
+        });
+      } else {
+        const XLSX = await import('xlsx');
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf);
+        const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+        setCsvRows(data); setDataSource('csv');
+        showAlert('success', `Loaded ${data.length} rows from Excel`);
+      }
+    } catch { showAlert('error', 'Failed to parse file'); }
+  }
+
   async function generateBatchZip() {
-    if (!batchStudents.length) return showAlert('error', 'No students in selected batch');
+    const rows = getActiveRows();
+    if (!rows.length) return showAlert('error', 'No data. Select a batch or upload a CSV/Excel file.');
     setGenerating(true);
     const zip = new JSZip();
     const { fabric } = await getFabric();
+    const templateJSON = fabricRef.current?.toJSON();
+    if (!templateJSON) return;
+    const hasPlaceholders = (templateJSON.objects || []).some(o => o.__placeholder);
     const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
     try {
-      for (const s of batchStudents) {
+      for (const row of rows) {
         const el = document.createElement('canvas'); document.body.appendChild(el);
         const { w, h } = DOC_TYPES.find(d => d.key === docType).dims;
         const fc = new fabric.Canvas(el, { width: w, height: h });
-        const data = { name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.name || 'Student', rollNo: s.rollNo || '—', course: s.course || '—', batch: s.batch || selBatch };
-        await seedCanvas(fc, docType, tpl, data, instituteName);
+        if (hasPlaceholders) {
+          await renderRowToCanvas(fc, templateJSON, row);
+        } else {
+          await seedCanvas(fc, docType, tpl, row, instituteName);
+        }
+        const name = String(row.name || row.Name || 'record').replace(/\s+/g, '_');
         const img = fc.toDataURL({ format: 'png', multiplier: 2 }).split(',')[1];
-        zip.file(`${data.name.replace(/\s+/g, '_')}_${docType}.png`, img, { base64: true });
+        zip.file(`${name}_${docType}.png`, img, { base64: true });
         fc.dispose(); document.body.removeChild(el);
       }
       const blob = await zip.generateAsync({ type: 'blob' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `batch_${docType}.zip`; a.click();
-      showAlert('success', `Generated ${batchStudents.length} documents!`);
+      showAlert('success', `Generated ${rows.length} documents!`);
     } catch (err) { showAlert('error', err.message); }
     finally { setGenerating(false); }
   }
@@ -1182,20 +1312,24 @@ export default function DocumentMaker() {
         pdf.save(`${docType}_${slug}.pdf`);
         showAlert('success', `${perPage} cards per sheet — done!`);
       } else {
-        if (!batchStudents.length) { showAlert('error', 'Select a batch first'); return; }
+        const rows = getActiveRows();
+        if (!rows.length) { showAlert('error', 'No data. Select a batch or upload CSV/Excel.'); return; }
         const { fabric } = await getFabric();
         const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
+        const templateJSON = fabricRef.current?.toJSON();
+        const hasPlaceholders = (templateJSON?.objects || []).some(o => o.__placeholder);
         const pdf = new jsPDF({ orientation: isLand ? 'landscape' : 'portrait', unit: 'mm', format: [pageW, pageH] });
         let pos = 0;
-        for (let si = 0; si < batchStudents.length; si++) {
-          const s = batchStudents[si];
+        for (let si = 0; si < rows.length; si++) {
+          const row = rows[si];
           const el = document.createElement('canvas'); document.body.appendChild(el);
           const { w, h } = DOC_TYPES.find(d => d.key === docType).dims;
           const fc = new fabric.Canvas(el, { width: w, height: h });
-          await seedCanvas(fc, docType, tpl, {
-            name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.name || 'Student',
-            rollNo: s.rollNo || '—', course: s.course || '—', batch: s.batch || selBatch,
-          }, instituteName);
+          if (hasPlaceholders && templateJSON) {
+            await renderRowToCanvas(fc, templateJSON, row);
+          } else {
+            await seedCanvas(fc, docType, tpl, row, instituteName);
+          }
           const imgData = fc.toDataURL({ format: 'png', multiplier: 2 });
           fc.dispose(); document.body.removeChild(el);
           if (pos > 0 && pos % perPage === 0) {
@@ -1206,7 +1340,7 @@ export default function DocumentMaker() {
           pos++;
         }
         pdf.save(`batch_${docType}_${slug}.pdf`);
-        showAlert('success', `${batchStudents.length} students, ${perPage} per page — done!`);
+        showAlert('success', `${rows.length} students, ${perPage} per page — done!`);
       }
     } catch (err) { showAlert('error', 'Export failed: ' + err.message); }
     finally { setExporting(false); setGenerating(false); }
@@ -1407,6 +1541,32 @@ export default function DocumentMaker() {
                     <Typography sx={{ color: '#fff', fontWeight: 600, fontSize: '0.78rem' }}>{item.label}</Typography>
                   </Box>
                 ))}
+              </Box>
+            </Box>
+          )}
+
+          {/* ID Photo Manager entry point */}
+          {homeNav === 0 && (
+            <Box sx={{ px: 2, pb: 2 }}>
+              <Box
+                onClick={() => navigate(`/${username}/idcard`)}
+                sx={{
+                  borderRadius: 2.5, p: 2, cursor: 'pointer',
+                  border: '1.5px solid #e2e8f0',
+                  background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+                  display: 'flex', alignItems: 'center', gap: 2,
+                  '&:hover': { borderColor: '#7c3aed55', boxShadow: '0 2px 12px rgba(124,58,237,0.12)' },
+                  transition: 'all 0.15s',
+                }}
+              >
+                <Box sx={{ width: 44, height: 44, borderRadius: 2, bgcolor: '#7c3aed22', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <BadgeOutlinedIcon sx={{ color: '#7c3aed', fontSize: 22 }} />
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>ID Photo Manager</Typography>
+                  <Typography sx={{ fontSize: '0.72rem', color: '#64748b', mt: 0.25 }}>Collect & approve student photos · approve/reject · print</Typography>
+                </Box>
+                <ArrowForwardIosIcon sx={{ fontSize: 14, color: '#94a3b8', flexShrink: 0 }} />
               </Box>
             </Box>
           )}
@@ -1982,6 +2142,41 @@ export default function DocumentMaker() {
                   {btn('Triangle', <ChangeHistoryIcon sx={{ fontSize: 18 }} />,   () => addShape('triangle'))}
                   {btn('Line',     <HorizontalRuleIcon sx={{ fontSize: 18 }} />,  () => addShape('line'))}
                 </Box>
+                {/* Smart Placeholders */}
+                <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', pt: 0.5 }}>Smart Placeholders</Typography>
+                <Typography sx={{ fontSize: '0.58rem', color: '#94a3b8', lineHeight: 1.4 }}>Insert data fields that auto-fill from students, CSV, or Excel</Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 0.5 }}>
+                  {PLACEHOLDER_FIELDS.map(({ key, label }) => (
+                    <Box key={key} onClick={() => addPlaceholder(key)} sx={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3,
+                      cursor: 'pointer', p: 0.75, borderRadius: 2,
+                      border: '1px solid #7c3aed33', bgcolor: '#f5f3ff',
+                      '&:hover': { borderColor: '#7c3aed88', bgcolor: '#ede9fe' },
+                      '&:active': { transform: 'scale(0.95)' },
+                      transition: 'all 0.1s',
+                    }}>
+                      <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: '#7c3aed', fontFamily: 'monospace' }}>{`{{${key}}}`}</Typography>
+                      <Typography sx={{ fontSize: '0.58rem', color: '#7c3aed99' }}>{label}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+                <Stack direction="row" spacing={0.5}>
+                  <TextField
+                    placeholder="custom_field"
+                    value={customPh}
+                    onChange={e => setCustomPh(e.target.value.replace(/[^a-z0-9_]/g, ''))}
+                    size="small"
+                    sx={{ flex: 1, '& .MuiOutlinedInput-root': { fontSize: '0.72rem', bgcolor: '#f8fafc' }, '& input': { py: 0.5 } }}
+                    onKeyDown={e => { if (e.key === 'Enter' && customPh) { addPlaceholder(customPh); setCustomPh(''); } }}
+                  />
+                  <Button
+                    size="small"
+                    disabled={!customPh}
+                    onClick={() => { addPlaceholder(customPh); setCustomPh(''); }}
+                    sx={{ minWidth: 0, px: 1.5, bgcolor: '#7c3aed', color: '#fff', '&:hover': { bgcolor: '#6d28d9' }, fontSize: '0.72rem' }}>
+                    Add
+                  </Button>
+                </Stack>
               </Stack>
             );
           })()}
@@ -2275,6 +2470,35 @@ export default function DocumentMaker() {
                   {printing ? 'Printing…' : 'Print'}
                 </Button>
               </Stack>
+              {/* Data Source */}
+              <Box>
+                <Typography sx={{ fontSize: '0.62rem', color: '#64748b', mb: 0.75, fontWeight: 600 }}>Data Source</Typography>
+                <Stack direction="row" spacing={0.75} flexWrap="wrap">
+                  <Chip
+                    label="DB Students"
+                    size="small"
+                    onClick={() => setDataSource('batch')}
+                    variant={dataSource === 'batch' ? 'filled' : 'outlined'}
+                    color="primary"
+                    sx={{ fontSize: '0.65rem', height: 22, cursor: 'pointer' }}
+                  />
+                  <Chip
+                    label={csvFile || 'Upload CSV/Excel'}
+                    size="small"
+                    onClick={() => csvInputRef.current?.click()}
+                    variant={dataSource === 'csv' ? 'filled' : 'outlined'}
+                    color="secondary"
+                    sx={{ fontSize: '0.65rem', height: 22, cursor: 'pointer' }}
+                  />
+                </Stack>
+                {dataSource === 'csv' && csvRows.length > 0 && (
+                  <Typography sx={{ fontSize: '0.6rem', color: '#10b981', mt: 0.5 }}>
+                    ✓ {csvRows.length} rows loaded from {csvFile}
+                  </Typography>
+                )}
+                <input hidden type="file" ref={csvInputRef} accept=".csv,.xlsx,.xls"
+                  onChange={e => handleCsvUpload(e.target.files[0])} />
+              </Box>
               <Stack direction="row" spacing={1} alignItems="center">
                 <Select value={selBatch} onChange={e => setSelBatch(e.target.value)} displayEmpty size="small"
                   sx={{ flex: 1, bgcolor: '#f1f5f9', color: '#1e293b', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}>
@@ -2282,12 +2506,12 @@ export default function DocumentMaker() {
                   {batches.map(b => <MenuItem key={b._id} value={b.batch_name || b._id}>{b.batch_name}</MenuItem>)}
                 </Select>
                 <Button size="small" startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <FolderZipIcon />}
-                  onClick={generateBatchZip} disabled={generating || !batchStudents.length}
+                  onClick={generateBatchZip} disabled={generating || !getActiveRows().length}
                   sx={{ flexShrink: 0, bgcolor: '#f1f5f9', color: '#1e293b', border: '1px solid #e2e8f0', '&:hover': { bgcolor: '#e2e8f0' } }}>
-                  {generating ? '…' : `ZIP (${batchStudents.length})`}
+                  {generating ? '…' : `ZIP (${getActiveRows().length})`}
                 </Button>
                 <Button size="small" startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <PictureAsPdfIcon />}
-                  onClick={generateBatchPDF} disabled={generating || !batchStudents.length}
+                  onClick={generateBatchPDF} disabled={generating || !getActiveRows().length}
                   sx={{ flexShrink: 0, bgcolor: '#7c3aed22', color: '#7c3aed', border: '1px solid #7c3aed33', '&:hover': { bgcolor: '#7c3aed33' } }}>
                   {generating ? '…' : `PDF`}
                 </Button>
