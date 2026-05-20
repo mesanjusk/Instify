@@ -1,8 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
+import {
+  Box, Card, CardContent, Stack, Typography, TextField, Button,
+  Dialog, DialogTitle, DialogContent, DialogActions, IconButton,
+  Tooltip, InputAdornment, CircularProgress
+} from '@mui/material';
+import { Edit, Delete, Add, Search } from '@mui/icons-material';
 import BASE_URL from '../config';
-import { getThemeColor } from '../utils/storageUtils';
 
 const Exam = () => {
   const [list, setList] = useState([]);
@@ -15,7 +20,6 @@ const Exam = () => {
   const [fetchLoading, setFetchLoading] = useState(true);
   const inputRef = useRef();
   const searchTimeout = useRef();
-  const themeColor = getThemeColor();
 
   const fetchData = async () => {
     try {
@@ -95,106 +99,134 @@ const Exam = () => {
   };
 
   return (
-    <div className="min-h-screen p-2" style={{ backgroundColor: themeColor }}>
-      <Toaster />
-      <div className="flex items-center gap-2 mb-4 w-full">
-        <input
+    <Box sx={{ minHeight: '100vh', p: { xs: 1, sm: 2 }, bgcolor: 'background.default' }}>
+      {/* Header bar */}
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'stretch', sm: 'center' }}
+        spacing={1}
+        sx={{ mb: 3 }}
+      >
+        <TextField
           placeholder="Search exam"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="border p-2 rounded flex-1 min-w-0"
-        />
-        <button
-          onClick={() => {
-            setForm({ exam: '', description: '' });
-            setEditingId(null);
-            setShowModal(true);
+          size="small"
+          sx={{ width: { xs: '100%', sm: 320 } }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search fontSize="small" />
+              </InputAdornment>
+            )
           }}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 flex-shrink-0"
-        >
-          + Exam
-        </button>
-      </div>
-
-      {fetchLoading ? (
-        <div className="text-center p-6">Loading exams...</div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center p-6 text-gray-500">No entries found.</div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
-          {filtered.map(item => (
-            <div
-              key={item._id}
-              className="border rounded-lg p-3 shadow hover:shadow-md transition cursor-pointer flex flex-col justify-between"
+        />
+        <Box sx={{ display: 'flex', justifyContent: { xs: 'flex-end', sm: 'flex-end' } }}>
+          <Tooltip title="Add Exam">
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => {
+                setForm({ exam: '', description: '' });
+                setEditingId(null);
+                setShowModal(true);
+              }}
+              sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' }, textTransform: 'none' }}
             >
-              <div>
-                <h2 className="font-semibold text-lg text-gray-800">{item.exam}</h2>
-                <p className="text-sm text-gray-600 mt-1">{item.description || <span className="italic text-gray-400">No description</span>}</p>
-              </div>
-              <div className="flex justify-end gap-2 mt-2">
-                <button
-                  onClick={() => handleEdit(item)}
-                  className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                  aria-label="Edit"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(item._id)}
-                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                  aria-label="Delete"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
+              Add Exam
+            </Button>
+          </Tooltip>
+        </Box>
+      </Stack>
+
+      {/* Content */}
+      {fetchLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
+          <CircularProgress sx={{ color: '#4f46e5' }} />
+        </Box>
+      ) : filtered.length === 0 ? (
+        <Box sx={{ textAlign: 'center', p: 6 }}>
+          <Typography color="text.secondary">No entries found.</Typography>
+        </Box>
+      ) : (
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(5, 1fr)' },
+            gap: 1.5
+          }}
+        >
+          {filtered.map((item) => (
+            <Card
+              key={item._id}
+              sx={{ cursor: 'pointer', '&:hover': { boxShadow: '0 4px 16px rgba(79,70,229,0.12)' } }}
+            >
+              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography variant="subtitle2" fontWeight={700} noWrap>
+                      {item.exam}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block">
+                      {item.description || <em>No description</em>}
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0, ml: 0.5 }}>
+                    <IconButton size="small" onClick={() => handleEdit(item)} sx={{ color: '#f59e0b' }}>
+                      <Edit fontSize="small" />
+                    </IconButton>
+                    <IconButton size="small" onClick={() => handleDelete(item._id)} sx={{ color: '#ef4444' }}>
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                </Stack>
+              </CardContent>
+            </Card>
           ))}
-        </div>
+        </Box>
       )}
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 overflow-y-auto z-[60]">
-          <div className="bg-white p-6 rounded-xl w-full max-w-md shadow-lg">
-            <h2 className="text-xl font-semibold mb-4">
-              {editingId ? 'Edit Exam' : 'Add New Exam'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <input
-                ref={inputRef}
-                type="text"
+      {/* Add/Edit Dialog */}
+      <Dialog open={showModal} onClose={() => setShowModal(false)} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ pb: 1 }}>
+          {editingId ? 'Edit Exam' : 'Add New Exam'}
+        </DialogTitle>
+        <Box component="form" onSubmit={handleSubmit}>
+          <DialogContent>
+            <Stack spacing={2} sx={{ pt: 1 }}>
+              <TextField
+                inputRef={inputRef}
+                label="Exam"
                 value={form.exam}
                 onChange={handleChange('exam')}
-                className="border p-2 w-full rounded"
-                placeholder="Exam"
+                fullWidth
                 required
               />
-              <textarea
+              <TextField
+                label="Description (optional)"
                 value={form.description}
                 onChange={handleChange('description')}
-                className="border p-2 w-full rounded"
-                placeholder="Description (optional)"
+                fullWidth
+                multiline
+                rows={3}
               />
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className={`bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  {editingId ? 'Update' : 'Save'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button variant="outlined" onClick={() => setShowModal(false)}>Cancel</Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={loading}
+              sx={{ bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
+            >
+              {loading ? <CircularProgress size={18} color="inherit" /> : editingId ? 'Update' : 'Save'}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+    </Box>
   );
 };
 

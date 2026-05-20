@@ -65,6 +65,8 @@ const theme = createTheme({
           fontWeight: 600,
           padding: '8px 20px',
         },
+        sizeSmall: { padding: '5px 14px', fontSize: '0.8125rem' },
+        sizeLarge: { padding: '11px 28px', fontSize: '1rem' },
       },
     },
     MuiCard: {
@@ -78,9 +80,8 @@ const theme = createTheme({
     },
     MuiPaper: {
       styleOverrides: {
-        root: {
-          borderRadius: 16,
-        },
+        root: { borderRadius: 16 },
+        elevation1: { boxShadow: '0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.05)' },
       },
     },
     MuiTextField: {
@@ -89,6 +90,11 @@ const theme = createTheme({
         root: {
           '& .MuiOutlinedInput-root': { borderRadius: 10 },
         },
+      },
+    },
+    MuiSelect: {
+      styleOverrides: {
+        root: { borderRadius: 10 },
       },
     },
     MuiChip: {
@@ -108,6 +114,53 @@ const theme = createTheme({
         },
       },
     },
+    MuiDialog: {
+      styleOverrides: {
+        paper: { borderRadius: 20 },
+      },
+    },
+    MuiDialogTitle: {
+      styleOverrides: {
+        root: { fontWeight: 700, fontSize: '1.1rem' },
+      },
+    },
+    MuiTableHead: {
+      styleOverrides: {
+        root: {
+          '& .MuiTableCell-head': {
+            fontWeight: 700,
+            fontSize: '0.78rem',
+            textTransform: 'uppercase',
+            letterSpacing: '0.04em',
+            color: '#64748b',
+            backgroundColor: '#f8fafc',
+            borderBottom: '2px solid #e2e8f0',
+          },
+        },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          borderBottom: '1px solid #f1f5f9',
+          fontSize: '0.875rem',
+          padding: '10px 16px',
+        },
+      },
+    },
+    MuiTableRow: {
+      styleOverrides: {
+        root: {
+          '&:hover': { backgroundColor: '#f8fafc' },
+          '&:last-child td': { borderBottom: 0 },
+        },
+      },
+    },
+    MuiDivider: {
+      styleOverrides: {
+        root: { borderColor: '#f1f5f9' },
+      },
+    },
     MuiCssBaseline: {
       styleOverrides: {
         '*, *::before, *::after': { boxSizing: 'border-box' },
@@ -117,6 +170,10 @@ const theme = createTheme({
           backgroundColor: '#f1f5f9',
           color: '#1e293b',
         },
+        '::-webkit-scrollbar': { width: 6, height: 6 },
+        '::-webkit-scrollbar-track': { background: 'transparent' },
+        '::-webkit-scrollbar-thumb': { background: '#cbd5e1', borderRadius: 99 },
+        '::-webkit-scrollbar-thumb:hover': { background: '#94a3b8' },
       },
     },
   },

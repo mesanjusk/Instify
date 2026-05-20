@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Avatar, Box, Card, CardContent, Chip, CircularProgress,
-  Stack, Typography,
+  Avatar, Box, Button, Card, CardContent, Chip, CircularProgress,
+  Divider, Stack, Typography,
 } from '@mui/material';
 import PeopleIcon from '@mui/icons-material/People';
 import SchoolIcon from '@mui/icons-material/School';
@@ -15,6 +15,9 @@ import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import AddIcon from '@mui/icons-material/Add';
+import ReceiptIcon from '@mui/icons-material/Receipt';
+import ChecklistIcon from '@mui/icons-material/Checklist';
 import { useApp } from '../context/AppContext';
 import apiClient from '../apiClient';
 
@@ -33,25 +36,25 @@ function StatCard({ icon, label, value, color, onClick, loading }) {
       onClick={onClick}
       sx={{
         cursor: onClick ? 'pointer' : 'default',
-        transition: 'box-shadow 0.15s',
-        '&:hover': onClick ? { boxShadow: '0 4px 16px rgba(79,70,229,0.15)' } : {},
+        transition: 'box-shadow 0.15s, transform 0.15s',
+        '&:hover': onClick ? { boxShadow: `0 4px 20px ${color}22`, transform: 'translateY(-1px)' } : {},
       }}
     >
       <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
         <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1}>
           <Box sx={{ minWidth: 0 }}>
-            <Typography variant="caption" color="text.secondary" fontWeight={500} noWrap>
+            <Typography variant="caption" color="text.secondary" fontWeight={500} noWrap sx={{ fontSize: '0.72rem' }}>
               {label}
             </Typography>
             {loading ? (
               <Box sx={{ mt: 0.5 }}><CircularProgress size={18} sx={{ color }} /></Box>
             ) : (
-              <Typography variant="h5" fontWeight={700} sx={{ color, mt: 0.25, lineHeight: 1.2 }}>
+              <Typography variant="h5" fontWeight={800} sx={{ color, mt: 0.25, lineHeight: 1.1, fontSize: { xs: '1.4rem', md: '1.6rem' } }}>
                 {value}
               </Typography>
             )}
           </Box>
-          <Avatar sx={{ bgcolor: `${color}18`, width: 40, height: 40, flexShrink: 0 }}>
+          <Avatar sx={{ bgcolor: `${color}15`, width: 40, height: 40, flexShrink: 0 }}>
             {icon}
           </Avatar>
         </Stack>
@@ -70,16 +73,16 @@ function SectionCard({ icon, iconBg, title, desc, badge, badgeColor, gradient, o
         border: 'none',
         transition: 'transform 0.15s, box-shadow 0.15s',
         '&:active': { transform: 'scale(0.98)' },
-        '&:hover': { boxShadow: '0 8px 32px rgba(0,0,0,0.18)' },
+        '&:hover': { boxShadow: '0 8px 32px rgba(0,0,0,0.22)', transform: 'translateY(-2px)' },
       }}
     >
-      <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+      <CardContent sx={{ p: { xs: 2, md: 2.5 }, '&:last-child': { pb: { xs: 2, md: 2.5 } } }}>
         <Stack direction="row" alignItems="flex-start" justifyContent="space-between" mb={1.5}>
-          <Box sx={{ width: 48, height: 48, borderRadius: 3, bgcolor: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Box sx={{ width: 46, height: 46, borderRadius: 3, bgcolor: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {icon}
           </Box>
           {badge && (
-            <Chip label={badge} size="small" color={badgeColor || 'default'} sx={{ height: 18, fontSize: '0.62rem', fontWeight: 700 }} />
+            <Chip label={badge} size="small" color={badgeColor || 'default'} sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700 }} />
           )}
         </Stack>
         <Typography variant="subtitle1" fontWeight={700} sx={{ color: '#fff', lineHeight: 1.2, mb: 0.4 }}>
@@ -89,13 +92,33 @@ function SectionCard({ icon, iconBg, title, desc, badge, badgeColor, gradient, o
           <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.75)', lineHeight: 1.4 }}>
             {desc}
           </Typography>
-          <ArrowForwardIosIcon sx={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', flexShrink: 0, ml: 1 }} />
+          <ArrowForwardIosIcon sx={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', flexShrink: 0, ml: 1 }} />
         </Stack>
       </CardContent>
     </Card>
   );
 }
 
+function QuickAction({ icon, label, color, onClick }) {
+  return (
+    <Stack
+      direction="row"
+      spacing={1.5}
+      alignItems="center"
+      onClick={onClick}
+      sx={{
+        px: 2, py: 1.5, borderRadius: 2.5, cursor: 'pointer',
+        transition: 'background 0.15s',
+        '&:hover': { bgcolor: `${color}0d` },
+      }}
+    >
+      <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: `${color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', color, flexShrink: 0 }}>
+        {icon}
+      </Box>
+      <Typography variant="body2" fontWeight={600} color="text.primary" noWrap>{label}</Typography>
+    </Stack>
+  );
+}
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -161,6 +184,15 @@ export default function Dashboard() {
     { label: 'Active Courses', value: stats.courses ?? '—', icon: <LibraryBooksIcon sx={{ color: '#7c3aed', fontSize: 20 }} />, color: '#7c3aed', onClick: () => navigate(`/${username}/courses`) },
   ];
 
+  const quickActions = [
+    { icon: <AddIcon fontSize="small" />, label: 'New Admission', color: '#10b981', path: `/${username}/addNewAdd` },
+    { icon: <PeopleIcon fontSize="small" />, label: 'Add Student', color: '#4f46e5', path: `/${username}/students` },
+    { icon: <ReceiptIcon fontSize="small" />, label: 'Collect Fee', color: '#f59e0b', path: `/${username}/addReciept` },
+    { icon: <ChecklistIcon fontSize="small" />, label: 'Attendance', color: '#0891b2', path: `/${username}/addAttendance` },
+    { icon: <TrendingUpIcon fontSize="small" />, label: 'Add Lead', color: '#ef4444', path: `/${username}/add-lead` },
+    { icon: <EventNoteIcon fontSize="small" />, label: 'Follow-ups', color: '#7c3aed', path: `/${username}/followup` },
+  ];
+
   return (
     <Box>
       {/* Trial banner */}
@@ -172,74 +204,122 @@ export default function Dashboard() {
         </Box>
       )}
 
-      {/* Greeting */}
-      <Box mb={3}>
-        <Typography variant="h5" fontWeight={700}>
-          {getGreeting()}, {user?.name?.split(' ')[0] || 'Admin'} 👋
-        </Typography>
-        <Typography variant="body2" color="text.secondary">{instituteName}</Typography>
-      </Box>
+      {/* Desktop two-column layout */}
+      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: '1fr 280px' }, gap: 3, alignItems: 'start' }}>
+        {/* Left/main column */}
+        <Box>
+          {/* Greeting */}
+          <Box mb={3}>
+            <Typography variant="h5" fontWeight={700}>
+              {getGreeting()}, {user?.name?.split(' ')[0] || 'Admin'} 👋
+            </Typography>
+            <Typography variant="body2" color="text.secondary">{instituteName}</Typography>
+          </Box>
 
-      {/* Stats grid */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', lg: 'repeat(6, 1fr)' },
-          gap: 2,
-          mb: 3,
-        }}
-      >
-        {statCards.map((card, i) => (
-          <StatCard key={i} {...card} loading={loading} />
-        ))}
-      </Box>
+          {/* Stats grid */}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', xl: 'repeat(6, 1fr)' },
+              gap: { xs: 1.5, md: 2 },
+              mb: 3,
+            }}
+          >
+            {statCards.map((card, i) => (
+              <StatCard key={i} {...card} loading={loading} />
+            ))}
+          </Box>
 
-      {/* Section cards — Amazon-style entry points */}
-      <Typography variant="subtitle1" fontWeight={700} mb={1.5}>Sections</Typography>
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
-          gap: 1.5,
-          mb: 3,
-        }}
-      >
-        <SectionCard
-          icon={<MenuBookIcon sx={{ color: '#fff', fontSize: 24 }} />}
-          iconBg="rgba(255,255,255,0.2)"
-          title="Academic"
-          desc="Students, admissions, courses, attendance"
-          gradient="linear-gradient(135deg, #4f46e5, #7c3aed)"
-          onClick={() => navigate(`/${username}/section/academic`)}
-        />
-        <SectionCard
-          icon={<WhatsAppIcon sx={{ color: '#fff', fontSize: 24 }} />}
-          iconBg="rgba(255,255,255,0.2)"
-          title="WhatsApp"
-          desc="Automation, broadcast & magic links"
-          gradient="linear-gradient(135deg, #075E54, #128C7E)"
-          badge={waConnected ? 'Live' : undefined}
-          badgeColor="success"
-          onClick={() => navigate(`/${username}/section/whatsapp`)}
-        />
-        <SectionCard
-          icon={<BadgeIcon sx={{ color: '#fff', fontSize: 24 }} />}
-          iconBg="rgba(255,255,255,0.2)"
-          title="Documents"
-          desc="ID cards, certificates, results"
-          gradient="linear-gradient(135deg, #7c3aed, #a855f7)"
-          onClick={() => navigate(`/${username}/section/canvas`)}
-        />
-        <SectionCard
-          icon={<AdminPanelSettingsIcon sx={{ color: '#fff', fontSize: 24 }} />}
-          iconBg="rgba(255,255,255,0.2)"
-          title="Admin"
-          desc="Users, settings & accounts"
-          gradient="linear-gradient(135deg, #0f172a, #334155)"
-          onClick={() => navigate(`/${username}/section/admin`)}
-        />
-      </Box>
+          {/* Section cards */}
+          <Typography variant="subtitle1" fontWeight={700} mb={1.5}>Quick Sections</Typography>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' },
+              gap: { xs: 1.25, md: 1.5 },
+            }}
+          >
+            <SectionCard
+              icon={<MenuBookIcon sx={{ color: '#fff', fontSize: 22 }} />}
+              iconBg="rgba(255,255,255,0.2)"
+              title="Academic"
+              desc="Students, admissions, courses"
+              gradient="linear-gradient(135deg, #4f46e5, #7c3aed)"
+              onClick={() => navigate(`/${username}/section/academic`)}
+            />
+            <SectionCard
+              icon={<WhatsAppIcon sx={{ color: '#fff', fontSize: 22 }} />}
+              iconBg="rgba(255,255,255,0.2)"
+              title="WhatsApp"
+              desc="Automation & broadcasts"
+              gradient="linear-gradient(135deg, #075E54, #128C7E)"
+              badge={waConnected ? 'Live' : undefined}
+              badgeColor="success"
+              onClick={() => navigate(`/${username}/section/whatsapp`)}
+            />
+            <SectionCard
+              icon={<BadgeIcon sx={{ color: '#fff', fontSize: 22 }} />}
+              iconBg="rgba(255,255,255,0.2)"
+              title="Documents"
+              desc="ID cards, certificates"
+              gradient="linear-gradient(135deg, #7c3aed, #a855f7)"
+              onClick={() => navigate(`/${username}/section/canvas`)}
+            />
+            <SectionCard
+              icon={<AdminPanelSettingsIcon sx={{ color: '#fff', fontSize: 22 }} />}
+              iconBg="rgba(255,255,255,0.2)"
+              title="Admin"
+              desc="Settings & accounts"
+              gradient="linear-gradient(135deg, #0f172a, #334155)"
+              onClick={() => navigate(`/${username}/section/admin`)}
+            />
+          </Box>
+        </Box>
 
+        {/* Right column — desktop only quick actions */}
+        <Box sx={{ display: { xs: 'none', lg: 'block' } }}>
+          <Card>
+            <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+              <Box sx={{ px: 2, py: 1.75, borderBottom: '1px solid #f1f5f9' }}>
+                <Typography variant="subtitle2" fontWeight={700} color="text.primary">Quick Actions</Typography>
+              </Box>
+              {quickActions.map((a, i) => (
+                <Box key={i}>
+                  <QuickAction {...a} onClick={() => navigate(a.path)} />
+                  {i < quickActions.length - 1 && <Divider sx={{ mx: 2 }} />}
+                </Box>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* WhatsApp status card */}
+          <Card sx={{ mt: 2 }}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
+                <Typography variant="subtitle2" fontWeight={700}>WhatsApp</Typography>
+                <Chip
+                  label={waConnected ? 'Connected' : 'Offline'}
+                  size="small"
+                  color={waConnected ? 'success' : 'default'}
+                  sx={{ height: 20, fontSize: '0.68rem' }}
+                />
+              </Stack>
+              <Typography variant="caption" color="text.secondary" display="block" mb={1.5}>
+                {waConnected ? 'Your WhatsApp bot is live and ready.' : 'Connect WhatsApp to send automated messages.'}
+              </Typography>
+              <Button
+                size="small"
+                variant={waConnected ? 'outlined' : 'contained'}
+                startIcon={<WhatsAppIcon sx={{ fontSize: 16 }} />}
+                onClick={() => navigate(`/${username}/section/whatsapp`)}
+                sx={{ fontSize: '0.78rem' }}
+              >
+                {waConnected ? 'Manage' : 'Connect Now'}
+              </Button>
+            </CardContent>
+          </Card>
+        </Box>
+      </Box>
     </Box>
   );
 }

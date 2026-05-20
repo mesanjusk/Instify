@@ -1,18 +1,38 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import BASE_URL from '../config';
-import { getThemeColor } from '../utils/storageUtils';
+import {
+  Box,
+  Stack,
+  Typography,
+  TextField,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  InputAdornment,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+} from '@mui/material';
+import { Add, Edit, Delete, Search } from '@mui/icons-material';
 
 const PaymentMode = () => {
   const [list, setList] = useState([]);
   const [form, setForm] = useState({ mode: '', description: '' });
-  const [editingId, setEditingId] = useState(null); 
+  const [editingId, setEditingId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const inputRef = useRef();
-  const themeColor = getThemeColor();
 
   const fetchData = async () => {
     try {
@@ -54,7 +74,7 @@ const PaymentMode = () => {
 
   const handleEdit = (item) => {
     setForm({ mode: item.mode, description: item.description });
-    setEditingId(item._id); 
+    setEditingId(item._id);
     setShowModal(true);
   };
 
@@ -82,111 +102,123 @@ const PaymentMode = () => {
     .filter(item => item.mode.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="min-h-screen p-4" style={{ backgroundColor: themeColor }}>
-      <Toaster />
-      <div className="flex justify-between items-center mb-4">
-        <input
-          placeholder="Search mode"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="border p-2 rounded"
-        />
-        <button
+    <Box sx={{ p: { xs: 2, sm: 3 } }}>
+      {/* Header */}
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        alignItems={{ sm: 'center' }}
+        justifyContent="space-between"
+        spacing={2}
+        mb={3}
+      >
+        <Box>
+          <Typography variant="h5" fontWeight={700}>Payment Modes</Typography>
+          <Typography variant="body2" color="text.secondary">Manage available payment methods</Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
           onClick={() => {
             setForm({ mode: '', description: '' });
             setEditingId(null);
             setShowModal(true);
           }}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
+          sx={{ flexShrink: 0 }}
         >
-          + Mode
-        </button>
-      </div>
+          Add Mode
+        </Button>
+      </Stack>
 
-      <div className="overflow-x-auto max-h-[70vh]">
-      <table className="min-w-full border">
-        <thead className="bg-gray-100 sticky top-0">
-          <tr>
-            
-            <th className="p-2 border">Mode</th>
-            <th className="p-2 border hidden md:table-cell">Description</th>
-            <th className="p-2 border">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.length === 0 ? (
-            <tr>
-              <td colSpan="4" className="text-center py-4 text-gray-500">No modes found</td>
-            </tr>
-          ) : (
-            filtered.map((item) => (
-              <tr key={item._id} className="text-center hover:bg-gray-100 transition">
-                
-                <td className="border p-2 truncate">{item.mode}</td>
-                <td className="border p-2 truncate hidden md:table-cell">{item.description}</td>
-                <td className="border p-2">
-                  <button
-                    onClick={() => handleEdit(item)}
-                    className="bg-yellow-500 text-white px-2 py-1 rounded mr-2"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(item._id)}
-                    className="bg-red-600 text-white px-2 py-1 rounded"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-      </div>
+      {/* Search */}
+      <TextField
+        placeholder="Search mode..."
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        size="small"
+        sx={{ mb: 2, width: { xs: '100%', sm: 320 } }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <Search fontSize="small" />
+            </InputAdornment>
+          ),
+        }}
+      />
 
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 overflow-y-auto z-[60]">
-          <div className="bg-white p-6 rounded w-full max-w-md">
-            <h2 className="text-xl font-semibold mb-4">{editingId ? 'Edit Mode' : 'Add New Mode'}</h2>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <input
-                ref={inputRef}
-                type="text"
+      {/* Table */}
+      <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: '65vh' }}>
+        <Table stickyHeader size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell><strong>Mode</strong></TableCell>
+              <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}><strong>Description</strong></TableCell>
+              <TableCell align="center"><strong>Actions</strong></TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={3} align="center" sx={{ py: 4, color: 'text.secondary' }}>
+                  No modes found
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((item) => (
+                <TableRow key={item._id} hover>
+                  <TableCell>{item.mode}</TableCell>
+                  <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>{item.description}</TableCell>
+                  <TableCell align="center">
+                    <Stack direction="row" spacing={0.5} justifyContent="center">
+                      <IconButton size="small" color="warning" onClick={() => handleEdit(item)} aria-label="Edit">
+                        <Edit fontSize="small" />
+                      </IconButton>
+                      <IconButton size="small" color="error" onClick={() => handleDelete(item._id)} aria-label="Delete">
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={showModal} onClose={() => setShowModal(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{editingId ? 'Edit Mode' : 'Add New Mode'}</DialogTitle>
+        <Box component="form" onSubmit={handleSubmit}>
+          <DialogContent>
+            <Stack spacing={2}>
+              <TextField
+                inputRef={inputRef}
+                label="Mode"
                 value={form.mode}
                 onChange={handleChange('mode')}
-                className="border p-2 w-full"
-                placeholder="Mode"
                 required
+                fullWidth
+                size="small"
               />
-              <textarea
+              <TextField
+                label="Description (optional)"
                 value={form.description}
                 onChange={handleChange('description')}
-                className="border p-2 w-full"
-                placeholder="Description (optional)"
+                fullWidth
+                size="small"
+                multiline
+                rows={3}
               />
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="bg-gray-500 text-white px-4 py-2 rounded"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className={`bg-green-600 text-white px-4 py-2 rounded ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                >
-                  {editingId ? 'Update' : 'Save'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowModal(false)} color="inherit">Cancel</Button>
+            <Button type="submit" variant="contained" color="success" disabled={loading}>
+              {loading ? <CircularProgress size={18} color="inherit" /> : editingId ? 'Update' : 'Save'}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+    </Box>
   );
 };
 

@@ -1,7 +1,24 @@
 import { useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import {
+  Box,
+  Card,
+  CardContent,
+  Stack,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  CircularProgress,
+  Chip,
+} from '@mui/material';
+import { CurrencyRupee, CalendarToday } from '@mui/icons-material';
 
-const BASE_URL = 'https://socialbackend-iucy.onrender.com'; 
+const BASE_URL = 'https://socialbackend-iucy.onrender.com';
 
 const Fees = () => {
   const location = useLocation();
@@ -10,68 +27,150 @@ const Fees = () => {
   const [fees, setFees] = useState([]);
   const [loading, setLoading] = useState(true);
 
- useEffect(() => {
-  const fetchFees = async () => {
-    const institute_uuid = localStorage.getItem('institute_uuid');
-    const today = new Date();
-    const todayStr = today.toLocaleDateString('en-CA'); 
-    console.log('Sending todayStr:', todayStr);
+  useEffect(() => {
+    const fetchFees = async () => {
+      const institute_uuid = localStorage.getItem('institute_uuid');
+      const today = new Date();
+      const todayStr = today.toLocaleDateString('en-CA');
+      console.log('Sending todayStr:', todayStr);
 
+      try {
+        const res = await fetch(
+          `${BASE_URL}/api/fees?institute_uuid=${institute_uuid}&date=${todayStr}`
+        );
+        const data = await res.json();
+        console.log('Fetched fees:', data);
+        setFees(data || []);
+      } catch (err) {
+        console.error('Error fetching fees:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    try {
-      const res = await fetch(
-        `${BASE_URL}/api/fees?institute_uuid=${institute_uuid}&date=${todayStr}`
-      );
-      const data = await res.json();
-      console.log('Fetched fees:', data);
-      setFees(data || []);
-    } catch (err) {
-      console.error('Error fetching fees:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  
     fetchFees();
-  
-}, [filterBy]);
+  }, [filterBy]);
 
+  const totalAmount = fees.reduce((sum, fee) => {
+    return sum + (fee.installmentPlan || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  }, 0);
 
   return (
-    <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">Today's Fees Collection</h2>
+    <Box sx={{ p: { xs: 2, sm: 3 } }}>
+      {/* Page Header */}
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        alignItems={{ sm: 'center' }}
+        justifyContent="space-between"
+        spacing={2}
+        mb={3}
+      >
+        <Box>
+          <Typography variant="h5" fontWeight={700}>
+            Today's Fee Collection
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </Typography>
+        </Box>
+        {!loading && fees.length > 0 && (
+          <Card sx={{ bgcolor: '#4f46e5', color: 'white', minWidth: 160 }}>
+            <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
+              <Typography variant="caption" sx={{ opacity: 0.85 }}>Total Collected</Typography>
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <CurrencyRupee sx={{ fontSize: 18 }} />
+                <Typography variant="h6" fontWeight={700}>{totalAmount.toLocaleString('en-IN')}</Typography>
+              </Stack>
+            </CardContent>
+          </Card>
+        )}
+      </Stack>
+
+      {/* Content */}
       {loading ? (
-        <p>Loading...</p>
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
+          <Stack alignItems="center" spacing={2}>
+            <CircularProgress sx={{ color: '#4f46e5' }} />
+            <Typography color="text.secondary">Loading fee collections...</Typography>
+          </Stack>
+        </Box>
       ) : fees.length === 0 ? (
-        <p>No fee collections today.</p>
+        <Card>
+          <CardContent>
+            <Box display="flex" flexDirection="column" alignItems="center" py={4} gap={1}>
+              <CurrencyRupee sx={{ fontSize: 48, color: 'text.disabled' }} />
+              <Typography variant="h6" color="text.secondary">No fee collections today</Typography>
+              <Typography variant="body2" color="text.disabled">
+                Fee collections for today will appear here
+              </Typography>
+            </Box>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="overflow-auto max-h-[70vh]">
-          <table className="min-w-full table-auto border border-gray-300">
-            <thead className="sticky top-0 bg-gray-100">
-              <tr className="bg-gray-100">
-                <th className="border px-4 py-2">Student Name</th>
-                <th className="border px-4 py-2">Admission ID</th>
-                <th className="border px-4 py-2">Due Date</th>
-                <th className="border px-4 py-2">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
+        <TableContainer component={Paper} sx={{ overflowX: 'auto', borderRadius: 2, boxShadow: 1 }}>
+          <Table stickyHeader size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.50', whiteSpace: 'nowrap' }}>
+                  Student Name
+                </TableCell>
+                <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.50', whiteSpace: 'nowrap' }}>
+                  Admission ID
+                </TableCell>
+                <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.50', whiteSpace: 'nowrap' }}>
+                  <Stack direction="row" alignItems="center" spacing={0.5}>
+                    <CalendarToday sx={{ fontSize: 14 }} />
+                    <span>Due Date</span>
+                  </Stack>
+                </TableCell>
+                <TableCell sx={{ fontWeight: 700, bgcolor: 'grey.50', whiteSpace: 'nowrap' }}>
+                  Amount
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
               {fees.map((fee, idx) =>
                 fee.installmentPlan.map((plan, i) => (
-                  <tr key={`${idx}-${i}`} className="hover:bg-gray-50">
-                    <td className="border px-4 py-2">{fee.studentName}</td>
-                    <td className="border px-4 py-2">{fee.admissionId}</td>
-                    <td className="border px-4 py-2">{new Date(plan.dueDate).toLocaleDateString()}</td>
-                    <td className="border px-4 py-2">₹{plan.amount}</td>
-                  </tr>
+                  <TableRow
+                    key={`${idx}-${i}`}
+                    hover
+                    sx={{ '&:last-child td': { borderBottom: 0 } }}
+                  >
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={500}>
+                        {fee.studentName}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={fee.admissionId}
+                        size="small"
+                        variant="outlined"
+                        sx={{ fontSize: 11 }}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {new Date(plan.dueDate).toLocaleDateString('en-IN')}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography
+                        variant="body2"
+                        fontWeight={700}
+                        sx={{ color: '#10b981' }}
+                      >
+                        ₹{Number(plan.amount).toLocaleString('en-IN')}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
                 ))
               )}
-            </tbody>
-          </table>
-        </div>
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
-    </div>
+    </Box>
   );
 };
 

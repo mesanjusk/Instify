@@ -1,7 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import BASE_URL from '../config';
+import {
+  Box,
+  Card,
+  CardContent,
+  CardActionArea,
+  Stack,
+  Typography,
+  TextField,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  Avatar,
+  Chip,
+  Divider,
+} from '@mui/material';
+import {
+  Add,
+  Close,
+  Edit,
+  Delete,
+  CheckCircle,
+  EventNote,
+  Phone,
+  Search,
+} from '@mui/icons-material';
 
 const Enquiry = () => {
   const [form, setForm] = useState({
@@ -133,192 +161,318 @@ const Enquiry = () => {
   );
 
   return (
-    <div className="min-h-screen p-4 bg-gray-100">
-      <Toaster />
-      <div className="flex gap-2 mb-4">
-        <input
+    <Box sx={{ minHeight: '100vh', bgcolor: 'grey.100', p: { xs: 2, sm: 3 } }}>
+      {/* Page Header */}
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        alignItems={{ sm: 'center' }}
+        justifyContent="space-between"
+        spacing={2}
+        mb={3}
+      >
+        <Box>
+          <Typography variant="h5" fontWeight={700}>Enquiries</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Manage and track student enquiries
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={openAddModal}
+          sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' }, alignSelf: { xs: 'flex-start', sm: 'auto' } }}
+        >
+          Add Enquiry
+        </Button>
+      </Stack>
+
+      {/* Search Bar */}
+      <Box mb={3}>
+        <TextField
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by name or mobile"
-          className="border p-2 w-full max-w-xs rounded"
+          size="small"
+          fullWidth
+          sx={{ maxWidth: 400, bgcolor: 'white' }}
+          InputProps={{
+            startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />,
+          }}
         />
-        <button
-          onClick={openAddModal}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          + Add Enquiry
-        </button>
-      </div>
+      </Box>
 
-      {/* Card View (mobile-friendly like WhatsApp) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+      {/* Enquiry Cards Grid */}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' },
+          gap: 2,
+        }}
+      >
         {filtered.map((e) => (
-          <div
+          <Card
             key={e._id}
-            className="bg-white p-4 rounded shadow cursor-pointer hover:ring hover:ring-blue-400"
-            onClick={() => setActionModal(e)}
+            sx={{
+              cursor: 'pointer',
+              transition: 'box-shadow 0.2s',
+              '&:hover': { boxShadow: 4 },
+            }}
           >
-            <div className="font-semibold text-lg">{e.firstName} {e.lastName}</div>
-            <div className="text-gray-600 text-sm">📞 {e.mobileSelf}</div>
-            <div className="text-gray-500 text-xs">{e.course || 'No course selected'}</div>
-          </div>
+            <CardActionArea onClick={() => setActionModal(e)} sx={{ p: 0 }}>
+              <CardContent>
+                <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
+                  <Avatar sx={{ bgcolor: '#4f46e5', width: 40, height: 40, fontSize: 16 }}>
+                    {(e.firstName?.[0] || '?').toUpperCase()}
+                  </Avatar>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={600} lineHeight={1.2}>
+                      {e.firstName} {e.lastName}
+                    </Typography>
+                    {e.course && (
+                      <Chip
+                        label={e.course}
+                        size="small"
+                        sx={{ fontSize: 10, height: 18, mt: 0.5 }}
+                      />
+                    )}
+                  </Box>
+                </Stack>
+                <Stack direction="row" spacing={0.5} alignItems="center">
+                  <Phone sx={{ fontSize: 14, color: 'text.secondary' }} />
+                  <Typography variant="body2" color="text.secondary">
+                    {e.mobileSelf}
+                  </Typography>
+                </Stack>
+                {!e.course && (
+                  <Typography variant="caption" color="text.disabled">
+                    No course selected
+                  </Typography>
+                )}
+              </CardContent>
+            </CardActionArea>
+          </Card>
         ))}
-      </div>
-      <div className="text-sm text-gray-600 mt-2">
-        Page {page + 1} - Showing {enquiries.length} of {total}
-      </div>
+      </Box>
+
+      {/* Pagination Info */}
+      <Typography variant="body2" color="text.secondary" mt={2}>
+        Page {page + 1} — Showing {enquiries.length} of {total}
+      </Typography>
 
       {/* Add/Edit Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 overflow-y-auto z-[60]">
-          <div className="bg-white p-6 rounded max-w-sm w-full">
-            <h2 className="text-lg font-bold mb-4">{isEditMode ? 'Edit Enquiry' : 'Add Enquiry'}</h2>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-              <input
-                type="text"
-                placeholder="First Name"
+      <Dialog
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="h6" fontWeight={700}>
+            {isEditMode ? 'Edit Enquiry' : 'Add Enquiry'}
+          </Typography>
+          <IconButton onClick={() => setShowModal(false)} size="small">
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <Divider />
+        <form onSubmit={handleSubmit}>
+          <DialogContent>
+            <Stack spacing={2} pt={1}>
+              <TextField
+                label="First Name"
                 value={form.firstName}
                 onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-                className="border p-2 rounded"
                 required
+                fullWidth
+                size="small"
               />
-              <input
-                type="text"
-                placeholder="Last Name"
+              <TextField
+                label="Last Name"
                 value={form.lastName}
                 onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-                className="border p-2 rounded"
+                fullWidth
+                size="small"
               />
-              <input
-                type="text"
-                placeholder="Mobile Number"
+              <TextField
+                label="Mobile Number"
                 value={form.mobileSelf}
                 onChange={(e) => setForm({ ...form, mobileSelf: e.target.value })}
-                className="border p-2 rounded"
                 required
+                fullWidth
+                size="small"
+                InputProps={{
+                  startAdornment: <Phone sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
+                }}
               />
-              <input
-                type="text"
-                placeholder="Course"
+              <TextField
+                label="Course"
                 value={form.course}
                 onChange={(e) => setForm({ ...form, course: e.target.value })}
-                className="border p-2 rounded"
+                fullWidth
+                size="small"
               />
-              <div className="flex gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="bg-gray-400 text-white px-4 py-2 rounded"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="bg-blue-600 text-white px-4 py-2 rounded"
-                >
-                  {isEditMode ? 'Update' : 'Add'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setShowModal(false)} color="inherit">
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' } }}
+            >
+              {isEditMode ? 'Update' : 'Add'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
 
       {/* Follow-Up Modal */}
-      {showFollowUpModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 overflow-y-auto z-[60]">
-          <div className="bg-white p-6 rounded max-w-sm w-full">
-            <h2 className="text-lg font-bold mb-4">Add Follow-Up</h2>
-            <form onSubmit={handleFollowUpSubmit} className="flex flex-col gap-3">
-              <input
+      <Dialog
+        open={showFollowUpModal}
+        onClose={() => setShowFollowUpModal(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="h6" fontWeight={700}>Add Follow-Up</Typography>
+          <IconButton onClick={() => setShowFollowUpModal(false)} size="small">
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <Divider />
+        <form onSubmit={handleFollowUpSubmit}>
+          <DialogContent>
+            <Stack spacing={2} pt={1}>
+              <TextField
+                label="Follow-Up Date"
                 type="date"
                 value={followUpDate}
                 onChange={(e) => setFollowUpDate(e.target.value)}
-                className="border p-2 rounded"
                 required
+                fullWidth
+                size="small"
+                InputLabelProps={{ shrink: true }}
+                InputProps={{
+                  startAdornment: <EventNote sx={{ mr: 1, color: 'text.secondary', fontSize: 18 }} />,
+                }}
               />
-              <textarea
+              <TextField
+                label="Remarks"
                 value={followUpRemarks}
                 onChange={(e) => setFollowUpRemarks(e.target.value)}
-                placeholder="Remarks"
-                className="border p-2 rounded"
                 required
-              ></textarea>
-              <div className="flex gap-2 justify-end">
-                <button
-                  type="button"
-                  onClick={() => setShowFollowUpModal(false)}
-                  className="bg-gray-400 text-white px-4 py-2 rounded"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="bg-blue-600 text-white px-4 py-2 rounded"
-                >
-                  Save
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                fullWidth
+                multiline
+                rows={3}
+                size="small"
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setShowFollowUpModal(false)} color="inherit">
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' } }}
+            >
+              Save
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
 
       {/* Action Modal */}
-      {actionModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 overflow-y-auto z-[60]">
-          <div className="bg-white p-6 rounded max-w-sm w-full">
-            <h2 className="text-lg font-bold mb-4">
-              {actionModal.firstName} {actionModal.lastName}
-            </h2>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => {
-                  openEditModal(actionModal);
-                  setActionModal(null);
-                }}
-                className="bg-yellow-500 text-white px-4 py-2 rounded text-sm"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => {
-                  handleDelete(actionModal._id);
-                  setActionModal(null);
-                }}
-                className="bg-red-500 text-white px-4 py-2 rounded text-sm"
-              >
-                Delete
-              </button>
-              <button
-                onClick={() => {
-                  toast('Convert to Admission logic pending');
-                  setActionModal(null);
-                }}
-                className="bg-green-600 text-white px-4 py-2 rounded text-sm"
-              >
-                Convert
-              </button>
-              <button
-                onClick={() => {
-                  openFollowUpModal(actionModal);
-                  setActionModal(null);
-                }}
-                className="bg-blue-600 text-white px-4 py-2 rounded text-sm"
-              >
-                Follow-Up
-              </button>
-              <button
-                onClick={() => setActionModal(null)}
-                className="bg-gray-400 text-white px-4 py-2 rounded text-sm ml-auto"
-              >
+      <Dialog
+        open={!!actionModal}
+        onClose={() => setActionModal(null)}
+        fullWidth
+        maxWidth="sm"
+      >
+        {actionModal && (
+          <>
+            <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <Avatar sx={{ bgcolor: '#4f46e5' }}>
+                  {(actionModal.firstName?.[0] || '?').toUpperCase()}
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" fontWeight={700} lineHeight={1.2}>
+                    {actionModal.firstName} {actionModal.lastName}
+                  </Typography>
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <Phone sx={{ fontSize: 13, color: 'text.secondary' }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {actionModal.mobileSelf}
+                    </Typography>
+                  </Stack>
+                </Box>
+              </Stack>
+              <IconButton onClick={() => setActionModal(null)} size="small">
+                <Close />
+              </IconButton>
+            </DialogTitle>
+            <Divider />
+            <DialogContent>
+              <Stack direction="row" flexWrap="wrap" gap={1.5} pt={1}>
+                <Button
+                  variant="contained"
+                  startIcon={<Edit />}
+                  onClick={() => {
+                    openEditModal(actionModal);
+                    setActionModal(null);
+                  }}
+                  sx={{ bgcolor: '#f59e0b', '&:hover': { bgcolor: '#d97706' } }}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<Delete />}
+                  onClick={() => {
+                    handleDelete(actionModal._id);
+                    setActionModal(null);
+                  }}
+                  sx={{ bgcolor: '#ef4444', '&:hover': { bgcolor: '#dc2626' } }}
+                >
+                  Delete
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<CheckCircle />}
+                  onClick={() => {
+                    toast('Convert to Admission logic pending');
+                    setActionModal(null);
+                  }}
+                  sx={{ bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
+                >
+                  Convert
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<EventNote />}
+                  onClick={() => {
+                    openFollowUpModal(actionModal);
+                    setActionModal(null);
+                  }}
+                  sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' } }}
+                >
+                  Follow-Up
+                </Button>
+              </Stack>
+            </DialogContent>
+            <DialogActions sx={{ px: 3, pb: 2 }}>
+              <Button onClick={() => setActionModal(null)} color="inherit">
                 Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+              </Button>
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
+    </Box>
   );
 };
 

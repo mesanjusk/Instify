@@ -1,3 +1,5 @@
+import { Avatar, Box, Button, Divider, Paper, Stack, TextField, Typography } from '@mui/material';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import ChatBox from '../components/ChatBox';
 import useWhatsAppChat from '../hooks/useWhatsAppChat';
 import { formatChatLabel } from '../utils/whatsapp';
@@ -19,51 +21,130 @@ const WhatsAppInbox = () => {
   } = useWhatsAppChat();
 
   return (
-    <div className="h-[calc(100vh-11rem)] min-h-[500px] bg-white rounded-lg shadow-sm border border-gray-200 flex flex-col md:flex-row overflow-hidden">
-      <aside className="w-full md:w-80 border-r border-gray-200 bg-[#f8f9fa] flex flex-col">
-        <div className="p-3 border-b border-gray-200 space-y-2">
-          <h1 className="text-lg font-semibold">WhatsApp Inbox</h1>
-          <div className="flex gap-2">
-            <input
+    <Box
+      sx={{
+        height: { xs: 'calc(100vh - 10rem)', md: 'calc(100vh - 8rem)' },
+        minHeight: 500,
+        display: 'flex',
+        flexDirection: { xs: 'column', md: 'row' },
+        bgcolor: 'background.paper',
+        borderRadius: 3,
+        border: '1px solid #e2e8f0',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Sidebar — chat list */}
+      <Box
+        component="aside"
+        sx={{
+          width: { xs: '100%', md: 300 },
+          flexShrink: 0,
+          borderRight: { md: '1px solid #e2e8f0' },
+          borderBottom: { xs: '1px solid #e2e8f0', md: 'none' },
+          bgcolor: '#f8fafc',
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: { xs: 220, md: '100%' },
+        }}
+      >
+        {/* Header */}
+        <Box sx={{ px: 2, py: 2, borderBottom: '1px solid #e2e8f0' }}>
+          <Stack direction="row" alignItems="center" spacing={1} mb={1.5}>
+            <WhatsAppIcon sx={{ color: '#25d366', fontSize: 20 }} />
+            <Typography variant="subtitle2" fontWeight={700}>WhatsApp Inbox</Typography>
+          </Stack>
+          <Stack direction="row" spacing={1}>
+            <TextField
               value={phoneInput}
-              onChange={(event) => setPhoneInput(event.target.value)}
+              onChange={(e) => setPhoneInput(e.target.value)}
               placeholder="Enter phone number"
-              className="flex-1 border rounded px-2 py-1 text-sm"
+              size="small"
+              fullWidth
+              onKeyDown={(e) => e.key === 'Enter' && createOrSelectChat()}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, fontSize: '0.82rem' } }}
             />
-            <button
-              type="button"
+            <Button
               onClick={createOrSelectChat}
-              className="px-3 py-1 rounded bg-green-600 text-white text-sm hover:bg-green-700"
+              size="small"
+              sx={{
+                minWidth: 'auto',
+                px: 2,
+                bgcolor: '#25d366',
+                '&:hover': { bgcolor: '#1ebe57' },
+                flexShrink: 0,
+              }}
             >
               Open
-            </button>
-          </div>
-        </div>
+            </Button>
+          </Stack>
+        </Box>
 
-        <div className="flex-1 overflow-y-auto">
+        {/* Chat list */}
+        <Box sx={{ flex: 1, overflowY: 'auto' }}>
           {chats.length === 0 ? (
-            <p className="text-sm text-gray-500 px-3 py-4">No chats yet. Open a phone number to start.</p>
+            <Box sx={{ px: 3, py: 4, textAlign: 'center' }}>
+              <WhatsAppIcon sx={{ fontSize: 36, color: '#cbd5e1', mb: 1 }} />
+              <Typography variant="caption" color="text.secondary" display="block">
+                No chats yet. Open a phone number to start.
+              </Typography>
+            </Box>
           ) : (
             chats.map((chat, index) => {
               const chatId = chat.chatId || chat.phone || chat;
               const active = (selectedChat?.chatId || selectedChat?.phone || selectedChat) === chatId;
               return (
-                <button
-                  type="button"
-                  key={`${chatId}-${index}`}
-                  onClick={() => setSelectedChat(chat)}
-                  className={`w-full text-left px-3 py-3 border-b border-gray-100 hover:bg-gray-100 ${active ? 'bg-green-50' : ''}`}
-                >
-                  <p className="font-medium text-sm">{formatChatLabel(chat)}</p>
-                  <p className="text-xs text-gray-500">{chatId}</p>
-                </button>
+                <Box key={`${chatId}-${index}`}>
+                  <Box
+                    component="button"
+                    onClick={() => setSelectedChat(chat)}
+                    sx={{
+                      width: '100%',
+                      textAlign: 'left',
+                      px: 2,
+                      py: 1.5,
+                      border: 'none',
+                      borderRadius: 0,
+                      cursor: 'pointer',
+                      bgcolor: active ? '#f0fdf4' : 'transparent',
+                      transition: 'background 0.12s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.5,
+                      '&:hover': { bgcolor: active ? '#f0fdf4' : '#f1f5f9' },
+                    }}
+                  >
+                    <Avatar
+                      sx={{
+                        width: 36, height: 36, flexShrink: 0,
+                        bgcolor: active ? '#25d366' : '#e2e8f0',
+                        fontSize: '0.8rem', fontWeight: 700,
+                        color: active ? '#fff' : '#64748b',
+                      }}
+                    >
+                      {(formatChatLabel(chat) || '?')[0].toUpperCase()}
+                    </Avatar>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Typography variant="body2" fontWeight={active ? 700 : 500} noWrap sx={{ fontSize: '0.825rem' }}>
+                        {formatChatLabel(chat)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: '0.7rem' }}>
+                        {chatId}
+                      </Typography>
+                    </Box>
+                    {active && (
+                      <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#25d366', ml: 'auto', flexShrink: 0 }} />
+                    )}
+                  </Box>
+                  <Divider sx={{ mx: 2 }} />
+                </Box>
               );
             })
           )}
-        </div>
-      </aside>
+        </Box>
+      </Box>
 
-      <section className="flex-1 min-w-0">
+      {/* Main chat area */}
+      <Box component="section" sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <ChatBox
           messages={currentMessages}
           onSendMessage={sendMessage}
@@ -72,8 +153,8 @@ const WhatsAppInbox = () => {
           error={error}
           selectedChatId={selectedChatId}
         />
-      </section>
-    </div>
+      </Box>
+    </Box>
   );
 };
 

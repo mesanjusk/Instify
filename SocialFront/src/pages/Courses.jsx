@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import { Edit, Delete, Add, PictureAsPdf, FileDownload } from '@mui/icons-material';
+import {
+  Box, Card, CardContent, Stack, Typography, TextField, Button,
+  Dialog, DialogTitle, DialogContent, DialogActions, IconButton,
+  Tooltip, InputAdornment, CircularProgress, Chip
+} from '@mui/material';
+import { Edit, Delete, Add, PictureAsPdf, FileDownload, Search } from '@mui/icons-material';
 import BASE_URL from '../config';
-import { getThemeColor } from '../utils/storageUtils';
 
 const Courses = () => {
   const [courses, setCourses] = useState([]);
@@ -23,7 +27,6 @@ const Courses = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const searchTimeout = useRef();
-  const themeColor = getThemeColor();
 
   // Debounced search
   useEffect(() => {
@@ -131,80 +134,193 @@ const Courses = () => {
   };
 
   return (
-    <div className="min-h-screen p-2" style={{ backgroundColor: themeColor }}>
-      <Toaster />
-      <div className="flex items-center gap-2 mb-4 w-full flex-wrap">
-        <input
+    <Box sx={{ minHeight: '100vh', p: { xs: 1, sm: 2 }, bgcolor: 'background.default' }}>
+      {/* Header bar */}
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'stretch', sm: 'center' }}
+        spacing={1}
+        sx={{ mb: 3 }}
+      >
+        <TextField
           placeholder="Search course"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="border p-2 rounded flex-1 min-w-0 max-w-xs"
+          size="small"
+          sx={{ width: { xs: '100%', sm: 320 } }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search fontSize="small" />
+              </InputAdornment>
+            )
+          }}
         />
-        <button onClick={exportPDF} className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700" title="Export PDF">
-          <PictureAsPdf fontSize="small" />
-        </button>
-        <button onClick={exportExcel} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700" title="Export Excel">
-          <FileDownload fontSize="small" />
-        </button>
-        <button
-          onClick={() => { setForm({ name: '', description: '', courseFees: '', examFees: '', duration: '' }); setEditingId(null); setShowModal(true); }}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          title="Add Course"
-        >
-          <Add fontSize="small" />
-        </button>
-      </div>
+        <Stack direction="row" spacing={1} justifyContent={{ xs: 'flex-end', sm: 'flex-end' }}>
+          <Tooltip title="Export PDF">
+            <IconButton
+              onClick={exportPDF}
+              sx={{ bgcolor: '#ef4444', color: '#fff', borderRadius: 1, '&:hover': { bgcolor: '#dc2626' } }}
+            >
+              <PictureAsPdf fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Export Excel">
+            <IconButton
+              onClick={exportExcel}
+              sx={{ bgcolor: '#10b981', color: '#fff', borderRadius: 1, '&:hover': { bgcolor: '#059669' } }}
+            >
+              <FileDownload fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Add Course">
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => {
+                setForm({ name: '', description: '', courseFees: '', examFees: '', duration: '' });
+                setEditingId(null);
+                setShowModal(true);
+              }}
+              sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' }, textTransform: 'none', whiteSpace: 'nowrap' }}
+            >
+              Add Course
+            </Button>
+          </Tooltip>
+        </Stack>
+      </Stack>
 
+      {/* Content */}
       {loading ? (
-        <div className="text-center p-6">Loading courses...</div>
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
+          <CircularProgress sx={{ color: '#4f46e5' }} />
+        </Box>
       ) : filteredCourses.length === 0 ? (
-        <div className="text-center p-6 text-gray-500">No courses found.</div>
+        <Box sx={{ textAlign: 'center', p: 6 }}>
+          <Typography color="text.secondary">No courses found.</Typography>
+        </Box>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(5, 1fr)' },
+            gap: 1.5
+          }}
+        >
           {filteredCourses.map((c) => (
-            <div key={c._id} className="border rounded-lg p-3 shadow hover:shadow-md transition flex flex-col justify-between">
-              <div>
-                <h2 className="font-semibold text-lg text-gray-800">{c.name}</h2>
-                <p className="text-sm text-gray-600 mt-1">{c.description || <span className="italic text-gray-400">No description</span>}</p>
-                <div className="mt-2 text-sm text-gray-700">
-                  <div>Course Fees: <span className="font-medium">{c.courseFees || '-'}</span></div>
-                  <div>Exam Fees: <span className="font-medium">{c.examFees || '-'}</span></div>
-                  <div>Duration: <span className="font-medium">{c.duration || '-'}</span></div>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-3">
-                <button onClick={() => handleEdit(c)} className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600" title="Edit">
-                  <Edit fontSize="small" />
-                </button>
-                <button onClick={() => handleDelete(c._id)} className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700" title="Delete">
-                  <Delete fontSize="small" />
-                </button>
-              </div>
-            </div>
+            <Card
+              key={c._id}
+              sx={{ cursor: 'pointer', '&:hover': { boxShadow: '0 4px 16px rgba(79,70,229,0.12)' } }}
+            >
+              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography variant="subtitle2" fontWeight={700} noWrap>
+                      {c.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                      {c.description || <em>No description</em>}
+                    </Typography>
+                    {c.courseFees && (
+                      <Chip
+                        label={`Course: ₹${c.courseFees}`}
+                        size="small"
+                        sx={{ fontSize: '0.65rem', height: 18, mb: 0.25, bgcolor: 'rgba(79,70,229,0.08)', color: '#4f46e5' }}
+                      />
+                    )}
+                    {c.examFees && (
+                      <Chip
+                        label={`Exam: ₹${c.examFees}`}
+                        size="small"
+                        sx={{ fontSize: '0.65rem', height: 18, mb: 0.25, bgcolor: 'rgba(16,185,129,0.08)', color: '#10b981', ml: 0.5 }}
+                      />
+                    )}
+                    {c.duration && (
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        {c.duration}
+                      </Typography>
+                    )}
+                  </Box>
+                  <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0, ml: 0.5 }}>
+                    <IconButton size="small" onClick={() => handleEdit(c)} sx={{ color: '#f59e0b' }}>
+                      <Edit fontSize="small" />
+                    </IconButton>
+                    <IconButton size="small" onClick={() => handleDelete(c._id)} sx={{ color: '#ef4444' }}>
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </Stack>
+                </Stack>
+              </CardContent>
+            </Card>
           ))}
-        </div>
+        </Box>
       )}
 
-      {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 overflow-y-auto z-[60]">
-          <div className="bg-white p-6 rounded-xl w-full max-w-md shadow-lg">
-            <h2 className="text-xl font-semibold mb-4">{editingId ? 'Edit Course' : 'Add New Course'}</h2>
-            <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
-              <input type="text" value={form.name} onChange={handleChange('name')} className="border p-2 w-full rounded" placeholder="Course Name" required />
-              <textarea value={form.description} onChange={handleChange('description')} className="border p-2 w-full rounded" placeholder="Description" rows={3} />
-              <input type="number" value={form.courseFees} onChange={handleChange('courseFees')} className="border p-2 w-full rounded" placeholder="Course Fees" />
-              <input type="number" value={form.examFees} onChange={handleChange('examFees')} className="border p-2 w-full rounded" placeholder="Exam Fees" />
-              <input type="text" value={form.duration} onChange={handleChange('duration')} className="border p-2 w-full rounded" placeholder="Duration (e.g., 6 months)" />
-              <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setShowModal(false)} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Cancel</button>
-                <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">{editingId ? 'Update' : 'Save'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+      {/* Add/Edit Dialog */}
+      <Dialog open={showModal} onClose={() => setShowModal(false)} fullWidth maxWidth="sm">
+        <DialogTitle sx={{ pb: 1 }}>
+          {editingId ? 'Edit Course' : 'Add New Course'}
+        </DialogTitle>
+        <Box component="form" onSubmit={handleSubmit}>
+          <DialogContent>
+            <Stack spacing={2} sx={{ pt: 1 }}>
+              <TextField
+                label="Course Name"
+                value={form.name}
+                onChange={handleChange('name')}
+                fullWidth
+                required
+              />
+              <TextField
+                label="Description"
+                value={form.description}
+                onChange={handleChange('description')}
+                fullWidth
+                multiline
+                rows={3}
+              />
+              <TextField
+                label="Course Fees"
+                type="number"
+                value={form.courseFees}
+                onChange={handleChange('courseFees')}
+                fullWidth
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">₹</InputAdornment>
+                }}
+              />
+              <TextField
+                label="Exam Fees"
+                type="number"
+                value={form.examFees}
+                onChange={handleChange('examFees')}
+                fullWidth
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">₹</InputAdornment>
+                }}
+              />
+              <TextField
+                label="Duration (e.g., 6 months)"
+                value={form.duration}
+                onChange={handleChange('duration')}
+                fullWidth
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button variant="outlined" onClick={() => setShowModal(false)}>Cancel</Button>
+            <Button
+              type="submit"
+              variant="contained"
+              sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' } }}
+            >
+              {editingId ? 'Update' : 'Save'}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+    </Box>
   );
 };
 
