@@ -1,9 +1,32 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import BASE_URL from '../config';
 import { useApp } from '../context/AppContext';
+import {
+  Box,
+  Card,
+  CardContent,
+  Stack,
+  Typography,
+  TextField,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  InputAdornment,
+  CircularProgress,
+  Chip,
+  Avatar,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+} from '@mui/material';
+import { Add, Edit, Delete, Search, Person } from '@mui/icons-material';
 
 const User = () => {
   const { user, institute, loading } = useApp();
@@ -21,8 +44,6 @@ const User = () => {
   const [fetchLoading, setFetchLoading] = useState(true);
   const navigate = useNavigate();
   const searchTimeout = useRef();
-
-  const themeColor = institute?.theme_color || '#5b5b5b';
 
   // Prevent early redirect until loading is complete
   useEffect(() => {
@@ -164,102 +185,171 @@ const User = () => {
       item.role?.toLowerCase().includes(debouncedSearch.toLowerCase())
   );
 
+  const getRoleColor = (role) => {
+    if (role === 'admin') return 'primary';
+    if (role === 'owner') return 'warning';
+    return 'default';
+  };
+
   // Show loading screen if Context is still initializing
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen text-gray-500">
-        Loading...
-      </div>
+      <Box display="flex" alignItems="center" justifyContent="center" minHeight="100vh">
+        <CircularProgress />
+      </Box>
     );
   }
 
   return (
-    <div className="min-h-screen p-2" style={{ backgroundColor: themeColor }}>
-      <Toaster position="top-right" />
-      <div className="flex items-center gap-2 mb-4 w-full">
-        <input
-          placeholder="Search user"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="border p-2 rounded flex-1 min-w-0"
-        />
-        <button
+    <Box sx={{ p: 2 }}>
+      {/* Header */}
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        alignItems={{ sm: 'center' }}
+        justifyContent="space-between"
+        spacing={2}
+        mb={3}
+      >
+        <Box>
+          <Typography variant="h5" fontWeight={700}>Users</Typography>
+          <Typography variant="body2" color="text.secondary">Manage admin and staff accounts</Typography>
+        </Box>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
           onClick={() => { resetForm(); setShowModal(true); }}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 flex-shrink-0"
+          sx={{ flexShrink: 0 }}
         >
-          + 
-        </button>
-      </div>
+          Add User
+        </Button>
+      </Stack>
 
+      {/* Search */}
+      <TextField
+        placeholder="Search user..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        size="small"
+        sx={{ mb: 3, width: { xs: '100%', sm: 320 } }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <Search fontSize="small" />
+            </InputAdornment>
+          ),
+        }}
+      />
+
+      {/* Content */}
       {fetchLoading ? (
-        <div className="text-center p-6">Loading users...</div>
+        <Box display="flex" justifyContent="center" p={6}>
+          <CircularProgress />
+        </Box>
       ) : filteredUsers.length === 0 ? (
-        <div className="text-center p-6 text-gray-500">No users found.</div>
+        <Box textAlign="center" p={6}>
+          <Typography color="text.secondary">No users found.</Typography>
+        </Box>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: 'repeat(2, 1fr)',
+              sm: 'repeat(3, 1fr)',
+              md: 'repeat(4, 1fr)',
+            },
+            gap: 2,
+          }}
+        >
           {filteredUsers.map((item) => (
-            <div key={item._id} className="border rounded-lg p-3 shadow hover:shadow-md transition flex flex-col justify-between">
-              <div>
-                <h2 className="font-semibold text-lg text-gray-800">{item.name}</h2>
-                <div className="text-sm text-gray-700 mt-1">
-                  <div>Mobile: <span className="font-medium">{item.mobile}</span></div>
-                  <div>Role: <span className="font-medium">{item.role}</span></div>
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 mt-2">
-                <button
-                  onClick={() => handleEdit(item)}
-                  className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-                  aria-label="Edit"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(item._id)}
-                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                  aria-label="Delete"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
+            <Card key={item._id} variant="outlined" sx={{ '&:hover': { boxShadow: 3 }, transition: 'box-shadow 0.2s' }}>
+              <CardContent sx={{ pb: '8px !important' }}>
+                <Stack direction="row" spacing={1} alignItems="center" mb={1}>
+                  <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main', fontSize: 14 }}>
+                    <Person fontSize="small" />
+                  </Avatar>
+                  <Typography variant="subtitle2" fontWeight={600} noWrap>
+                    {item.name}
+                  </Typography>
+                </Stack>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  {item.mobile}
+                </Typography>
+                <Chip
+                  label={item.role}
+                  color={getRoleColor(item.role)}
+                  size="small"
+                  sx={{ mt: 1, mb: 1, textTransform: 'capitalize' }}
+                />
+                <Stack direction="row" spacing={1} justifyContent="flex-end">
+                  <IconButton size="small" color="warning" onClick={() => handleEdit(item)} aria-label="Edit">
+                    <Edit fontSize="small" />
+                  </IconButton>
+                  <IconButton size="small" color="error" onClick={() => handleDelete(item._id)} aria-label="Delete">
+                    <Delete fontSize="small" />
+                  </IconButton>
+                </Stack>
+              </CardContent>
+            </Card>
           ))}
-        </div>
+        </Box>
       )}
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 overflow-y-auto z-[60]">
-          <div className="bg-white p-6 rounded-xl w-full max-w-md shadow-lg">
-            <h2 className="text-xl font-semibold mb-4">{editingId ? 'Edit User' : 'Add New User'}</h2>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <input type="text" value={form.name} onChange={handleInputChange('name')} className="w-full p-2 border rounded" placeholder="Name" required />
-              <input type="text" value={form.password} onChange={handleInputChange('password')} className="w-full p-2 border rounded" placeholder="Password" required />
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]{10}"
-                maxLength={10}
+      {/* Add/Edit Dialog */}
+      <Dialog open={showModal} onClose={() => setShowModal(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>{editingId ? 'Edit User' : 'Add New User'}</DialogTitle>
+        <Box component="form" onSubmit={handleSubmit}>
+          <DialogContent>
+            <Stack spacing={2}>
+              <TextField
+                label="Name"
+                value={form.name}
+                onChange={handleInputChange('name')}
+                required
+                fullWidth
+                size="small"
+              />
+              <TextField
+                label="Password"
+                value={form.password}
+                onChange={handleInputChange('password')}
+                required
+                fullWidth
+                size="small"
+              />
+              <TextField
+                label="Mobile No."
                 value={form.mobile}
                 onChange={handleInputChange('mobile')}
-                className="w-full p-2 border rounded"
-                placeholder="Mobile No."
+                inputProps={{ inputMode: 'numeric', pattern: '[0-9]{10}', maxLength: 10 }}
                 required
+                fullWidth
+                size="small"
               />
-              <select value={form.role} onChange={handleInputChange('role')} className="w-full p-2 border rounded" required>
-                <option value="">-- Select Role --</option>
-                <option value="admin">Admin</option>
-                <option value="staff">Staff</option>
-                <option value="owner">Owner</option>
-              </select>
-              <div className="flex justify-end gap-2">
-                <button type="button" onClick={() => setShowModal(false)} className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">Cancel</button>
-                <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">{editingId ? 'Update' : 'Save'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+              <FormControl fullWidth size="small" required>
+                <InputLabel>Role</InputLabel>
+                <Select
+                  value={form.role}
+                  onChange={handleInputChange('role')}
+                  label="Role"
+                >
+                  <MenuItem value="">-- Select Role --</MenuItem>
+                  <MenuItem value="admin">Admin</MenuItem>
+                  <MenuItem value="staff">Staff</MenuItem>
+                  <MenuItem value="owner">Owner</MenuItem>
+                </Select>
+              </FormControl>
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setShowModal(false)} color="inherit">Cancel</Button>
+            <Button type="submit" variant="contained" color="success">
+              {editingId ? 'Update' : 'Save'}
+            </Button>
+          </DialogActions>
+        </Box>
+      </Dialog>
+    </Box>
   );
 };
 
