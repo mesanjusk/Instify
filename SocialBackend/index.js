@@ -28,14 +28,24 @@ const allowedOrigins = process.env.CORS_ORIGINS
   : [
       'http://localhost:5173',
       'http://localhost:3000',
-      'https://app.sanjusk.in',
       'https://instify.in',
       'https://www.instify.in',
+      'https://app.instify.in',
+      'https://app.sanjusk.in',
+      'https://sanjusk.in',
+      'https://www.sanjusk.in',
     ];
+
+const isOriginAllowed = (origin) => {
+  if (!origin) return true; // server-to-server / curl
+  if (allowedOrigins.includes(origin)) return true;
+  // Allow any subdomain of instify.in or sanjusk.in
+  return /^https?:\/\/([a-z0-9-]+\.)?(instify\.in|sanjusk\.in)$/.test(origin);
+};
 
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+    if (isOriginAllowed(origin)) return cb(null, true);
     cb(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
