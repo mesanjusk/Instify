@@ -81,12 +81,11 @@ exports.createLead = async (req, res) => {
 
 exports.getLeads = async (req, res) => {
   try {
-    const { institute_uuid, filterBy } = req.query;
+    const { institute_uuid, filterBy, page = 1, limit = 50 } = req.query;
 
     const match = {};
     if (institute_uuid) match.institute_uuid = institute_uuid;
 
-    // Filter by today's followupDate if requested
     if (filterBy === 'today') {
       const start = new Date();
       start.setHours(0, 0, 0, 0);
@@ -95,21 +94,34 @@ exports.getLeads = async (req, res) => {
       match.followupDate = { $gte: start, $lte: end };
     }
 
-    const leads = await Lead.aggregate([
-      { $match: match },
-      {
-        $lookup: {
-          from: 'students',
-          localField: 'student_uuid',
-          foreignField: 'uuid',
-          as: 'studentData'
-        }
-      },
-      { $unwind: "$studentData" },
-      { $sort: { createdAt: -1 } }
+    const pageNum = Math.max(1, parseInt(page, 10));
+    const pageSize = Math.min(200, Math.max(1, parseInt(limit, 10)));
+    const skip = (pageNum - 1) * pageSize;
+
+    const [leads, total] = await Promise.all([
+      Lead.aggregate([
+        { $match: match },
+        {
+          $lookup: {
+            from: 'students',
+            localField: 'student_uuid',
+            foreignField: 'uuid',
+            as: 'studentData',
+          },
+        },
+        { $unwind: '$studentData' },
+        { $sort: { createdAt: -1 } },
+        { $skip: skip },
+        { $limit: pageSize },
+      ]),
+      Lead.countDocuments(match),
     ]);
 
-    res.json({ success: true, data: leads });
+    res.json({
+      success: true,
+      data: leads,
+      pagination: { page: pageNum, limit: pageSize, total, pages: Math.ceil(total / pageSize) },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: 'Server Error' });

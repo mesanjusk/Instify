@@ -3,7 +3,7 @@ import { useApp } from '../context/AppContext';
 import { useNavigate, useLocation } from "react-router-dom";
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import UserMenu from './navbar/UserMenu';
-import axios from 'axios';
+import apiClient from '../apiClient';
 
 import {
   FiMenu,
@@ -59,7 +59,7 @@ useEffect(() => {
         if (!userName) return;
 
         try {
-            const response = await axios.get(`https://socialbackend-iucy.onrender.com/api/attendance/getTodayAttendance/${userName}`);
+            const response = await apiClient.get(`/api/attendance/getTodayAttendance/${userName}`);
             const data = response.data;
 
             if (!data.success || !Array.isArray(data.flow)) {

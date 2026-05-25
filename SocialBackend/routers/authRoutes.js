@@ -8,6 +8,7 @@ const { body } = require('express-validator');
 const validate = require('../middleware/validate');
 const { generateMagicToken, verifyMagicToken, buildMagicLink } = require('../utils/magicLink');
 const baileysService = require('../services/baileysService');
+const { authenticate, roleGuard } = require('../middleware/roleGuard');
 
 require('dotenv').config();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -140,12 +141,15 @@ router.post('/institute/forgot-password', async (req, res) => {
       user_id: user._id
     };
 
-    console.log(`OTP for ${mobile} is ${otp}`);
+    // OTP is intentionally not returned in the response.
+    // In production, deliver it via SMS/WhatsApp. Log only in development.
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[DEV] OTP for ${mobile}: ${otp}`);
+    }
 
     res.status(200).json({
       message: 'verified',
       user_id: user._id,
-      otp
     });
   } catch (err) {
     console.error('Forgot password error:', err);
@@ -162,7 +166,8 @@ router.post('/institute/reset-password/:id', async (req, res) => {
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    if (user.login_password !== old_password) {
+    const isOldPasswordValid = await bcrypt.compare(old_password, user.login_password);
+    if (!isOldPasswordValid) {
       return res.status(401).json({ message: 'Old password is incorrect' });
     }
 
@@ -239,7 +244,7 @@ router.post('/register',
 });
 
 // ✅ Get users by institute_uuid
-router.get('/GetUserList/:institute_id', async (req, res) => {
+router.get('/GetUserList/:institute_id', authenticate, roleGuard('superadmin', 'owner', 'admin'), async (req, res) => {
   const { institute_id } = req.params;
   try {
     const users = await User.find({ institute_uuid: institute_id });
@@ -280,9 +285,14 @@ router.put('/:id', async (req, res) => {
   const { name, mobile, role, password } = req.body;
 
   try {
+    const update = { name, mobile, role };
+    if (password) {
+      update.login_password = await bcrypt.hash(password, 10);
+    }
+
     const updatedUser = await User.findOneAndUpdate(
       { _id: req.params.id },
-      { name, mobile, role, login_password: password },
+      update,
       { new: true }
     );
 
