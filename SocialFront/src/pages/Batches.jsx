@@ -137,7 +137,7 @@ const Batches = () => {
                 setEditingId(null);
                 setShowModal(true);
               }}
-              sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' }, textTransform: 'none' }}
+              sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' }, textTransform: 'none' }}
             >
               Add Batch
             </Button>
@@ -148,7 +148,7 @@ const Batches = () => {
       {/* Content */}
       {fetchLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
-          <CircularProgress sx={{ color: '#4f46e5' }} />
+          <CircularProgress sx={{ color: '#1a7a4a' }} />
         </Box>
       ) : filtered.length === 0 ? (
         <Box sx={{ textAlign: 'center', p: 6 }}>
@@ -165,7 +165,7 @@ const Batches = () => {
           {filtered.map((b) => (
             <Card
               key={b._id}
-              sx={{ cursor: 'pointer', '&:hover': { boxShadow: '0 4px 16px rgba(79,70,229,0.12)' } }}
+              sx={{ cursor: 'pointer', '&:hover': { boxShadow: '0 4px 16px rgba(26,122,74,0.12)' } }}
             >
               <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start">

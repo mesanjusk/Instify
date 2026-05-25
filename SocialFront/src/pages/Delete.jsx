@@ -788,7 +788,7 @@ const AddAdmission = () => {
           type="submit"
           form="admission-main-form"
           variant="contained"
-          sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' } }}
+          sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' } }}
         >
           {editingId ? 'Update' : 'Submit'}
         </Button>

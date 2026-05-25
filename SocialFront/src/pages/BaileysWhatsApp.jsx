@@ -1033,7 +1033,7 @@ export default function BaileysWhatsApp() {
           transformOrigin={{ vertical: 'bottom', horizontal: 'left' }}
           PaperProps={{ sx: { bgcolor: WA_SURFACE, color: WA_TEXT, minWidth: 180, boxShadow: '0 4px 20px rgba(0,0,0,0.15)' } }}>
           <MenuItem onClick={() => { imageInputRef.current?.click(); setAttachMenu(null); }}>
-            <ListItemIcon><ImageOutlinedIcon sx={{ color: '#a855f7', fontSize: 20 }} /></ListItemIcon>
+            <ListItemIcon><ImageOutlinedIcon sx={{ color: '#f0c040', fontSize: 20 }} /></ListItemIcon>
             <ListItemText>Photo / Video</ListItemText>
           </MenuItem>
           <MenuItem onClick={() => { docInputRef.current?.click(); setAttachMenu(null); }}>

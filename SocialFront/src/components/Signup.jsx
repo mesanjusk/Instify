@@ -287,7 +287,7 @@ const Signup = () => {
           Already have an account?
           <button
             onClick={() => navigate('/')}
-            className="ml-1 text-blue-600 hover:underline font-medium"
+            className="ml-1 hover:underline font-medium" style={{ color: '#1a7a4a' }}
           >
             Login
           </button>

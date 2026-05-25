@@ -69,7 +69,7 @@ const Fees = () => {
           </Typography>
         </Box>
         {!loading && fees.length > 0 && (
-          <Card sx={{ bgcolor: '#4f46e5', color: 'white', minWidth: 160 }}>
+          <Card sx={{ bgcolor: '#1a7a4a', color: 'white', minWidth: 160 }}>
             <CardContent sx={{ py: 1.5, px: 2, '&:last-child': { pb: 1.5 } }}>
               <Typography variant="caption" sx={{ opacity: 0.85 }}>Total Collected</Typography>
               <Stack direction="row" alignItems="center" spacing={0.5}>
@@ -85,7 +85,7 @@ const Fees = () => {
       {loading ? (
         <Box display="flex" justifyContent="center" alignItems="center" minHeight={200}>
           <Stack alignItems="center" spacing={2}>
-            <CircularProgress sx={{ color: '#4f46e5' }} />
+            <CircularProgress sx={{ color: '#1a7a4a' }} />
             <Typography color="text.secondary">Loading fee collections...</Typography>
           </Stack>
         </Box>

@@ -494,7 +494,7 @@ const WhatsAppAdminPage = () => {
                 startIcon={ruleSaving ? <CircularProgress size={16} color="inherit" /> : <AddIcon />}
                 onClick={handleCreateRule}
                 disabled={ruleSaving}
-                sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' }, alignSelf: 'flex-start' }}
+                sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' }, alignSelf: 'flex-start' }}
               >
                 {ruleSaving ? 'Saving...' : 'Save Auto Reply'}
               </Button>

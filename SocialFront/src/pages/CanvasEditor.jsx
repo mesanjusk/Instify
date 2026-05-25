@@ -86,7 +86,7 @@ async function getFabric() {
 
 /* ─── Doc types ───────────────────────────────────────────────── */
 const DOC_TYPES = [
-  { key: 'id_card',     label: 'ID Card',      icon: <BadgeIcon sx={{ fontSize: 28 }} />,             color: '#4f46e5', color2: '#818cf8', dims: { w: 340, h: 215 },
+  { key: 'id_card',     label: 'ID Card',      icon: <BadgeIcon sx={{ fontSize: 28 }} />,             color: '#1a7a4a', color2: '#34c97e', dims: { w: 340, h: 215 },
     thumb: 'https://images.unsplash.com/photo-1586282391129-76a6df230234?w=200&q=60',
     desc: 'Student & staff identity cards' },
   { key: 'certificate', label: 'Certificate',   icon: <WorkspacePremiumIcon sx={{ fontSize: 28 }} />,  color: '#059669', color2: '#6ee7b7', dims: { w: 794, h: 562 },
@@ -102,8 +102,8 @@ const DOC_TYPES = [
 
 const TEMPLATES = {
   id_card: [
-    { id: 'indigo', label: 'Classic',  thumb: '#4f46e5', headerColor: '#4f46e5', bg: '#f0f4ff' },
-    { id: 'dark',   label: 'Premium',  thumb: '#0f172a', headerColor: '#0f172a', bg: '#1e293b' },
+    { id: 'indigo', label: 'Classic',  thumb: '#1a7a4a', headerColor: '#1a7a4a', bg: '#f4f9f6' },
+    { id: 'dark',   label: 'Premium',  thumb: '#0a1a0f', headerColor: '#0a1a0f', bg: '#1e293b' },
     { id: 'green',  label: 'Fresh',    thumb: '#059669', headerColor: '#059669', bg: '#f0fdf4' },
     { id: 'rose',   label: 'Rose',     thumb: '#be123c', headerColor: '#be123c', bg: '#fff1f2' },
   ],
@@ -114,12 +114,12 @@ const TEMPLATES = {
   ],
   result: [
     { id: 'slate',  label: 'Formal', thumb: '#1e293b', headerColor: '#1e293b', bg: '#ffffff' },
-    { id: 'indigo', label: 'Modern', thumb: '#4338ca', headerColor: '#4338ca', bg: '#f5f3ff' },
+    { id: 'indigo', label: 'Modern', thumb: '#25a066', headerColor: '#25a066', bg: '#fff8e1' },
   ],
   admit_card: [
     { id: 'red',    label: 'Alert Red', thumb: '#dc2626', headerColor: '#dc2626', bg: '#fff5f5' },
-    { id: 'indigo', label: 'Classic',   thumb: '#4f46e5', headerColor: '#4f46e5', bg: '#f0f4ff' },
-    { id: 'dark',   label: 'Dark',      thumb: '#0f172a', headerColor: '#0f172a', bg: '#f8fafc' },
+    { id: 'indigo', label: 'Classic',   thumb: '#1a7a4a', headerColor: '#1a7a4a', bg: '#f4f9f6' },
+    { id: 'dark',   label: 'Dark',      thumb: '#0a1a0f', headerColor: '#0a1a0f', bg: '#f8fafc' },
   ],
 };
 
@@ -340,7 +340,7 @@ function HomeNavItem({ icon, label, active, onClick }) {
     <Box onClick={onClick} sx={{
       flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
       gap: 0.3, py: 1, cursor: 'pointer',
-      color: active ? '#7c3aed' : '#64748b',
+      color: active ? '#d4a017' : '#64748b',
       '&:hover': { color: '#1e293b' },
       transition: 'color 0.15s',
     }}>
@@ -357,8 +357,8 @@ function TemplateTile({ tpl, selected, onClick }) {
       <Box sx={{
         width: 56, height: 72, borderRadius: 1.5,
         background: `linear-gradient(160deg, ${tpl.thumb}cc, ${tpl.thumb})`,
-        border: selected ? `2.5px solid #a78bfa` : '2.5px solid transparent',
-        boxShadow: selected ? `0 0 0 3px #a78bfa44` : 'none',
+        border: selected ? `2.5px solid #f0c040` : '2.5px solid transparent',
+        boxShadow: selected ? `0 0 0 3px #f0c04044` : 'none',
         transition: 'all 0.15s',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
@@ -397,7 +397,7 @@ function LayoutPreview({ layout, size = 56 }) {
       <rect width={dW} height={dH} fill="#f8fafc" />
       {cells.map(cell => (
         <rect key={cell.key} x={cell.x} y={cell.y} width={Math.max(0, cell.w)} height={Math.max(0, cell.h)}
-          fill="#ddd6fe" stroke="#7c3aed" strokeWidth="0.6" rx="0.8" />
+          fill="#ddd6fe" stroke="#d4a017" strokeWidth="0.6" rx="0.8" />
       ))}
     </svg>
   );
@@ -1007,9 +1007,9 @@ export default function DocumentMaker() {
     const { fabric } = await getFabric();
     const fc = fabricRef.current; if (!fc) return;
     let obj;
-    if (shape === 'rect')     obj = new fabric.Rect({ left: 60, top: 60, width: 100, height: 60, fill: '#e0e7ff', stroke: '#4f46e5', strokeWidth: 1.5, rx: 4, ry: 4 });
-    else if (shape === 'circle')   obj = new fabric.Circle({ left: 60, top: 60, radius: 40, fill: '#e0e7ff', stroke: '#4f46e5', strokeWidth: 1.5 });
-    else if (shape === 'triangle') obj = new fabric.Triangle({ left: 60, top: 60, width: 80, height: 80, fill: '#e0e7ff', stroke: '#4f46e5', strokeWidth: 1.5 });
+    if (shape === 'rect')     obj = new fabric.Rect({ left: 60, top: 60, width: 100, height: 60, fill: '#e8f5e9', stroke: '#1a7a4a', strokeWidth: 1.5, rx: 4, ry: 4 });
+    else if (shape === 'circle')   obj = new fabric.Circle({ left: 60, top: 60, radius: 40, fill: '#e8f5e9', stroke: '#1a7a4a', strokeWidth: 1.5 });
+    else if (shape === 'triangle') obj = new fabric.Triangle({ left: 60, top: 60, width: 80, height: 80, fill: '#e8f5e9', stroke: '#1a7a4a', strokeWidth: 1.5 });
     else if (shape === 'line')     obj = new fabric.Line([0, 0, 150, 0], { left: 60, top: 80, stroke: '#1e293b', strokeWidth: 2 });
     if (obj) { fc.add(obj); fc.setActiveObject(obj); fc.renderAll(); pushHistory(); setIsDirty(true); }
   }
@@ -1021,14 +1021,14 @@ export default function DocumentMaker() {
     const h = shapeType === 'circle' ? 130 : 180;
     let border;
     if (shapeType === 'circle') {
-      border = new fabric.Circle({ radius: w / 2, fill: '#ede9fe', stroke: '#7c3aed', strokeWidth: 2, strokeDashArray: [8, 4] });
+      border = new fabric.Circle({ radius: w / 2, fill: '#fff8e1', stroke: '#d4a017', strokeWidth: 2, strokeDashArray: [8, 4] });
     } else if (shapeType === 'rounded') {
-      border = new fabric.Rect({ width: w, height: h, fill: '#ede9fe', stroke: '#7c3aed', strokeWidth: 2, strokeDashArray: [8, 4], rx: 24, ry: 24 });
+      border = new fabric.Rect({ width: w, height: h, fill: '#fff8e1', stroke: '#d4a017', strokeWidth: 2, strokeDashArray: [8, 4], rx: 24, ry: 24 });
     } else {
-      border = new fabric.Rect({ width: w, height: h, fill: '#ede9fe', stroke: '#7c3aed', strokeWidth: 2, strokeDashArray: [8, 4], rx: 4, ry: 4 });
+      border = new fabric.Rect({ width: w, height: h, fill: '#fff8e1', stroke: '#d4a017', strokeWidth: 2, strokeDashArray: [8, 4], rx: 4, ry: 4 });
     }
     const cx = w / 2; const cy = shapeType === 'circle' ? w / 2 : h / 2;
-    const lbl = new fabric.Text('+ Photo', { left: cx, top: cy, originX: 'center', originY: 'center', fontSize: 12, fill: '#7c3aed', fontFamily: 'Arial', fontWeight: 'bold', selectable: false, evented: false });
+    const lbl = new fabric.Text('+ Photo', { left: cx, top: cy, originX: 'center', originY: 'center', fontSize: 12, fill: '#d4a017', fontFamily: 'Arial', fontWeight: 'bold', selectable: false, evented: false });
     const grp = new fabric.Group([border, lbl], { left: 60, top: 60 });
     grp.__frameType = shapeType;
     fc.add(grp); fc.setActiveObject(grp); fc.renderAll(); pushHistory(); setIsDirty(true);
@@ -1155,7 +1155,7 @@ export default function DocumentMaker() {
       const frame = new fabric.Rect({
         left: fc.width / 2 - 40, top: fc.height / 2 - 50,
         width: 80, height: 100,
-        fill: '#f5f3ff', stroke: '#7c3aed', strokeWidth: 2,
+        fill: '#fff8e1', stroke: '#d4a017', strokeWidth: 2,
         strokeDashArray: [5, 3], rx: 4, ry: 4,
         __placeholder: 'photo', __frameType: 'rect',
       });
@@ -1164,8 +1164,8 @@ export default function DocumentMaker() {
       const obj = new fabric.IText(`{{${field}}}`, {
         left: fc.width / 2, top: fc.height / 2,
         originX: 'center', originY: 'center',
-        fontSize: 14, fill: '#7c3aed',
-        backgroundColor: '#f5f3ff', fontFamily: 'Arial',
+        fontSize: 14, fill: '#d4a017',
+        backgroundColor: '#fff8e1', fontFamily: 'Arial',
         __placeholder: field,
       });
       fc.add(obj); fc.setActiveObject(obj);
@@ -1484,7 +1484,7 @@ export default function DocumentMaker() {
             <ArrowBackIosNewIcon sx={{ fontSize: 16 }} />
           </IconButton>
           <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '1rem', flex: 1 }}>Document Maker</Typography>
-          <Chip size="small" label="Pro" sx={{ bgcolor: '#7c3aed22', color: '#7c3aed', fontSize: '0.65rem', height: 22, fontWeight: 600 }} />
+          <Chip size="small" label="Pro" sx={{ bgcolor: '#d4a01722', color: '#d4a017', fontSize: '0.65rem', height: 22, fontWeight: 600 }} />
         </Box>
         <Box sx={{ px: 2, pt: 1.5, pb: 1, bgcolor: '#f8fafc', flexShrink: 0 }}>
           {/* Search */}
@@ -1500,7 +1500,7 @@ export default function DocumentMaker() {
                 bgcolor: '#ffffff', borderRadius: 3, color: '#1e293b',
                 '& fieldset': { borderColor: '#e2e8f0' },
                 '&:hover fieldset': { borderColor: '#cbd5e1' },
-                '&.Mui-focused fieldset': { borderColor: '#7c3aed' },
+                '&.Mui-focused fieldset': { borderColor: '#d4a017' },
               },
               '& .MuiInputBase-input::placeholder': { color: '#94a3b8', opacity: 1 },
             }}
@@ -1527,7 +1527,7 @@ export default function DocumentMaker() {
               <Typography sx={{ color: '#64748b', fontSize: '0.72rem', mb: 1.25 }}>Create documents for an entire batch in one click</Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1 }}>
                 {[
-                  { label: 'ID Cards', icon: <BadgeIcon sx={{ color: '#fff', fontSize: 18 }} />, key: 'id_card', bg: 'linear-gradient(135deg, #4f46e5, #7c3aed)' },
+                  { label: 'ID Cards', icon: <BadgeIcon sx={{ color: '#fff', fontSize: 18 }} />, key: 'id_card', bg: 'linear-gradient(135deg, #1a7a4a, #d4a017)' },
                   { label: 'Certificates', icon: <WorkspacePremiumIcon sx={{ color: '#fff', fontSize: 18 }} />, key: 'certificate', bg: 'linear-gradient(135deg, #d97706, #f59e0b)' },
                   { label: 'Admit Cards', icon: <AssignmentIcon sx={{ color: '#fff', fontSize: 18 }} />, key: 'admit_card', bg: 'linear-gradient(135deg, #059669, #10b981)' },
                   { label: 'Results', icon: <AutoAwesomeIcon sx={{ color: '#fff', fontSize: 18 }} />, key: 'result', bg: 'linear-gradient(135deg, #dc2626, #ef4444)' },
@@ -1553,14 +1553,14 @@ export default function DocumentMaker() {
                 sx={{
                   borderRadius: 2.5, p: 2, cursor: 'pointer',
                   border: '1.5px solid #e2e8f0',
-                  background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)',
+                  background: 'linear-gradient(135deg, #fff8e1, #fff8e1)',
                   display: 'flex', alignItems: 'center', gap: 2,
-                  '&:hover': { borderColor: '#7c3aed55', boxShadow: '0 2px 12px rgba(124,58,237,0.12)' },
+                  '&:hover': { borderColor: '#d4a01755', boxShadow: '0 2px 12px rgba(212,160,23,0.12)' },
                   transition: 'all 0.15s',
                 }}
               >
-                <Box sx={{ width: 44, height: 44, borderRadius: 2, bgcolor: '#7c3aed22', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <BadgeOutlinedIcon sx={{ color: '#7c3aed', fontSize: 22 }} />
+                <Box sx={{ width: 44, height: 44, borderRadius: 2, bgcolor: '#d4a01722', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <BadgeOutlinedIcon sx={{ color: '#d4a017', fontSize: 22 }} />
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>ID Photo Manager</Typography>
@@ -1600,7 +1600,7 @@ export default function DocumentMaker() {
               ) : (
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
                   {savedDesigns.map(d => (
-                    <Box key={d.design_uuid} sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid #e2e8f0', cursor: 'pointer', '&:hover': { border: '1px solid #7c3aed55', boxShadow: '0 2px 8px rgba(124,58,237,0.1)' } }}>
+                    <Box key={d.design_uuid} sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid #e2e8f0', cursor: 'pointer', '&:hover': { border: '1px solid #d4a01755', boxShadow: '0 2px 8px rgba(212,160,23,0.1)' } }}>
                       <Box onClick={() => loadDesign(d)} sx={{ height: 80, bgcolor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                         {d.thumbnail ? <img src={d.thumbnail} alt={d.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} /> : <AutoAwesomeIcon sx={{ color: '#cbd5e1', fontSize: 28 }} />}
                       </Box>
@@ -1627,15 +1627,15 @@ export default function DocumentMaker() {
               {isAdmin && (
                 <Box
                   onClick={() => setUploadDialog(true)}
-                  sx={{ mb: 2.5, borderRadius: 2.5, border: '2px dashed #7c3aed66', bgcolor: '#7c3aed08',
+                  sx={{ mb: 2.5, borderRadius: 2.5, border: '2px dashed #d4a01766', bgcolor: '#d4a01708',
                     p: 2, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2,
-                    '&:hover': { bgcolor: '#7c3aed14', borderColor: '#7c3aed99' } }}
+                    '&:hover': { bgcolor: '#d4a01714', borderColor: '#d4a01799' } }}
                 >
-                  <Box sx={{ width: 44, height: 44, borderRadius: 2, bgcolor: '#7c3aed22', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <AddPhotoAlternateIcon sx={{ color: '#7c3aed', fontSize: 22 }} />
+                  <Box sx={{ width: 44, height: 44, borderRadius: 2, bgcolor: '#d4a01722', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <AddPhotoAlternateIcon sx={{ color: '#d4a017', fontSize: 22 }} />
                   </Box>
                   <Box>
-                    <Typography sx={{ color: '#7c3aed', fontWeight: 700, fontSize: '0.875rem' }}>Upload Custom Template</Typography>
+                    <Typography sx={{ color: '#d4a017', fontWeight: 700, fontSize: '0.875rem' }}>Upload Custom Template</Typography>
                     <Typography sx={{ color: '#64748b', fontSize: '0.72rem', mt: 0.25 }}>Add your own Corel Draw / SVG / image templates</Typography>
                   </Box>
                 </Box>
@@ -1647,7 +1647,7 @@ export default function DocumentMaker() {
                     {(TEMPLATES[dt.key] || []).map((tpl, i) => (
                       <Box key={tpl.id} onClick={() => openEditor(dt.key, i)} sx={{
                         width: 96, flexShrink: 0, cursor: 'pointer', borderRadius: 2, overflow: 'hidden',
-                        border: '1px solid #e2e8f0', '&:hover': { border: '1px solid #7c3aed55', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' },
+                        border: '1px solid #e2e8f0', '&:hover': { border: '1px solid #d4a01755', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' },
                       }}>
                         <Box sx={{ height: 64, background: `linear-gradient(135deg, ${tpl.thumb}cc, ${tpl.thumb})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <AutoAwesomeIcon sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 20 }} />
@@ -1670,7 +1670,7 @@ export default function DocumentMaker() {
                       size="small"
                       startIcon={<AddPhotoAlternateIcon sx={{ fontSize: 14 }} />}
                       onClick={() => setUploadDialog(true)}
-                      sx={{ bgcolor: '#7c3aed33', color: '#a78bfa', textTransform: 'none', fontSize: '0.7rem', px: 1, py: 0.25, borderRadius: 1.5, '&:hover': { bgcolor: '#7c3aed55' } }}
+                      sx={{ bgcolor: '#d4a01733', color: '#f0c040', textTransform: 'none', fontSize: '0.7rem', px: 1, py: 0.25, borderRadius: 1.5, '&:hover': { bgcolor: '#d4a01755' } }}
                     >
                       Upload
                     </Button>
@@ -1688,7 +1688,7 @@ export default function DocumentMaker() {
                       <Box key={ct.template_uuid} sx={{ position: 'relative', flexShrink: 0 }}>
                         <Box
                           onClick={() => handleUseCustomTemplate(ct.imageUrl)}
-                          sx={{ width: 96, cursor: 'pointer', borderRadius: 2, overflow: 'hidden', border: '1px solid #e2e8f0', '&:hover': { border: '1px solid #7c3aed55', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } }}
+                          sx={{ width: 96, cursor: 'pointer', borderRadius: 2, overflow: 'hidden', border: '1px solid #e2e8f0', '&:hover': { border: '1px solid #d4a01755', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } }}
                         >
                           <Box sx={{ height: 64, overflow: 'hidden' }}>
                             <img src={ct.thumbUrl || ct.imageUrl} alt={ct.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -1741,7 +1741,7 @@ export default function DocumentMaker() {
             <Button onClick={() => setUploadDialog(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
             <Button variant="contained" onClick={handleUpload} disabled={uploading || !uploadFile || !uploadName.trim()}
               startIcon={uploading ? <CircularProgress size={14} color="inherit" /> : null}
-              sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' }, textTransform: 'none' }}>
+              sx={{ bgcolor: '#d4a017', '&:hover': { bgcolor: '#b8860b' }, textTransform: 'none' }}>
               {uploading ? 'Uploading…' : 'Upload'}
             </Button>
           </DialogActions>
@@ -1800,7 +1800,7 @@ export default function DocumentMaker() {
           </IconButton>
         </Tooltip>
         <Tooltip title="Print">
-          <IconButton size="small" onClick={printDocument} disabled={printing} sx={{ color: '#4f46e5' }}>
+          <IconButton size="small" onClick={printDocument} disabled={printing} sx={{ color: '#1a7a4a' }}>
             {printing ? <CircularProgress size={14} color="inherit" /> : <PrintIcon sx={{ fontSize: 18 }} />}
           </IconButton>
         </Tooltip>
@@ -1812,7 +1812,7 @@ export default function DocumentMaker() {
             size="small"
             onClick={saveDesign}
             disabled={savingDesign}
-            sx={{ bgcolor: '#7c3aed', color: '#fff', borderRadius: 1.5, p: 0.75, '&:hover': { bgcolor: '#6d28d9' } }}
+            sx={{ bgcolor: '#d4a017', color: '#fff', borderRadius: 1.5, p: 0.75, '&:hover': { bgcolor: '#b8860b' } }}
           >
             {savingDesign ? <CircularProgress size={14} color="inherit" /> : <CheckIcon fontSize="small" />}
           </IconButton>
@@ -1827,8 +1827,8 @@ export default function DocumentMaker() {
               {/* Mini document preview */}
               <Box sx={{
                 width: 40, height: 50, borderRadius: 1.5, overflow: 'hidden', position: 'relative',
-                bgcolor: tpl.bg, border: selectedTpl === idx ? '2px solid #7c3aed' : '1.5px solid #e2e8f0',
-                boxShadow: selectedTpl === idx ? '0 0 0 2px #7c3aed33' : 'none',
+                bgcolor: tpl.bg, border: selectedTpl === idx ? '2px solid #d4a017' : '1.5px solid #e2e8f0',
+                boxShadow: selectedTpl === idx ? '0 0 0 2px #d4a01733' : 'none',
               }}>
                 <Box sx={{ height: 11, bgcolor: tpl.thumb }} />
                 <Box sx={{ px: 0.5, pt: 0.5, display: 'flex', flexDirection: 'column', gap: 0.4 }}>
@@ -1837,7 +1837,7 @@ export default function DocumentMaker() {
                   <Box sx={{ height: 2, bgcolor: 'rgba(0,0,0,0.08)', borderRadius: 1, width: '55%' }} />
                 </Box>
               </Box>
-              <Typography sx={{ fontSize: '0.58rem', color: selectedTpl === idx ? '#7c3aed' : '#94a3b8', fontWeight: selectedTpl === idx ? 700 : 400 }}>
+              <Typography sx={{ fontSize: '0.58rem', color: selectedTpl === idx ? '#d4a017' : '#94a3b8', fontWeight: selectedTpl === idx ? 700 : 400 }}>
                 {tpl.label}
               </Typography>
             </Box>
@@ -1866,12 +1866,12 @@ export default function DocumentMaker() {
               <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Content</Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 0.75 }}>
                 {[
-                  ['Text',    <TextFieldsIcon sx={{ fontSize: 22, color: '#7c3aed' }} />,       addText],
-                  ['Photo',   <ImageIcon sx={{ fontSize: 22, color: '#7c3aed' }} />,            () => fileInputRef.current?.click()],
-                  ['Gallery', <AddPhotoAlternateIcon sx={{ fontSize: 22, color: '#7c3aed' }} />,() => setGalleryDialog(true)],
-                  ['SVG',     <FolderOpenIcon sx={{ fontSize: 22, color: '#7c3aed' }} />,       () => svgInputRef.current?.click()],
+                  ['Text',    <TextFieldsIcon sx={{ fontSize: 22, color: '#d4a017' }} />,       addText],
+                  ['Photo',   <ImageIcon sx={{ fontSize: 22, color: '#d4a017' }} />,            () => fileInputRef.current?.click()],
+                  ['Gallery', <AddPhotoAlternateIcon sx={{ fontSize: 22, color: '#d4a017' }} />,() => setGalleryDialog(true)],
+                  ['SVG',     <FolderOpenIcon sx={{ fontSize: 22, color: '#d4a017' }} />,       () => svgInputRef.current?.click()],
                 ].map(([label, icon, action]) => (
-                  <Box key={label} onClick={action} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, cursor: 'pointer', p: 1, borderRadius: 2, border: '1px solid #e2e8f0', bgcolor: '#f8fafc', '&:hover': { borderColor: '#7c3aed55', bgcolor: '#f1f5f9' } }}>
+                  <Box key={label} onClick={action} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, cursor: 'pointer', p: 1, borderRadius: 2, border: '1px solid #e2e8f0', bgcolor: '#f8fafc', '&:hover': { borderColor: '#d4a01755', bgcolor: '#f1f5f9' } }}>
                     {icon}
                     <Typography sx={{ fontSize: '0.65rem', fontWeight: 500, color: '#64748b' }}>{label}</Typography>
                   </Box>
@@ -1881,11 +1881,11 @@ export default function DocumentMaker() {
               <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', pt: 0.5 }}>Photo Frames</Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.5 }}>
                 {[
-                  ['Rect',   <Box sx={{ width: 20, height: 20, border: '2px dashed #7c3aed', borderRadius: 1 }} />,     () => addFrame('rect')],
-                  ['Circle', <Box sx={{ width: 20, height: 20, border: '2px dashed #7c3aed', borderRadius: '50%' }} />, () => addFrame('circle')],
-                  ['Round',  <Box sx={{ width: 20, height: 20, border: '2px dashed #7c3aed', borderRadius: 5 }} />,     () => addFrame('rounded')],
+                  ['Rect',   <Box sx={{ width: 20, height: 20, border: '2px dashed #d4a017', borderRadius: 1 }} />,     () => addFrame('rect')],
+                  ['Circle', <Box sx={{ width: 20, height: 20, border: '2px dashed #d4a017', borderRadius: '50%' }} />, () => addFrame('circle')],
+                  ['Round',  <Box sx={{ width: 20, height: 20, border: '2px dashed #d4a017', borderRadius: 5 }} />,     () => addFrame('rounded')],
                 ].map(([label, icon, action]) => (
-                  <Box key={label} onClick={action} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4, cursor: 'pointer', p: 0.75, borderRadius: 2, border: '1px solid #e2e8f0', bgcolor: '#f8fafc', '&:hover': { borderColor: '#7c3aed55', bgcolor: '#f1f5f9' } }}>
+                  <Box key={label} onClick={action} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4, cursor: 'pointer', p: 0.75, borderRadius: 2, border: '1px solid #e2e8f0', bgcolor: '#f8fafc', '&:hover': { borderColor: '#d4a01755', bgcolor: '#f1f5f9' } }}>
                     {icon}
                     <Typography sx={{ fontSize: '0.6rem', fontWeight: 500, color: '#64748b' }}>{label}</Typography>
                   </Box>
@@ -1895,12 +1895,12 @@ export default function DocumentMaker() {
               <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', pt: 0.5 }}>Shapes</Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 0.75 }}>
                 {[
-                  ['Rect',     <LayersIcon sx={{ fontSize: 22, color: '#7c3aed' }} />,         () => addShape('rect')],
-                  ['Circle',   <LayersIcon sx={{ fontSize: 22, color: '#7c3aed' }} />,         () => addShape('circle')],
-                  ['Triangle', <ChangeHistoryIcon sx={{ fontSize: 22, color: '#7c3aed' }} />,  () => addShape('triangle')],
-                  ['Line',     <HorizontalRuleIcon sx={{ fontSize: 22, color: '#7c3aed' }} />, () => addShape('line')],
+                  ['Rect',     <LayersIcon sx={{ fontSize: 22, color: '#d4a017' }} />,         () => addShape('rect')],
+                  ['Circle',   <LayersIcon sx={{ fontSize: 22, color: '#d4a017' }} />,         () => addShape('circle')],
+                  ['Triangle', <ChangeHistoryIcon sx={{ fontSize: 22, color: '#d4a017' }} />,  () => addShape('triangle')],
+                  ['Line',     <HorizontalRuleIcon sx={{ fontSize: 22, color: '#d4a017' }} />, () => addShape('line')],
                 ].map(([label, icon, action]) => (
-                  <Box key={label} onClick={action} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, cursor: 'pointer', p: 1, borderRadius: 2, border: '1px solid #e2e8f0', bgcolor: '#f8fafc', '&:hover': { borderColor: '#7c3aed55', bgcolor: '#f1f5f9' } }}>
+                  <Box key={label} onClick={action} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, cursor: 'pointer', p: 1, borderRadius: 2, border: '1px solid #e2e8f0', bgcolor: '#f8fafc', '&:hover': { borderColor: '#d4a01755', bgcolor: '#f1f5f9' } }}>
                     {icon}
                     <Typography sx={{ fontSize: '0.65rem', fontWeight: 500, color: '#64748b' }}>{label}</Typography>
                   </Box>
@@ -1921,7 +1921,7 @@ export default function DocumentMaker() {
           '& canvas': { display: 'block' },
         }}
       >
-        {!ready && <CircularProgress sx={{ color: currentDT?.color || '#7c3aed' }} />}
+        {!ready && <CircularProgress sx={{ color: currentDT?.color || '#d4a017' }} />}
         <Box sx={{
           transform: `scale(${+(scale * userZoom).toFixed(3)})`,
           transformOrigin: 'center center',
@@ -1968,11 +1968,11 @@ export default function DocumentMaker() {
               onChange={e => { setFontColor(e.target.value); applyFontProp('fill', e.target.value); }}
               style={{ width: 28, height: 28, border: '2px solid rgba(255,255,255,0.25)', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'none', flexShrink: 0 }} />
             <IconButton size="small" onClick={() => { const v = !isBold; setIsBold(v); applyFontProp('fontWeight', v ? 'bold' : 'normal'); }}
-              sx={{ color: isBold ? '#a78bfa' : 'rgba(255,255,255,0.6)', bgcolor: isBold ? 'rgba(167,139,250,0.15)' : 'transparent', p: 0.6, borderRadius: 1 }}>
+              sx={{ color: isBold ? '#f0c040' : 'rgba(255,255,255,0.6)', bgcolor: isBold ? 'rgba(167,139,250,0.15)' : 'transparent', p: 0.6, borderRadius: 1 }}>
               <FormatBoldIcon sx={{ fontSize: 20 }} />
             </IconButton>
             <IconButton size="small" onClick={() => { const v = !isItalic; setIsItalic(v); applyFontProp('fontStyle', v ? 'italic' : 'normal'); }}
-              sx={{ color: isItalic ? '#a78bfa' : 'rgba(255,255,255,0.6)', bgcolor: isItalic ? 'rgba(167,139,250,0.15)' : 'transparent', p: 0.6, borderRadius: 1 }}>
+              sx={{ color: isItalic ? '#f0c040' : 'rgba(255,255,255,0.6)', bgcolor: isItalic ? 'rgba(167,139,250,0.15)' : 'transparent', p: 0.6, borderRadius: 1 }}>
               <FormatItalicIcon sx={{ fontSize: 20 }} />
             </IconButton>
             <Stack direction="row" alignItems="center" sx={{ bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 1.5, px: 0.75 }}>
@@ -1994,11 +1994,11 @@ export default function DocumentMaker() {
                 onChange={(_, v) => { const n = v / 100; setImgBright(n); applyImageFilter('Brightness', n); }}
                 sx={{ color: '#fbbf24', py: 0.5, '& .MuiSlider-thumb': { width: 12, height: 12 } }} />
             </Box>
-            <TonalityIcon sx={{ fontSize: 20, color: '#818cf8' }} />
+            <TonalityIcon sx={{ fontSize: 20, color: '#34c97e' }} />
             <Box sx={{ width: 64 }}>
               <Slider value={Math.round(imgContrast * 100)} min={-100} max={100} size="small"
                 onChange={(_, v) => { const n = v / 100; setImgContrast(n); applyImageFilter('Contrast', n); }}
-                sx={{ color: '#818cf8', py: 0.5, '& .MuiSlider-thumb': { width: 12, height: 12 } }} />
+                sx={{ color: '#34c97e', py: 0.5, '& .MuiSlider-thumb': { width: 12, height: 12 } }} />
             </Box>
             <IconButton size="small" onClick={() => applyObjProp('flipX', !selectedObj.flipX)} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.6 }}>
               <SwapHorizIcon sx={{ fontSize: 20 }} />
@@ -2009,7 +2009,7 @@ export default function DocumentMaker() {
           {selectedObj.__frameType && (
             <Button size="small" onClick={() => frameInputRef.current?.click()}
               startIcon={<ImageIcon sx={{ fontSize: 18 }} />}
-              sx={{ color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 1.5, textTransform: 'none', fontSize: '0.75rem', px: 1.5, py: 0.5, '&:hover': { bgcolor: 'rgba(167,139,250,0.1)' } }}>
+              sx={{ color: '#f0c040', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 1.5, textTransform: 'none', fontSize: '0.75rem', px: 1.5, py: 0.5, '&:hover': { bgcolor: 'rgba(167,139,250,0.1)' } }}>
               Fill Photo
             </Button>
           )}
@@ -2018,7 +2018,7 @@ export default function DocumentMaker() {
           {(selectedObj.type === 'rect' || selectedObj.type === 'circle' || selectedObj.type === 'triangle' || selectedObj.type === 'polygon') && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
               <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>Fill</Typography>
-              <input type="color" value={selectedObj.fill || '#e0e7ff'}
+              <input type="color" value={selectedObj.fill || '#e8f5e9'}
                 onChange={e => applyObjProp('fill', e.target.value)}
                 style={{ width: 28, height: 28, border: '2px solid rgba(255,255,255,0.25)', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'none' }} />
             </Box>
@@ -2052,9 +2052,9 @@ export default function DocumentMaker() {
               <input type="color" value={fontColor} onChange={e => { setFontColor(e.target.value); applyFontProp('fill', e.target.value); }}
                 style={{ width: 26, height: 26, border: '2px solid rgba(255,255,255,0.25)', borderRadius: 4, cursor: 'pointer', padding: 0, background: 'none', flexShrink: 0 }} />
               <IconButton size="small" onClick={() => { const v = !isBold; setIsBold(v); applyFontProp('fontWeight', v ? 'bold' : 'normal'); }}
-                sx={{ color: isBold ? '#a78bfa' : 'rgba(255,255,255,0.6)', p: 0.5 }}><FormatBoldIcon sx={{ fontSize: 18 }} /></IconButton>
+                sx={{ color: isBold ? '#f0c040' : 'rgba(255,255,255,0.6)', p: 0.5 }}><FormatBoldIcon sx={{ fontSize: 18 }} /></IconButton>
               <IconButton size="small" onClick={() => { const v = !isItalic; setIsItalic(v); applyFontProp('fontStyle', v ? 'italic' : 'normal'); }}
-                sx={{ color: isItalic ? '#a78bfa' : 'rgba(255,255,255,0.6)', p: 0.5 }}><FormatItalicIcon sx={{ fontSize: 18 }} /></IconButton>
+                sx={{ color: isItalic ? '#f0c040' : 'rgba(255,255,255,0.6)', p: 0.5 }}><FormatItalicIcon sx={{ fontSize: 18 }} /></IconButton>
               <Stack direction="row" alignItems="center" sx={{ bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 1, px: 0.5 }}>
                 <IconButton size="small" onClick={() => { const v = Math.max(8, fontSize - 1); setFontSize(v); applyFontProp('fontSize', v); }} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.35 }}>
                   <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'inherit', lineHeight: 1 }}>−</Typography>
@@ -2068,12 +2068,12 @@ export default function DocumentMaker() {
             {selectedObj.type === 'image' && (<>
               <WbSunnyIcon sx={{ fontSize: 18, color: '#fbbf24' }} />
               <Box sx={{ width: 60 }}><Slider value={Math.round(imgBright * 100)} min={-100} max={100} size="small" onChange={(_, v) => { const n = v / 100; setImgBright(n); applyImageFilter('Brightness', n); }} sx={{ color: '#fbbf24', py: 0.5, '& .MuiSlider-thumb': { width: 12, height: 12 } }} /></Box>
-              <TonalityIcon sx={{ fontSize: 18, color: '#818cf8' }} />
-              <Box sx={{ width: 60 }}><Slider value={Math.round(imgContrast * 100)} min={-100} max={100} size="small" onChange={(_, v) => { const n = v / 100; setImgContrast(n); applyImageFilter('Contrast', n); }} sx={{ color: '#818cf8', py: 0.5, '& .MuiSlider-thumb': { width: 12, height: 12 } }} /></Box>
+              <TonalityIcon sx={{ fontSize: 18, color: '#34c97e' }} />
+              <Box sx={{ width: 60 }}><Slider value={Math.round(imgContrast * 100)} min={-100} max={100} size="small" onChange={(_, v) => { const n = v / 100; setImgContrast(n); applyImageFilter('Contrast', n); }} sx={{ color: '#34c97e', py: 0.5, '& .MuiSlider-thumb': { width: 12, height: 12 } }} /></Box>
             </>)}
             {selectedObj.__frameType && (
               <Button size="small" onClick={() => frameInputRef.current?.click()} startIcon={<ImageIcon sx={{ fontSize: 16 }} />}
-                sx={{ color: '#a78bfa', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 1, textTransform: 'none', fontSize: '0.7rem', px: 1, py: 0.4 }}>Fill Photo</Button>
+                sx={{ color: '#f0c040', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 1, textTransform: 'none', fontSize: '0.7rem', px: 1, py: 0.4 }}>Fill Photo</Button>
             )}
             <Box sx={{ flex: 1 }} />
             <IconButton size="small" onClick={duplicateObj} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.5 }}><ContentCopyIcon sx={{ fontSize: 18 }} /></IconButton>
@@ -2088,8 +2088,8 @@ export default function DocumentMaker() {
           sx={{
             minHeight: 36, flexShrink: 0, borderBottom: '1px solid #e2e8f0',
             '& .MuiTab-root': { minHeight: 36, py: 0, fontSize: '0.62rem', fontWeight: 600, textTransform: 'none', color: '#64748b', px: 0.25, minWidth: 0 },
-            '& .Mui-selected': { color: '#7c3aed !important' },
-            '& .MuiTabs-indicator': { bgcolor: '#7c3aed' },
+            '& .Mui-selected': { color: '#d4a017 !important' },
+            '& .MuiTabs-indicator': { bgcolor: '#d4a017' },
           }}
         >
           <Tab label="Add" />
@@ -2109,9 +2109,9 @@ export default function DocumentMaker() {
                 flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
                 gap: 0.4, cursor: 'pointer', px: 0.75, py: 0.75, borderRadius: 2, minWidth: 52,
                 border: '1px solid #e2e8f0', bgcolor: '#f8fafc',
-                '&:active': { opacity: 0.7 }, '&:hover': { borderColor: '#7c3aed55', bgcolor: '#f1f5f9' },
+                '&:active': { opacity: 0.7 }, '&:hover': { borderColor: '#d4a01755', bgcolor: '#f1f5f9' },
               }}>
-                <Box sx={{ color: '#7c3aed' }}>{icon}</Box>
+                <Box sx={{ color: '#d4a017' }}>{icon}</Box>
                 <Typography sx={{ fontSize: '0.6rem', fontWeight: 500, color: '#64748b' }}>{label}</Typography>
               </Box>
             );
@@ -2130,9 +2130,9 @@ export default function DocumentMaker() {
                 {/* Photo Frames (image placeholders) */}
                 <Typography sx={{ fontSize: '0.58rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Photo Frames</Typography>
                 <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
-                  {btn('Rect',    <Box sx={{ width: 18, height: 18, border: '2px dashed #7c3aed', borderRadius: 1 }} />, () => addFrame('rect'))}
-                  {btn('Circle',  <Box sx={{ width: 18, height: 18, border: '2px dashed #7c3aed', borderRadius: '50%' }} />, () => addFrame('circle'))}
-                  {btn('Rounded', <Box sx={{ width: 18, height: 18, border: '2px dashed #7c3aed', borderRadius: 5 }} />, () => addFrame('rounded'))}
+                  {btn('Rect',    <Box sx={{ width: 18, height: 18, border: '2px dashed #d4a017', borderRadius: 1 }} />, () => addFrame('rect'))}
+                  {btn('Circle',  <Box sx={{ width: 18, height: 18, border: '2px dashed #d4a017', borderRadius: '50%' }} />, () => addFrame('circle'))}
+                  {btn('Rounded', <Box sx={{ width: 18, height: 18, border: '2px dashed #d4a017', borderRadius: 5 }} />, () => addFrame('rounded'))}
                 </Box>
                 {/* Shapes */}
                 <Typography sx={{ fontSize: '0.58rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Shapes</Typography>
@@ -2150,13 +2150,13 @@ export default function DocumentMaker() {
                     <Box key={key} onClick={() => addPlaceholder(key)} sx={{
                       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3,
                       cursor: 'pointer', p: 0.75, borderRadius: 2,
-                      border: '1px solid #7c3aed33', bgcolor: '#f5f3ff',
-                      '&:hover': { borderColor: '#7c3aed88', bgcolor: '#ede9fe' },
+                      border: '1px solid #d4a01733', bgcolor: '#fff8e1',
+                      '&:hover': { borderColor: '#d4a01788', bgcolor: '#fff8e1' },
                       '&:active': { transform: 'scale(0.95)' },
                       transition: 'all 0.1s',
                     }}>
-                      <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: '#7c3aed', fontFamily: 'monospace' }}>{`{{${key}}}`}</Typography>
-                      <Typography sx={{ fontSize: '0.58rem', color: '#7c3aed99' }}>{label}</Typography>
+                      <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: '#d4a017', fontFamily: 'monospace' }}>{`{{${key}}}`}</Typography>
+                      <Typography sx={{ fontSize: '0.58rem', color: '#d4a01799' }}>{label}</Typography>
                     </Box>
                   ))}
                 </Box>
@@ -2173,7 +2173,7 @@ export default function DocumentMaker() {
                     size="small"
                     disabled={!customPh}
                     onClick={() => { addPlaceholder(customPh); setCustomPh(''); }}
-                    sx={{ minWidth: 0, px: 1.5, bgcolor: '#7c3aed', color: '#fff', '&:hover': { bgcolor: '#6d28d9' }, fontSize: '0.72rem' }}>
+                    sx={{ minWidth: 0, px: 1.5, bgcolor: '#d4a017', color: '#fff', '&:hover': { bgcolor: '#b8860b' }, fontSize: '0.72rem' }}>
                     Add
                   </Button>
                 </Stack>
@@ -2198,7 +2198,7 @@ export default function DocumentMaker() {
                   <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 36 }}>Size</Typography>
                   <Slider value={fontSize} min={8} max={120} size="small"
                     onChange={(_, v) => { setFontSize(v); applyFontProp('fontSize', v); }}
-                    sx={{ flex: 1, color: '#7c3aed', py: 0.5 }} />
+                    sx={{ flex: 1, color: '#d4a017', py: 0.5 }} />
                   <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{fontSize}</Typography>
                 </Stack>
                 <Stack direction="row" alignItems="center" gap={1}>
@@ -2207,13 +2207,13 @@ export default function DocumentMaker() {
                     style={{ width: 28, height: 24, border: 'none', borderRadius: 4, cursor: 'pointer', padding: 0 }} />
                   <Tooltip title="Bold">
                     <IconButton size="small" onClick={() => { const v = !isBold; setIsBold(v); applyFontProp('fontWeight', v ? 'bold' : 'normal'); }}
-                      sx={{ bgcolor: isBold ? '#7c3aed' : '#f1f5f9', color: isBold ? '#fff' : '#64748b', border: '1px solid #e2e8f0', p: 0.4 }}>
+                      sx={{ bgcolor: isBold ? '#d4a017' : '#f1f5f9', color: isBold ? '#fff' : '#64748b', border: '1px solid #e2e8f0', p: 0.4 }}>
                       <FormatBoldIcon sx={{ fontSize: 14 }} />
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Italic">
                     <IconButton size="small" onClick={() => { const v = !isItalic; setIsItalic(v); applyFontProp('fontStyle', v ? 'italic' : 'normal'); }}
-                      sx={{ bgcolor: isItalic ? '#7c3aed' : '#f1f5f9', color: isItalic ? '#fff' : '#64748b', border: '1px solid #e2e8f0', p: 0.4 }}>
+                      sx={{ bgcolor: isItalic ? '#d4a017' : '#f1f5f9', color: isItalic ? '#fff' : '#64748b', border: '1px solid #e2e8f0', p: 0.4 }}>
                       <FormatItalicIcon sx={{ fontSize: 14 }} />
                     </IconButton>
                   </Tooltip>
@@ -2222,7 +2222,7 @@ export default function DocumentMaker() {
                   <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 36 }}>Spacing</Typography>
                   <Slider value={letterSp} min={-100} max={800} size="small"
                     onChange={(_, v) => { setLetterSp(v); applyFontProp('charSpacing', v); }}
-                    sx={{ flex: 1, color: '#7c3aed', py: 0.5 }} />
+                    sx={{ flex: 1, color: '#d4a017', py: 0.5 }} />
                   <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{letterSp}</Typography>
                 </Stack>
               </Stack>
@@ -2241,14 +2241,14 @@ export default function DocumentMaker() {
                   <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 36 }}>Opacity</Typography>
                   <Slider value={Math.round(objOpacity * 100)} min={0} max={100} size="small"
                     onChange={(_, v) => { const n = v / 100; setObjOpacity(n); applyObjProp('opacity', n); }}
-                    sx={{ flex: 1, color: '#7c3aed', py: 0.5 }} />
+                    sx={{ flex: 1, color: '#d4a017', py: 0.5 }} />
                   <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 24 }}>{Math.round(objOpacity * 100)}%</Typography>
                 </Stack>
                 <Stack direction="row" alignItems="center" gap={1}>
                   <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 36 }}>Rotate</Typography>
                   <Slider value={objAngle} min={0} max={360} size="small"
                     onChange={(_, v) => { setObjAngle(v); applyObjProp('angle', v); }}
-                    sx={{ flex: 1, color: '#7c3aed', py: 0.5 }} />
+                    sx={{ flex: 1, color: '#d4a017', py: 0.5 }} />
                   <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 24 }}>{objAngle}°</Typography>
                 </Stack>
                 <Stack direction="row" gap={0.5} flexWrap="wrap">
@@ -2263,7 +2263,7 @@ export default function DocumentMaker() {
                       cursor: 'pointer', px: 0.75, py: 0.4, borderRadius: 1.5, border: '1px solid #e2e8f0',
                       bgcolor: red ? '#fff0f0' : '#f8fafc', minWidth: 42, '&:active': { opacity: 0.7 },
                     }}>
-                      <Box sx={{ color: red ? '#ef4444' : '#7c3aed' }}>{icon}</Box>
+                      <Box sx={{ color: red ? '#ef4444' : '#d4a017' }}>{icon}</Box>
                       <Typography sx={{ fontSize: '0.56rem', color: red ? '#ef4444' : '#64748b' }}>{label}</Typography>
                     </Box>
                   ))}
@@ -2271,11 +2271,11 @@ export default function DocumentMaker() {
                   {selectedObj.__frameType && (
                     <Box onClick={() => frameInputRef.current?.click()} sx={{
                       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.2,
-                      cursor: 'pointer', px: 0.75, py: 0.4, borderRadius: 1.5, border: '1px solid #7c3aed55',
-                      bgcolor: '#f5f3ff', minWidth: 52, '&:active': { opacity: 0.7 },
+                      cursor: 'pointer', px: 0.75, py: 0.4, borderRadius: 1.5, border: '1px solid #d4a01755',
+                      bgcolor: '#fff8e1', minWidth: 52, '&:active': { opacity: 0.7 },
                     }}>
-                      <ImageIcon sx={{ fontSize: 13, color: '#7c3aed' }} />
-                      <Typography sx={{ fontSize: '0.56rem', color: '#7c3aed' }}>Fill Photo</Typography>
+                      <ImageIcon sx={{ fontSize: 13, color: '#d4a017' }} />
+                      <Typography sx={{ fontSize: '0.56rem', color: '#d4a017' }}>Fill Photo</Typography>
                     </Box>
                   )}
                   {/* Ungroup if an SVG/group is selected */}
@@ -2301,10 +2301,10 @@ export default function DocumentMaker() {
                       <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{Math.round(imgBright * 100)}</Typography>
                     </Stack>
                     <Stack direction="row" alignItems="center" gap={1}>
-                      <TonalityIcon sx={{ fontSize: 13, color: '#6366f1', flexShrink: 0 }} />
+                      <TonalityIcon sx={{ fontSize: 13, color: '#25a066', flexShrink: 0 }} />
                       <Slider value={Math.round(imgContrast * 100)} min={-100} max={100} size="small"
                         onChange={(_, v) => { const n = v / 100; setImgContrast(n); applyImageFilter('Contrast', n); }}
-                        sx={{ flex: 1, color: '#6366f1', py: 0.5 }} />
+                        sx={{ flex: 1, color: '#25a066', py: 0.5 }} />
                       <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{Math.round(imgContrast * 100)}</Typography>
                     </Stack>
                   </>
@@ -2333,7 +2333,7 @@ export default function DocumentMaker() {
                   ].map(({ title, icon, dir }) => (
                     <Tooltip key={dir} title={title}>
                       <IconButton size="small" onClick={() => alignObj(dir)}
-                        sx={{ p: 0.5, border: '1px solid #e2e8f0', borderRadius: 1.5, color: '#7c3aed', bgcolor: '#f8fafc', '&:hover': { bgcolor: '#f1f5f9' } }}>
+                        sx={{ p: 0.5, border: '1px solid #e2e8f0', borderRadius: 1.5, color: '#d4a017', bgcolor: '#f8fafc', '&:hover': { bgcolor: '#f1f5f9' } }}>
                         {icon}
                       </IconButton>
                     </Tooltip>
@@ -2378,10 +2378,10 @@ export default function DocumentMaker() {
               </Stack>
               {/* Quick BG presets */}
               <Stack direction="row" gap={0.75} flexWrap="wrap">
-                {['#ffffff','#f8fafc','#1e293b','#7c3aed','#4f46e5','#0f766e','#b45309','#be123c','#f1f5f9','#fef9c3'].map(c => (
+                {['#ffffff','#f8fafc','#1e293b','#d4a017','#1a7a4a','#0f766e','#b45309','#be123c','#f1f5f9','#fef9c3'].map(c => (
                   <Box key={c} onClick={() => setCanvasBg(c)} sx={{
                     width: 28, height: 28, borderRadius: 1.5, bgcolor: c, cursor: 'pointer',
-                    border: bgColor === c ? '2px solid #7c3aed' : '1px solid #e2e8f0',
+                    border: bgColor === c ? '2px solid #d4a017' : '1px solid #e2e8f0',
                     '&:hover': { transform: 'scale(1.12)', transition: 'transform 0.1s' },
                   }} />
                 ))}
@@ -2403,7 +2403,7 @@ export default function DocumentMaker() {
                     </Typography>
                     <Stack direction="row" spacing={0.25} alignItems="center">
                       <IconButton size="small" onClick={() => goCarousel(carouselIdx - 1)} disabled={carouselIdx === 0}
-                        sx={{ color: '#7c3aed', p: 0.3, border: '1px solid #e2e8f0', borderRadius: 1, '&.Mui-disabled': { opacity: 0.3 } }}>
+                        sx={{ color: '#d4a017', p: 0.3, border: '1px solid #e2e8f0', borderRadius: 1, '&.Mui-disabled': { opacity: 0.3 } }}>
                         <ChevronLeftIcon sx={{ fontSize: 16 }} />
                       </IconButton>
                       <Box sx={{ display: 'flex', gap: 0.3 }}>
@@ -2412,14 +2412,14 @@ export default function DocumentMaker() {
                           return (
                             <Box key={absIdx} onClick={() => goCarousel(absIdx)} sx={{
                               width: absIdx === carouselIdx ? 16 : 6, height: 6, borderRadius: 3,
-                              bgcolor: absIdx === carouselIdx ? '#7c3aed' : '#cbd5e1',
+                              bgcolor: absIdx === carouselIdx ? '#d4a017' : '#cbd5e1',
                               cursor: 'pointer', transition: 'all 0.2s',
                             }} />
                           );
                         })}
                       </Box>
                       <IconButton size="small" onClick={() => goCarousel(carouselIdx + 1)} disabled={carouselIdx === batchStudents.length - 1}
-                        sx={{ color: '#7c3aed', p: 0.3, border: '1px solid #e2e8f0', borderRadius: 1, '&.Mui-disabled': { opacity: 0.3 } }}>
+                        sx={{ color: '#d4a017', p: 0.3, border: '1px solid #e2e8f0', borderRadius: 1, '&.Mui-disabled': { opacity: 0.3 } }}>
                         <ChevronRightIcon sx={{ fontSize: 16 }} />
                       </IconButton>
                     </Stack>
@@ -2434,7 +2434,7 @@ export default function DocumentMaker() {
                     ))}
                   </Box>
                   <Button size="small" fullWidth onClick={applyCarouselToCanvas}
-                    sx={{ bgcolor: '#7c3aed22', color: '#7c3aed', border: '1px solid #7c3aed33', textTransform: 'none', fontSize: '0.72rem', '&:hover': { bgcolor: '#7c3aed33' } }}>
+                    sx={{ bgcolor: '#d4a01722', color: '#d4a017', border: '1px solid #d4a01733', textTransform: 'none', fontSize: '0.72rem', '&:hover': { bgcolor: '#d4a01733' } }}>
                     Apply to Canvas
                   </Button>
                 </Box>
@@ -2453,7 +2453,7 @@ export default function DocumentMaker() {
                 <Button size="small" startIcon={<DownloadIcon />} onClick={exportPNG}
                   sx={{ flex: 1, bgcolor: '#f1f5f9', color: '#1e293b', border: '1px solid #e2e8f0', '&:hover': { bgcolor: '#e2e8f0' } }}>PNG</Button>
                 <Button size="small" startIcon={<PictureAsPdfIcon />} onClick={exportPDF} disabled={exporting}
-                  sx={{ flex: 1, bgcolor: '#7c3aed22', color: '#7c3aed', border: '1px solid #7c3aed33', '&:hover': { bgcolor: '#7c3aed33' } }}>PDF</Button>
+                  sx={{ flex: 1, bgcolor: '#d4a01722', color: '#d4a017', border: '1px solid #d4a01733', '&:hover': { bgcolor: '#d4a01733' } }}>PDF</Button>
               </Stack>
               {/* Copies + direct Print */}
               <Stack direction="row" spacing={1} alignItems="center">
@@ -2466,7 +2466,7 @@ export default function DocumentMaker() {
                 <Button size="small"
                   startIcon={printing ? <CircularProgress size={12} color="inherit" /> : <PrintIcon />}
                   onClick={printDocument} disabled={printing}
-                  sx={{ flex: 1, bgcolor: '#4f46e522', color: '#4f46e5', border: '1px solid #4f46e533', '&:hover': { bgcolor: '#4f46e533' } }}>
+                  sx={{ flex: 1, bgcolor: '#1a7a4a22', color: '#1a7a4a', border: '1px solid #1a7a4a33', '&:hover': { bgcolor: '#1a7a4a33' } }}>
                   {printing ? 'Printing…' : 'Print'}
                 </Button>
               </Stack>
@@ -2512,18 +2512,18 @@ export default function DocumentMaker() {
                 </Button>
                 <Button size="small" startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <PictureAsPdfIcon />}
                   onClick={generateBatchPDF} disabled={generating || !getActiveRows().length}
-                  sx={{ flexShrink: 0, bgcolor: '#7c3aed22', color: '#7c3aed', border: '1px solid #7c3aed33', '&:hover': { bgcolor: '#7c3aed33' } }}>
+                  sx={{ flexShrink: 0, bgcolor: '#d4a01722', color: '#d4a017', border: '1px solid #d4a01733', '&:hover': { bgcolor: '#d4a01733' } }}>
                   {generating ? '…' : `PDF`}
                 </Button>
               </Stack>
-              {loadingBatch && <CircularProgress size={16} sx={{ mx: 'auto', color: '#7c3aed' }} />}
+              {loadingBatch && <CircularProgress size={16} sx={{ mx: 'auto', color: '#d4a017' }} />}
 
               {/* ── Print Layout System ──────────────────────── */}
               <Box>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
                   <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#475569' }}>Print Layouts</Typography>
                   <Button size="small" onClick={() => { setEditingLayout({ id: null, name: '', pageW: 210, pageH: 297, marginT: 8, marginR: 8, marginB: 8, marginL: 8, cols: 2, rows: 4, gapH: 5, gapV: 5 }); setLayoutDialog(true); }}
-                    sx={{ fontSize: '0.62rem', textTransform: 'none', color: '#7c3aed', minWidth: 0 }}>+ New</Button>
+                    sx={{ fontSize: '0.62rem', textTransform: 'none', color: '#d4a017', minWidth: 0 }}>+ New</Button>
                 </Stack>
 
                 {/* Saved layouts */}
@@ -2541,11 +2541,11 @@ export default function DocumentMaker() {
                           </Box>
                           <Stack direction="row" gap={0.25}>
                             <Tooltip title="Export current card">
-                              <IconButton size="small" onClick={() => exportWithLayout(layout)} disabled={exporting || generating} sx={{ color: '#4f46e5', p: 0.3 }}><DownloadIcon sx={{ fontSize: 14 }} /></IconButton>
+                              <IconButton size="small" onClick={() => exportWithLayout(layout)} disabled={exporting || generating} sx={{ color: '#1a7a4a', p: 0.3 }}><DownloadIcon sx={{ fontSize: 14 }} /></IconButton>
                             </Tooltip>
                             {batchStudents.length > 0 && (
                               <Tooltip title={`Batch (${batchStudents.length} students)`}>
-                                <IconButton size="small" onClick={() => exportWithLayout(layout, true)} disabled={exporting || generating} sx={{ color: '#7c3aed', p: 0.3 }}><PictureAsPdfIcon sx={{ fontSize: 14 }} /></IconButton>
+                                <IconButton size="small" onClick={() => exportWithLayout(layout, true)} disabled={exporting || generating} sx={{ color: '#d4a017', p: 0.3 }}><PictureAsPdfIcon sx={{ fontSize: 14 }} /></IconButton>
                               </Tooltip>
                             )}
                             <Tooltip title="Edit">
@@ -2580,11 +2580,11 @@ export default function DocumentMaker() {
                             </Box>
                             <Stack direction="row" gap={0.25}>
                               <Tooltip title="Export current card">
-                                <IconButton size="small" onClick={() => exportWithLayout(layout)} disabled={exporting || generating} sx={{ color: '#4f46e5', p: 0.3 }}><DownloadIcon sx={{ fontSize: 14 }} /></IconButton>
+                                <IconButton size="small" onClick={() => exportWithLayout(layout)} disabled={exporting || generating} sx={{ color: '#1a7a4a', p: 0.3 }}><DownloadIcon sx={{ fontSize: 14 }} /></IconButton>
                               </Tooltip>
                               {batchStudents.length > 0 && (
                                 <Tooltip title="Batch export">
-                                  <IconButton size="small" onClick={() => exportWithLayout(layout, true)} disabled={exporting || generating} sx={{ color: '#7c3aed', p: 0.3 }}><PictureAsPdfIcon sx={{ fontSize: 14 }} /></IconButton>
+                                  <IconButton size="small" onClick={() => exportWithLayout(layout, true)} disabled={exporting || generating} sx={{ color: '#d4a017', p: 0.3 }}><PictureAsPdfIcon sx={{ fontSize: 14 }} /></IconButton>
                                 </Tooltip>
                               )}
                               <Tooltip title="Save as custom">
@@ -2628,7 +2628,7 @@ export default function DocumentMaker() {
                     const active = editingLayout.pageW === ps.w && editingLayout.pageH === ps.h;
                     return (
                       <Chip key={ps.label} label={ps.label} size="small" onClick={() => setEditingLayout(p => ({ ...p, pageW: ps.w, pageH: ps.h }))}
-                        sx={{ fontSize: '0.62rem', cursor: 'pointer', bgcolor: active ? '#7c3aed' : '#f1f5f9', color: active ? '#fff' : '#64748b', border: active ? 'none' : '1px solid #e2e8f0' }} />
+                        sx={{ fontSize: '0.62rem', cursor: 'pointer', bgcolor: active ? '#d4a017' : '#f1f5f9', color: active ? '#fff' : '#64748b', border: active ? 'none' : '1px solid #e2e8f0' }} />
                     );
                   })}
                 </Box>
@@ -2709,7 +2709,7 @@ export default function DocumentMaker() {
             <Button onClick={() => setLayoutDialog(false)} sx={{ textTransform: 'none', color: '#64748b' }}>Cancel</Button>
             <Button variant="contained" onClick={() => { saveUserLayout(editingLayout); setLayoutDialog(false); }}
               disabled={!editingLayout.name.trim() || layoutCellDims(editingLayout).cellW <= 0}
-              sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' }, textTransform: 'none' }}>
+              sx={{ bgcolor: '#d4a017', '&:hover': { bgcolor: '#b8860b' }, textTransform: 'none' }}>
               Save Layout
             </Button>
           </DialogActions>
@@ -2736,7 +2736,7 @@ export default function DocumentMaker() {
             }}
             disabled={savingDesign}
             startIcon={savingDesign ? <CircularProgress size={13} color="inherit" /> : null}
-            sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' }, textTransform: 'none' }}>
+            sx={{ bgcolor: '#d4a017', '&:hover': { bgcolor: '#b8860b' }, textTransform: 'none' }}>
             Save & Continue
           </Button>
         </DialogActions>
@@ -2749,7 +2749,7 @@ export default function DocumentMaker() {
           <Stack spacing={1.5}>
             <Button variant="outlined" fullWidth startIcon={<AddPhotoAlternateIcon />}
               onClick={() => { setGalleryDialog(false); fileInputRef.current?.click(); }}
-              sx={{ textTransform: 'none', borderColor: '#7c3aed', color: '#7c3aed' }}>
+              sx={{ textTransform: 'none', borderColor: '#d4a017', color: '#d4a017' }}>
               Choose from Device
             </Button>
             {customTemplates.length > 0 && (
@@ -2759,7 +2759,7 @@ export default function DocumentMaker() {
                   {customTemplates.map(ct => (
                     <Box key={ct.template_uuid} onClick={() => addGalleryImage(ct.imageUrl)}
                       sx={{ cursor: 'pointer', borderRadius: 1.5, overflow: 'hidden', border: '1px solid #e2e8f0',
-                        '&:hover': { border: '1px solid #7c3aed55', boxShadow: '0 2px 8px rgba(124,58,237,0.15)' } }}>
+                        '&:hover': { border: '1px solid #d4a01755', boxShadow: '0 2px 8px rgba(212,160,23,0.15)' } }}>
                       <Box sx={{ height: 64, overflow: 'hidden' }}>
                         <img src={ct.thumbUrl || ct.imageUrl} alt={ct.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </Box>
@@ -2799,10 +2799,10 @@ export default function DocumentMaker() {
                       ...(ps.w && ps.h ? { w: ps.w, h: ps.h } : {}),
                     }))}
                     sx={{
-                      bgcolor: tempSetup?.pageKey === ps.key ? '#7c3aed' : '#f1f5f9',
+                      bgcolor: tempSetup?.pageKey === ps.key ? '#d4a017' : '#f1f5f9',
                       color: tempSetup?.pageKey === ps.key ? '#fff' : '#1e293b',
                       borderRadius: 1, cursor: 'pointer', fontSize: '0.7rem', height: 26,
-                      '&:hover': { bgcolor: tempSetup?.pageKey === ps.key ? '#6d28d9' : '#e2e8f0' },
+                      '&:hover': { bgcolor: tempSetup?.pageKey === ps.key ? '#b8860b' : '#e2e8f0' },
                     }}
                   />
                 ))}
@@ -2825,10 +2825,10 @@ export default function DocumentMaker() {
                   <Button key={val} size="small" onClick={() => setTempSetup(prev => ({ ...prev, orientation: val }))}
                     sx={{
                       flex: 1, textTransform: 'none',
-                      bgcolor: tempSetup?.orientation === val ? '#7c3aed' : '#f1f5f9',
+                      bgcolor: tempSetup?.orientation === val ? '#d4a017' : '#f1f5f9',
                       color: tempSetup?.orientation === val ? '#fff' : '#64748b',
-                      border: `1px solid ${tempSetup?.orientation === val ? '#7c3aed' : '#e2e8f0'}`,
-                      '&:hover': { bgcolor: tempSetup?.orientation === val ? '#6d28d9' : '#e2e8f0' },
+                      border: `1px solid ${tempSetup?.orientation === val ? '#d4a017' : '#e2e8f0'}`,
+                      '&:hover': { bgcolor: tempSetup?.orientation === val ? '#b8860b' : '#e2e8f0' },
                     }}>{lbl}</Button>
                 ))}
               </Stack>
@@ -2883,7 +2883,7 @@ export default function DocumentMaker() {
               await drawMGuides(fc, s);
               setTimeout(updateScale, 50);
             }
-          }} sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' }, textTransform: 'none' }}>
+          }} sx={{ bgcolor: '#d4a017', '&:hover': { bgcolor: '#b8860b' }, textTransform: 'none' }}>
             Apply
           </Button>
         </DialogActions>

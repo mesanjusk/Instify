@@ -8,7 +8,7 @@ import { AppBar, Box, IconButton, Stack, Toolbar, Typography } from '@mui/materi
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import { Outlet, useNavigate, useParams } from 'react-router-dom';
 
-export default function SectionLayout({ title, color = '#4f46e5', subtitle, children }) {
+export default function SectionLayout({ title, color = '#1a7a4a', subtitle, children }) {
   const navigate = useNavigate();
   const { username } = useParams();
 

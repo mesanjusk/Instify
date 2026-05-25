@@ -104,7 +104,7 @@ const WhatsAppIntegrationSettingsPage = () => {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => handleSyncTemplates(activeIntegration.id || activeIntegration.integrationId)} disabled={Boolean(submittingId)} className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+            <button onClick={() => handleSyncTemplates(activeIntegration.id || activeIntegration.integrationId)} disabled={Boolean(submittingId)} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-500">
               Sync Templates
             </button>
             <button onClick={() => handleDisconnect(activeIntegration.id || activeIntegration.integrationId)} disabled={Boolean(submittingId)} className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">

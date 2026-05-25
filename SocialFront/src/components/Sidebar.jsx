@@ -106,7 +106,7 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
         },
         {
           label: 'Document Maker',
-          icon: <BadgeIcon fontSize="small" sx={{ color: '#7c3aed' }} />,
+          icon: <BadgeIcon fontSize="small" sx={{ color: '#d4a017' }} />,
           path: `/${username}/section/canvas`,
           badge: 'Pro',
           highlight: true,
@@ -140,7 +140,7 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
     pl: 2,
     minHeight: 38,
     ...(item.highlight && !isActive(item.path) && {
-      background: 'linear-gradient(90deg, rgba(79,70,229,0.05), rgba(124,58,237,0.05))',
+      background: 'linear-gradient(90deg, rgba(26,122,74,0.05), rgba(212,160,23,0.05))',
     }),
     '&.Mui-selected': {
       bgcolor: 'primary.main',
@@ -155,8 +155,8 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
       {/* Brand */}
       <Box
         sx={{
-          px: 3, py: 2.5, borderBottom: '1px solid #e2e8f0',
-          background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+          px: 3, py: 2.5, borderBottom: '1px solid #1a7a4a',
+          background: 'linear-gradient(135deg, #0a1a0f 0%, #1a7a4a 100%)',
           cursor: 'pointer',
         }}
         onClick={() => go(`/${username}`)}
@@ -268,7 +268,7 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
           width: DRAWER_WIDTH,
           boxSizing: 'border-box',
           border: 'none',
-          borderRight: '1px solid #e2e8f0',
+          borderRight: '1px solid #d0e8d0',
           boxShadow: 'none',
         },
       }}

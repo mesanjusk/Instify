@@ -182,12 +182,12 @@ useEffect(() => {
 
   return (
     <>
-     <div className="fixed top-0 w-full bg-blue-600 text-white px-4 py-2 flex justify-between items-center z-50 shadow-md">
+     <div className="fixed top-0 w-full text-white px-4 py-2 flex justify-between items-center z-50 shadow-md" style={{ backgroundColor: '#0a1a0f', borderBottom: '1px solid #1a7a4a' }}>
   <button
     onClick={() => navigate("/Home")}
   >
     {/* Title text is white by default now */}
-    <h1 className="text-xl font-bold uppercase">SANJU SK</h1>
+    <h1 className="text-xl font-bold uppercase">INSTIFY</h1>
   </button>
 
   <div className="flex items-center gap-4 relative" ref={dropdownRef}>
@@ -196,14 +196,14 @@ useEffect(() => {
       onClick={() => {
         const token = localStorage.getItem("authToken");
         if (token) {
-          window.location.href = `https://canvas-gray-five.vercel.app/api/auth?token=${encodeURIComponent(token)}`;
+          window.location.href = `https://app.sanjusk.in/api/auth?token=${encodeURIComponent(token)}`;
         } else {
-          window.location.href = "https://canvas-gray-five.vercel.app";
+          window.location.href = "https://app.sanjusk.in";
         }
       }}
     >
       {/* Circle stays light for contrast */}
-      <div className="w-8 h-8 bg-blue-200 flex items-center justify-center rounded text-lg font-bold text-blue-700">
+      <div className="w-8 h-8 flex items-center justify-center rounded text-lg font-bold" style={{ backgroundColor: '#d0e8d0', color: '#1a7a4a' }}>
         F
       </div>
     </button>

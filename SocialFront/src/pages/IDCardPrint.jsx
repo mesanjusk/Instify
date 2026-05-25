@@ -66,7 +66,7 @@ function CardFace({ student, project, side = 'front' }) {
           <Typography fontWeight={800} fontSize="0.55rem" color="#1e3a5f" letterSpacing={0.5} textTransform="uppercase" mb={0.25}>
             {project?.title || 'Student ID Card'}
           </Typography>
-          <Typography fontWeight={700} fontSize="0.72rem" color="#0f172a" lineHeight={1.2}>{displayName}</Typography>
+          <Typography fontWeight={700} fontSize="0.72rem" color="#0a1a0f" lineHeight={1.2}>{displayName}</Typography>
           {student.extra_fields?.father_name && (
             <Typography fontSize="0.58rem" color="text.secondary" mt={0.25}>F: {student.extra_fields.father_name}</Typography>
           )}

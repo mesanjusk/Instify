@@ -173,7 +173,7 @@ export default function Dashboard() {
   const waConnected = waStatus === 'connected';
 
   const statCards = [
-    { label: 'Total Students', value: stats.students ?? '—', icon: <PeopleIcon sx={{ color: '#4f46e5', fontSize: 20 }} />, color: '#4f46e5', onClick: () => navigate(`/${username}/students`) },
+    { label: 'Total Students', value: stats.students ?? '—', icon: <PeopleIcon sx={{ color: '#1a7a4a', fontSize: 20 }} />, color: '#1a7a4a', onClick: () => navigate(`/${username}/students`) },
     { label: 'Admissions', value: stats.admissions ?? '—', icon: <SchoolIcon sx={{ color: '#10b981', fontSize: 20 }} />, color: '#10b981', onClick: () => navigate(`/${username}/allAdmission`) },
     { label: 'Enquiries', value: stats.enquiries ?? '—', icon: <TrendingUpIcon sx={{ color: '#f59e0b', fontSize: 20 }} />, color: '#f59e0b', onClick: () => navigate(`/${username}/leads`) },
     { label: "Today's Revenue", value: `₹${(stats.feesToday || 0).toLocaleString()}`, icon: <AttachMoneyIcon sx={{ color: '#10b981', fontSize: 20 }} />, color: '#10b981', onClick: () => navigate(`/${username}/fees`) },
@@ -183,7 +183,7 @@ export default function Dashboard() {
 
   const quickActions = [
     { icon: <AddIcon fontSize="small" />, label: 'New Admission', color: '#10b981', path: `/${username}/addNewAdd` },
-    { icon: <PeopleIcon fontSize="small" />, label: 'Add Student', color: '#4f46e5', path: `/${username}/students` },
+    { icon: <PeopleIcon fontSize="small" />, label: 'Add Student', color: '#1a7a4a', path: `/${username}/students` },
     { icon: <ReceiptIcon fontSize="small" />, label: 'Collect Fee', color: '#f59e0b', path: `/${username}/addReciept` },
     { icon: <ChecklistIcon fontSize="small" />, label: 'Attendance', color: '#0891b2', path: `/${username}/addAttendance` },
     { icon: <TrendingUpIcon fontSize="small" />, label: 'Add Lead', color: '#ef4444', path: `/${username}/add-lead` },
@@ -241,7 +241,7 @@ export default function Dashboard() {
               iconBg="rgba(255,255,255,0.2)"
               title="Academic"
               desc="Students, admissions, courses"
-              gradient="linear-gradient(135deg, #4f46e5, #7c3aed)"
+              gradient="linear-gradient(135deg, #1a7a4a, #25a066)"
               onClick={() => navigate(`/${username}/section/academic`)}
             />
             <SectionCard
@@ -259,7 +259,7 @@ export default function Dashboard() {
               iconBg="rgba(255,255,255,0.2)"
               title="Documents"
               desc="ID cards, certificates"
-              gradient="linear-gradient(135deg, #7c3aed, #a855f7)"
+              gradient="linear-gradient(135deg, #d4a017, #f0c040)"
               onClick={() => navigate(`/${username}/section/canvas`)}
             />
             <SectionCard
@@ -267,7 +267,7 @@ export default function Dashboard() {
               iconBg="rgba(255,255,255,0.2)"
               title="Admin"
               desc="Settings & accounts"
-              gradient="linear-gradient(135deg, #0f172a, #334155)"
+              gradient="linear-gradient(135deg, #0a1a0f, #1a7a4a)"
               onClick={() => navigate(`/${username}/section/admin`)}
             />
           </Box>
