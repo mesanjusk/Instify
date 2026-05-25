@@ -7,7 +7,6 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      workbox: { maximumFileSizeToCacheInBytes: 4 * 1024 * 1024 },
       includeAssets: ['favicon.svg', 'favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,

@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { authenticate } = require('../middleware/roleGuard');
 
 const Student = require('../models/Student');
 const Admission = require('../models/Admission');
@@ -18,7 +19,7 @@ function getTodayRange() {
   return { start, end };
 }
 
-router.get('/', async (req, res) => {
+router.get('/', authenticate, async (req, res) => {
   try {
     const { institute_uuid } = req.query;
     const { start, end } = getTodayRange();
@@ -67,11 +68,11 @@ feesRecords.forEach(fee => {
     res.json({
       students,
       admissions: admissionsCount,
-      courses: await Course.countDocuments(), 
+      courses: await Course.countDocuments({ institute_uuid }),
       enquiries,
       feesToday: todayCollection,
       followupToday,
-      attendance: attendanceList
+      attendance: attendanceList,
     });
   } catch (err) {
     console.error('Dashboard stats error:', err);

@@ -17,8 +17,7 @@ import {
   Chip,
 } from '@mui/material';
 import { CurrencyRupee, CalendarToday } from '@mui/icons-material';
-
-const BASE_URL = 'https://socialbackend-iucy.onrender.com';
+import apiClient from '../apiClient';
 
 const Fees = () => {
   const location = useLocation();
@@ -30,16 +29,12 @@ const Fees = () => {
   useEffect(() => {
     const fetchFees = async () => {
       const institute_uuid = localStorage.getItem('institute_uuid');
-      const today = new Date();
-      const todayStr = today.toLocaleDateString('en-CA');
-      console.log('Sending todayStr:', todayStr);
+      const todayStr = new Date().toLocaleDateString('en-CA');
 
       try {
-        const res = await fetch(
-          `${BASE_URL}/api/fees?institute_uuid=${institute_uuid}&date=${todayStr}`
-        );
-        const data = await res.json();
-        console.log('Fetched fees:', data);
+        const { data } = await apiClient.get('/api/fees', {
+          params: { institute_uuid, date: todayStr },
+        });
         setFees(data || []);
       } catch (err) {
         console.error('Error fetching fees:', err);

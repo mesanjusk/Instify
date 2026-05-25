@@ -4,64 +4,67 @@ import { CircularProgress, Box } from '@mui/material';
 
 import DashboardLayout from './layouts/DashboardLayout';
 import SectionLayout from './layouts/SectionLayout';
-import MagicLogin from './pages/MagicLogin';
-import AcademicHub from './pages/AcademicHub';
-import AdminHub from './pages/AdminHub';
+import PrivateRoute from './components/PrivateRoute';
 
-import Dashboard from './pages/Dashboard';
-import User from './pages/User';
+// Always-present routes (auth + shell) — load eagerly
 import Login from './components/Login';
-import ImageUploader from './components/ImageUploader';
-import Enquiry from './pages/Enquiry';
-import Courses from './pages/Courses';
-import Batches from './pages/Batches';
 import Signup from './components/Signup';
-import OrgCategories from './pages/OrgCategories';
-import Education from './pages/Education';
-import Exam from './pages/Exam';
-import PaymentMode from './pages/PaymentMode';
 import ForgotPassword from './components/ForgotPassword';
 import ResetPassword from './components/ResetPassword';
-import InstituteProfile from './pages/instituteProfile';
-import Owner from './pages/Owner';
-import PrivateRoute from './components/PrivateRoute';
-import CoursesCategory from './pages/CoursesCategory';
-import Leads from './reports/Leads';
-import AllAdmission from './reports/allAdmission';
-import AddLead from './pages/AddLead';
-import AddNew from './components/admissions/AddAdmission';
-import Followup from './pages/Followup';
-import WhatsAppAdminPage from './pages/WhatsAppAdminPage';
-import AddReciept from './pages/addReciept';
-import AddPayment from './pages/addPayment';
-import AllLeadByAdmission from './reports/allLeadByAdmission';
-import AddAttendance from './pages/AddAttendance';
-import AllAttendance from './reports/allAttendance';
-import AllBatches from './reports/allBatches';
-import AllBalance from './reports/allBalance';
-import AddAccount from './pages/AddAccount';
-import AllExams from './reports/allExams';
-import Institutes from './pages/Institutes';
-import Students from './pages/Students';
-import Fees from './pages/Fees';
-import ToolsPanel from './pages/ToolsPanel';
-import AllTransaction3 from './reports/allTransaction3';
-import WhatsAppIntegrationSettingsPage from './modules/whatsapp/pages/WhatsAppIntegrationSettingsPage';
+import Dashboard from './pages/Dashboard';
+import MagicLogin from './pages/MagicLogin';
+import PublicForm from './pages/PublicForm';
+
+// Lazy-load all heavy feature pages — split into separate chunks
+const AcademicHub = lazy(() => import('./pages/AcademicHub'));
+const AdminHub = lazy(() => import('./pages/AdminHub'));
+const User = lazy(() => import('./pages/User'));
+const ImageUploader = lazy(() => import('./components/ImageUploader'));
+const Enquiry = lazy(() => import('./pages/Enquiry'));
+const Courses = lazy(() => import('./pages/Courses'));
+const Batches = lazy(() => import('./pages/Batches'));
+const OrgCategories = lazy(() => import('./pages/OrgCategories'));
+const Education = lazy(() => import('./pages/Education'));
+const Exam = lazy(() => import('./pages/Exam'));
+const PaymentMode = lazy(() => import('./pages/PaymentMode'));
+const InstituteProfile = lazy(() => import('./pages/instituteProfile'));
+const Owner = lazy(() => import('./pages/Owner'));
+const CoursesCategory = lazy(() => import('./pages/CoursesCategory'));
+const Leads = lazy(() => import('./reports/Leads'));
+const AllAdmission = lazy(() => import('./reports/allAdmission'));
+const AddLead = lazy(() => import('./pages/AddLead'));
+const AddNew = lazy(() => import('./components/admissions/AddAdmission'));
+const Followup = lazy(() => import('./pages/Followup'));
+const WhatsAppAdminPage = lazy(() => import('./pages/WhatsAppAdminPage'));
+const AddReciept = lazy(() => import('./pages/addReciept'));
+const AddPayment = lazy(() => import('./pages/addPayment'));
+const AllLeadByAdmission = lazy(() => import('./reports/allLeadByAdmission'));
+const AddAttendance = lazy(() => import('./pages/AddAttendance'));
+const AllAttendance = lazy(() => import('./reports/allAttendance'));
+const AllBatches = lazy(() => import('./reports/allBatches'));
+const AllBalance = lazy(() => import('./reports/allBalance'));
+const AddAccount = lazy(() => import('./pages/AddAccount'));
+const AllExams = lazy(() => import('./reports/allExams'));
+const Institutes = lazy(() => import('./pages/Institutes'));
+const Students = lazy(() => import('./pages/Students'));
+const Fees = lazy(() => import('./pages/Fees'));
+const ToolsPanel = lazy(() => import('./pages/ToolsPanel'));
+const AllTransaction3 = lazy(() => import('./reports/allTransaction3'));
+const WhatsAppIntegrationSettingsPage = lazy(() => import('./modules/whatsapp/pages/WhatsAppIntegrationSettingsPage'));
 const BaileysWhatsApp = lazy(() => import('./pages/BaileysWhatsApp'));
 const CanvasEditor = lazy(() => import('./pages/CanvasEditor'));
-import UpiPayment from './pages/UpiPayment';
-import CsvImport from './pages/CsvImport';
-import BulkDownload from './pages/BulkDownload';
-import Employees from './pages/Employees';
-import TrialBalance from './pages/TrialBalance';
-import ProfitLoss from './pages/ProfitLoss';
-import FunnelReport from './pages/FunnelReport';
-import PublicForm from './pages/PublicForm';
-import Forms from './pages/Forms';
-import FormResponses from './pages/FormResponses';
-import IDCardManager from './pages/IDCardManager';
-import IDCardStudentSelfEdit from './pages/IDCardStudentSelfEdit';
-import IDCardPrint from './pages/IDCardPrint';
+const UpiPayment = lazy(() => import('./pages/UpiPayment'));
+const CsvImport = lazy(() => import('./pages/CsvImport'));
+const BulkDownload = lazy(() => import('./pages/BulkDownload'));
+const Employees = lazy(() => import('./pages/Employees'));
+const TrialBalance = lazy(() => import('./pages/TrialBalance'));
+const ProfitLoss = lazy(() => import('./pages/ProfitLoss'));
+const FunnelReport = lazy(() => import('./pages/FunnelReport'));
+const Forms = lazy(() => import('./pages/Forms'));
+const FormResponses = lazy(() => import('./pages/FormResponses'));
+const IDCardManager = lazy(() => import('./pages/IDCardManager'));
+const IDCardStudentSelfEdit = lazy(() => import('./pages/IDCardStudentSelfEdit'));
+const IDCardPrint = lazy(() => import('./pages/IDCardPrint'));
 
 function PageLoader() {
   return (
@@ -73,6 +76,7 @@ function PageLoader() {
 
 export default function App() {
   return (
+    <Suspense fallback={<PageLoader />}>
     <Routes>
       {/* ── Public ───────────────────────────────────────── */}
       <Route path="/" element={<Login />} />
@@ -91,9 +95,7 @@ export default function App() {
         element={
           <PrivateRoute>
             <Box sx={{ height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              <Suspense fallback={<PageLoader />}>
-                <BaileysWhatsApp />
-              </Suspense>
+              <BaileysWhatsApp />
             </Box>
           </PrivateRoute>
         }
@@ -103,9 +105,7 @@ export default function App() {
         element={
           <PrivateRoute>
             <Box sx={{ height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              <Suspense fallback={<PageLoader />}>
-                <CanvasEditor />
-              </Suspense>
+              <CanvasEditor />
             </Box>
           </PrivateRoute>
         }
@@ -185,6 +185,7 @@ export default function App() {
       {/* ── Fallback ──────────────────────────────────────── */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   );
 }
 

@@ -21,8 +21,6 @@ import ChecklistIcon from '@mui/icons-material/Checklist';
 import { useApp } from '../context/AppContext';
 import apiClient from '../apiClient';
 
-const API_URL = 'https://socialbackend-iucy.onrender.com/api/dashboard-stats';
-
 function getGreeting() {
   const h = new Date().getHours();
   if (h < 12) return 'Good Morning';
@@ -146,9 +144,8 @@ export default function Dashboard() {
   useEffect(() => {
     const uuid = localStorage.getItem('institute_uuid');
     if (!uuid) { setLoading(false); return; }
-    fetch(`${API_URL}?institute_uuid=${uuid}`)
-      .then(r => r.ok ? r.json() : Promise.reject())
-      .then(d => setStats({ students: d.students ?? 0, admissions: d.admissions ?? 0, courses: d.courses ?? 0, enquiries: d.enquiries ?? 0, feesToday: d.feesToday ?? 0, followupToday: d.followupToday ?? 0 }))
+    apiClient.get('/api/dashboard-stats', { params: { institute_uuid: uuid } })
+      .then(({ data: d }) => setStats({ students: d.students ?? 0, admissions: d.admissions ?? 0, courses: d.courses ?? 0, enquiries: d.enquiries ?? 0, feesToday: d.feesToday ?? 0, followupToday: d.followupToday ?? 0 }))
       .catch(() => setStats({ students: 0, admissions: 0, courses: 0, enquiries: 0, feesToday: 0, followupToday: 0 }))
       .finally(() => setLoading(false));
   }, []);
