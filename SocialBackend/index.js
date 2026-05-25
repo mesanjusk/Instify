@@ -12,6 +12,15 @@ const { autoReconnectSessions } = require('./services/baileysService');
 
 dotenv.config();
 
+// Fail fast if required env vars are missing
+const REQUIRED_ENV = ['MONGO_URI', 'JWT_SECRET'];
+const missing = REQUIRED_ENV.filter(k => !process.env[k]);
+if (missing.length) {
+  console.error(`❌ Missing required environment variables: ${missing.join(', ')}`);
+  console.error('Set these in your Render dashboard → Environment tab.');
+  process.exit(1);
+}
+
 const app = express();
 
 const allowedOrigins = process.env.CORS_ORIGINS

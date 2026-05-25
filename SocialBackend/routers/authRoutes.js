@@ -115,8 +115,8 @@ router.post('/user/login',
       last_password_change: user.last_password_change || null
     });
   } catch (err) {
-    console.error('User login error:', err);
-    res.status(500).json({ message: 'server_error' });
+    console.error('User login error:', err.message, err.stack);
+    res.status(500).json({ message: 'server_error', detail: err.message });
   }
 });
 
