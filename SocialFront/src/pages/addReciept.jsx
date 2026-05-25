@@ -330,7 +330,7 @@ export default function AddReceipt() {
                                 fullWidth
                                 disabled={loading}
                                 startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <Receipt />}
-                                sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' }, py: 1.2, fontWeight: 700 }}
+                                sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' }, py: 1.2, fontWeight: 700 }}
                             >
                                 {loading ? 'Saving...' : 'Save Receipt'}
                             </Button>

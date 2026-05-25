@@ -180,7 +180,7 @@ const Enquiry = () => {
           variant="contained"
           startIcon={<Add />}
           onClick={openAddModal}
-          sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' }, alignSelf: { xs: 'flex-start', sm: 'auto' } }}
+          sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' }, alignSelf: { xs: 'flex-start', sm: 'auto' } }}
         >
           Add Enquiry
         </Button>
@@ -221,7 +221,7 @@ const Enquiry = () => {
             <CardActionArea onClick={() => setActionModal(e)} sx={{ p: 0 }}>
               <CardContent>
                 <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
-                  <Avatar sx={{ bgcolor: '#4f46e5', width: 40, height: 40, fontSize: 16 }}>
+                  <Avatar sx={{ bgcolor: '#1a7a4a', width: 40, height: 40, fontSize: 16 }}>
                     {(e.firstName?.[0] || '?').toUpperCase()}
                   </Avatar>
                   <Box>
@@ -320,7 +320,7 @@ const Enquiry = () => {
             <Button
               type="submit"
               variant="contained"
-              sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' } }}
+              sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' } }}
             >
               {isEditMode ? 'Update' : 'Add'}
             </Button>
@@ -377,7 +377,7 @@ const Enquiry = () => {
             <Button
               type="submit"
               variant="contained"
-              sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' } }}
+              sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' } }}
             >
               Save
             </Button>
@@ -396,7 +396,7 @@ const Enquiry = () => {
           <>
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Stack direction="row" spacing={1.5} alignItems="center">
-                <Avatar sx={{ bgcolor: '#4f46e5' }}>
+                <Avatar sx={{ bgcolor: '#1a7a4a' }}>
                   {(actionModal.firstName?.[0] || '?').toUpperCase()}
                 </Avatar>
                 <Box>
@@ -458,7 +458,7 @@ const Enquiry = () => {
                     openFollowUpModal(actionModal);
                     setActionModal(null);
                   }}
-                  sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' } }}
+                  sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' } }}
                 >
                   Follow-Up
                 </Button>

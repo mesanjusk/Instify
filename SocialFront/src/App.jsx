@@ -114,7 +114,7 @@ export default function App() {
         path="/:username/section/academic"
         element={
           <PrivateRoute>
-            <SectionLayout title="Academic" subtitle="Students, courses & attendance" color="#4f46e5">
+            <SectionLayout title="Academic" subtitle="Students, courses & attendance" color="#1a7a4a">
               <AcademicHub />
             </SectionLayout>
           </PrivateRoute>
@@ -124,7 +124,7 @@ export default function App() {
         path="/:username/section/admin"
         element={
           <PrivateRoute>
-            <SectionLayout title="Administration" subtitle="Settings, users & accounts" color="#0f172a">
+            <SectionLayout title="Administration" subtitle="Settings, users & accounts" color="#0a1a0f">
               <AdminHub />
             </SectionLayout>
           </PrivateRoute>

@@ -87,7 +87,7 @@ const Login = () => {
 
   const handleLogoClick = () => {
     // redirect in the same tab and keep login session (localStorage/sessionStorage stays intact)
-    window.location.href = 'https://canvas-gray-five.vercel.app';
+    window.location.href = 'https://app.sanjusk.in';
   };
 
   const themeColor = branding?.theme?.color || '#45818e';
@@ -213,7 +213,7 @@ const Login = () => {
             Don&apos;t have an account?{' '}
             <button
               onClick={() => navigate('/signup')}
-              className="text-blue-600 hover:underline font-medium"
+              className="hover:underline font-medium" style={{ color: '#1a7a4a' }}
             >
               Register
             </button>

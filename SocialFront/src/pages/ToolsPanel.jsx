@@ -28,7 +28,7 @@ const ToolsPanel = () => {
   return (
     <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-        <BuildIcon sx={{ color: '#4f46e5', fontSize: 28 }} />
+        <BuildIcon sx={{ color: '#1a7a4a', fontSize: 28 }} />
         <Typography variant="h5" fontWeight={700}>Superadmin Tools</Typography>
       </Box>
       <Typography color="text.secondary" sx={{ mb: 3 }}>
@@ -38,7 +38,7 @@ const ToolsPanel = () => {
         variant="text"
         startIcon={<ArrowBackIcon />}
         onClick={() => navigate(-1)}
-        sx={{ color: '#4f46e5' }}
+        sx={{ color: '#1a7a4a' }}
       >
         Go Back
       </Button>

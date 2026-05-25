@@ -183,7 +183,7 @@ const Courses = () => {
                 setEditingId(null);
                 setShowModal(true);
               }}
-              sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' }, textTransform: 'none', whiteSpace: 'nowrap' }}
+              sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' }, textTransform: 'none', whiteSpace: 'nowrap' }}
             >
               Add Course
             </Button>
@@ -194,7 +194,7 @@ const Courses = () => {
       {/* Content */}
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
-          <CircularProgress sx={{ color: '#4f46e5' }} />
+          <CircularProgress sx={{ color: '#1a7a4a' }} />
         </Box>
       ) : filteredCourses.length === 0 ? (
         <Box sx={{ textAlign: 'center', p: 6 }}>
@@ -211,7 +211,7 @@ const Courses = () => {
           {filteredCourses.map((c) => (
             <Card
               key={c._id}
-              sx={{ cursor: 'pointer', '&:hover': { boxShadow: '0 4px 16px rgba(79,70,229,0.12)' } }}
+              sx={{ cursor: 'pointer', '&:hover': { boxShadow: '0 4px 16px rgba(26,122,74,0.12)' } }}
             >
               <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
@@ -226,7 +226,7 @@ const Courses = () => {
                       <Chip
                         label={`Course: ₹${c.courseFees}`}
                         size="small"
-                        sx={{ fontSize: '0.65rem', height: 18, mb: 0.25, bgcolor: 'rgba(79,70,229,0.08)', color: '#4f46e5' }}
+                        sx={{ fontSize: '0.65rem', height: 18, mb: 0.25, bgcolor: 'rgba(26,122,74,0.08)', color: '#1a7a4a' }}
                       />
                     )}
                     {c.examFees && (
@@ -313,7 +313,7 @@ const Courses = () => {
             <Button
               type="submit"
               variant="contained"
-              sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' } }}
+              sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' } }}
             >
               {editingId ? 'Update' : 'Save'}
             </Button>

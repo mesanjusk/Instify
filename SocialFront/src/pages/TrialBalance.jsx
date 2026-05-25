@@ -65,7 +65,7 @@ export default function TrialBalance() {
                 <tr key={i} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
                   <td style={{ padding: '9px 16px', fontWeight: 500 }}>{r.name}</td>
                   <td style={{ padding: '9px 16px', color: '#94a3b8', fontSize: 12 }}>{r.group || '—'}</td>
-                  <td style={{ padding: '9px 16px', textAlign: 'right', color: r.debit > 0 ? '#4f46e5' : '#94a3b8' }}>
+                  <td style={{ padding: '9px 16px', textAlign: 'right', color: r.debit > 0 ? '#1a7a4a' : '#94a3b8' }}>
                     {r.debit > 0 ? `₹${r.debit.toLocaleString()}` : '—'}
                   </td>
                   <td style={{ padding: '9px 16px', textAlign: 'right', color: r.credit > 0 ? '#10b981' : '#94a3b8' }}>
@@ -77,7 +77,7 @@ export default function TrialBalance() {
             <tfoot>
               <tr style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
                 <td colSpan={2} style={{ padding: '10px 16px', fontWeight: 700 }}>Total</td>
-                <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 700, color: '#4f46e5' }}>₹{totals.totalDebit.toLocaleString()}</td>
+                <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 700, color: '#1a7a4a' }}>₹{totals.totalDebit.toLocaleString()}</td>
                 <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 700, color: '#10b981' }}>₹{totals.totalCredit.toLocaleString()}</td>
               </tr>
               {Math.abs(totals.totalDebit - totals.totalCredit) > 1 && (

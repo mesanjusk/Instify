@@ -57,9 +57,9 @@ export default function AcademicHub() {
   const go = (path) => navigate(`/${username}/${path}`);
 
   const modules = [
-    { icon: <PeopleIcon />,         label: 'Students',      desc: 'Manage student records',         color: '#4f46e5', path: 'students' },
+    { icon: <PeopleIcon />,         label: 'Students',      desc: 'Manage student records',         color: '#1a7a4a', path: 'students' },
     { icon: <SchoolIcon />,         label: 'Admissions',    desc: 'Admissions & enrolments',         color: '#10b981', path: 'allAdmission' },
-    { icon: <LibraryBooksIcon />,   label: 'Courses',       desc: 'Course catalogue & fees',         color: '#7c3aed', path: 'courses' },
+    { icon: <LibraryBooksIcon />,   label: 'Courses',       desc: 'Course catalogue & fees',         color: '#d4a017', path: 'courses' },
     { icon: <GroupsIcon />,         label: 'Batches',       desc: 'Manage and view batches',         color: '#0891b2', path: 'batches' },
     { icon: <ChecklistIcon />,      label: 'Attendance',    desc: 'Mark & view attendance',          color: '#059669', path: 'addAttendance' },
     { icon: <BarChartIcon />,       label: 'Attendance Report', desc: 'Full attendance board',       color: '#0d9488', path: 'allAttendance' },

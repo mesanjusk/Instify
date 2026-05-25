@@ -60,21 +60,21 @@ export default function AdminHub() {
   const go = (path) => navigate(`/${username}/${path}`);
 
   const items = [
-    { icon: <CorporateFareIcon />,         label: 'Institute Profile',    desc: 'Edit logo, name, branding',        color: '#4f46e5', path: 'instituteProfile' },
-    { icon: <ManageAccountsIcon />,        label: 'Users & Staff',        desc: 'Manage roles and accounts',         color: '#7c3aed', path: 'user' },
+    { icon: <CorporateFareIcon />,         label: 'Institute Profile',    desc: 'Edit logo, name, branding',        color: '#1a7a4a', path: 'instituteProfile' },
+    { icon: <ManageAccountsIcon />,        label: 'Users & Staff',        desc: 'Manage roles and accounts',         color: '#d4a017', path: 'user' },
     { icon: <BusinessIcon />,             label: 'Institutes',           desc: 'All institutes (superadmin)',        color: '#0891b2', path: 'institutes' },
     { icon: <PaymentIcon />,              label: 'Payment Modes',        desc: 'Cash, UPI, bank settings',           color: '#10b981', path: 'paymentmode' },
     { icon: <CategoryIcon />,             label: 'Course Categories',    desc: 'Categorise your courses',            color: '#f59e0b', path: 'coursesCategory' },
     { icon: <SchoolIcon />,              label: 'Education Types',      desc: 'UG, PG, Diploma etc.',               color: '#d97706', path: 'education' },
-    { icon: <AccountBalanceIcon />,       label: 'Org Categories',       desc: 'Organisation structure',             color: '#6366f1', path: 'orgcategories' },
+    { icon: <AccountBalanceIcon />,       label: 'Org Categories',       desc: 'Organisation structure',             color: '#25a066', path: 'orgcategories' },
     { icon: <AccountBalanceWalletIcon />, label: 'Accounts',             desc: 'Chart of accounts / ledger',         color: '#059669', path: 'addAccount' },
-    { icon: <BarChartIcon />,            label: 'Transactions',         desc: 'Full transaction ledger',            color: '#0f172a', path: 'allTransaction3' },
+    { icon: <BarChartIcon />,            label: 'Transactions',         desc: 'Full transaction ledger',            color: '#0a1a0f', path: 'allTransaction3' },
     { icon: <BarChartIcon />,            label: 'Balance Report',       desc: 'Account-wise balances',              color: '#374151', path: 'allBalance' },
-    { icon: <QrCodeIcon />,              label: 'UPI Payment',          desc: 'UPI QR & collection link',           color: '#7c3aed', path: 'upi-payment' },
+    { icon: <QrCodeIcon />,              label: 'UPI Payment',          desc: 'UPI QR & collection link',           color: '#d4a017', path: 'upi-payment' },
     { icon: <UploadFileIcon />,          label: 'CSV Import',           desc: 'Bulk import students/leads',         color: '#0284c7', path: 'csv-import' },
     { icon: <DownloadIcon />,            label: 'Bulk Download',        desc: 'Export ZIP of records',              color: '#64748b', path: 'bulk-download' },
-    { icon: <PeopleOutlineIcon />,       label: 'HR & Payroll',         desc: 'Employees, salary & payslips',       color: '#7c3aed', path: 'employees' },
-    { icon: <BalanceIcon />,             label: 'Trial Balance',        desc: 'All accounts Dr/Cr summary',         color: '#4f46e5', path: 'trial-balance' },
+    { icon: <PeopleOutlineIcon />,       label: 'HR & Payroll',         desc: 'Employees, salary & payslips',       color: '#d4a017', path: 'employees' },
+    { icon: <BalanceIcon />,             label: 'Trial Balance',        desc: 'All accounts Dr/Cr summary',         color: '#1a7a4a', path: 'trial-balance' },
     { icon: <ShowChartIcon />,           label: 'Profit & Loss',        desc: 'Income vs expense statement',        color: '#10b981', path: 'profit-loss' },
   ];
 

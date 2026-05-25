@@ -288,7 +288,7 @@ const Followup = () => {
             size="small"
             onClick={handleAdd}
             startIcon={<Add />}
-            sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' } }}
+            sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' } }}
           >
             Add Enquiry
           </Button>
@@ -324,7 +324,7 @@ const Followup = () => {
               cursor: 'pointer',
               transition: 'box-shadow 0.2s',
               '&:hover': { boxShadow: 6 },
-              borderLeft: '4px solid #4f46e5',
+              borderLeft: '4px solid #1a7a4a',
             }}
             onClick={() => setActionModal(e)}
           >
@@ -339,7 +339,7 @@ const Followup = () => {
                   onClick={ev => ev.stopPropagation()}
                   variant="body2"
                   color="text.secondary"
-                  sx={{ textDecoration: 'none', '&:hover': { color: '#4f46e5' } }}
+                  sx={{ textDecoration: 'none', '&:hover': { color: '#1a7a4a' } }}
                 >
                   {e.studentData?.mobileSelf}
                 </Typography>
@@ -457,7 +457,7 @@ const Followup = () => {
             type="submit"
             form="lead-form"
             variant="contained"
-            sx={{ bgcolor: '#4f46e5', '&:hover': { bgcolor: '#4338ca' } }}
+            sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' } }}
           >
             {editingId ? 'Update' : 'Add'}
           </Button>

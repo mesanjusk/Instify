@@ -79,7 +79,7 @@ export default function FunnelReport() {
       {/* Funnel stages */}
       <Box sx={{ bgcolor: '#fff', border: '1px solid #e2e8f0', borderRadius: 2, p: 2.5, mb: 3 }}>
         <FunnelBar
-          label="Enquiries" value={data.enquiries} max={max} color="#6366f1"
+          label="Enquiries" value={data.enquiries} max={max} color="#25a066"
           icon={<ForumIcon fontSize="small" />}
         />
         <FunnelBar
