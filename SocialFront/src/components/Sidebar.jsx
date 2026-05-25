@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import {
-  Box, Collapse, Drawer, List, ListItemButton,
-  ListItemIcon, ListItemText, Typography, Divider, Chip,
+  Avatar, Box, Chip, Collapse, Drawer, List, ListItemButton,
+  ListItemIcon, ListItemText, Stack, Typography,
 } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useApp } from '../context/AppContext';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import SchoolIcon from '@mui/icons-material/School';
@@ -32,12 +33,30 @@ import ShowChartIcon from '@mui/icons-material/ShowChart';
 import FunnelIcon from '@mui/icons-material/FilterAlt';
 import DynamicFormIcon from '@mui/icons-material/DynamicForm';
 
-const DRAWER_WIDTH = 260;
+const DRAWER_WIDTH = 256;
+
+const S = {
+  bg: '#071a0e',
+  bgGradient: 'linear-gradient(180deg, #071a0e 0%, #091f11 100%)',
+  border: 'rgba(5,150,105,0.15)',
+  text: 'rgba(255,255,255,0.88)',
+  textMuted: 'rgba(255,255,255,0.38)',
+  textSub: 'rgba(255,255,255,0.55)',
+  hover: 'rgba(255,255,255,0.07)',
+  activeBg: 'rgba(5,150,105,0.22)',
+  activeText: '#6ee7b7',
+  activeBorder: '#059669',
+  activeGlow: 'rgba(5,150,105,0.30)',
+};
 
 export default function Sidebar({ username, open, onClose, variant = 'permanent' }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [expanded, setExpanded] = useState({ academic: true, finance: false, crm: false, features: true, hr: false, reports: false, settings: false });
+  const { user } = useApp();
+  const [expanded, setExpanded] = useState({
+    academic: true, finance: false, crm: false, features: true,
+    hr: false, reports: false, settings: false,
+  });
 
   const toggle = (key) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
 
@@ -50,6 +69,9 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
     if (path === `/${username}`) return location.pathname === path || location.pathname === `/${username}/`;
     return location.pathname.startsWith(path);
   };
+
+  const initials = (user?.name || 'A').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  const roleLabel = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User';
 
   const groups = [
     {
@@ -97,27 +119,9 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
       key: 'features',
       label: 'Features',
       items: [
-        {
-          label: 'WhatsApp Bot',
-          icon: <WhatsAppIcon fontSize="small" sx={{ color: '#25d366' }} />,
-          path: `/${username}/section/whatsapp`,
-          badge: 'Live',
-          highlight: true,
-        },
-        {
-          label: 'Document Maker',
-          icon: <BadgeIcon fontSize="small" sx={{ color: '#d4a017' }} />,
-          path: `/${username}/section/canvas`,
-          badge: 'Pro',
-          highlight: true,
-        },
-        {
-          label: 'Public Forms',
-          icon: <DynamicFormIcon fontSize="small" sx={{ color: '#0ea5e9' }} />,
-          path: `/${username}/forms`,
-          badge: 'New',
-          highlight: true,
-        },
+        { label: 'WhatsApp Bot', icon: <WhatsAppIcon fontSize="small" sx={{ color: '#25d366' }} />, path: `/${username}/section/whatsapp`, badge: 'Live', highlight: true },
+        { label: 'Document Maker', icon: <BadgeIcon fontSize="small" sx={{ color: '#fcd34d' }} />, path: `/${username}/section/canvas`, badge: 'Pro', highlight: true },
+        { label: 'Public Forms', icon: <DynamicFormIcon fontSize="small" sx={{ color: '#93c5fd' }} />, path: `/${username}/forms`, badge: 'New', highlight: true },
         { label: 'Academic Hub', icon: <UploadFileIcon fontSize="small" />, path: `/${username}/section/academic`, highlight: true },
         { label: 'Admin Hub', icon: <DownloadIcon fontSize="small" />, path: `/${username}/section/admin`, highlight: true },
         { label: 'CSV Import', icon: <UploadFileIcon fontSize="small" />, path: `/${username}/csv-import` },
@@ -134,100 +138,191 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
     },
   ];
 
-  const itemSx = (item) => ({
-    borderRadius: 2,
-    mb: 0.25,
-    pl: 2,
-    minHeight: 38,
-    ...(item.highlight && !isActive(item.path) && {
-      background: 'linear-gradient(90deg, rgba(26,122,74,0.05), rgba(212,160,23,0.05))',
-    }),
-    '&.Mui-selected': {
-      bgcolor: 'primary.main',
-      color: '#fff',
-      '& .MuiListItemIcon-root': { color: '#fff' },
-      '&:hover': { bgcolor: 'primary.dark' },
-    },
-  });
+  const navItemSx = (item) => {
+    const active = isActive(item.path);
+    return {
+      borderRadius: 2,
+      mb: 0.25,
+      pl: 1.75,
+      minHeight: 38,
+      color: active ? S.activeText : S.text,
+      borderLeft: `2.5px solid ${active ? S.activeBorder : 'transparent'}`,
+      transition: 'all 0.15s ease',
+      '&:hover': { bgcolor: S.hover, color: '#fff', borderLeftColor: 'rgba(5,150,105,0.5)' },
+      '&.Mui-selected': {
+        bgcolor: S.activeBg,
+        boxShadow: `inset 3px 0 0 ${S.activeBorder}`,
+        '&:hover': { bgcolor: S.activeGlow },
+      },
+    };
+  };
 
   const content = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', bgcolor: 'background.paper' }}>
-      {/* Brand */}
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', background: S.bgGradient, overflow: 'hidden' }}>
+
+      {/* Brand Header */}
       <Box
-        sx={{
-          px: 3, py: 2.5, borderBottom: '1px solid #1a7a4a',
-          background: 'linear-gradient(135deg, #0a1a0f 0%, #1a7a4a 100%)',
-          cursor: 'pointer',
-        }}
         onClick={() => go(`/${username}`)}
+        sx={{
+          px: 3, py: 2.75,
+          background: 'linear-gradient(135deg, #064e3b 0%, #059669 100%)',
+          cursor: 'pointer',
+          position: 'relative',
+          overflow: 'hidden',
+          flexShrink: 0,
+          '&::before': {
+            content: '""', position: 'absolute', inset: 0,
+            background: 'radial-gradient(ellipse at 110% 50%, rgba(52,211,153,0.25) 0%, transparent 60%)',
+          },
+          '&::after': {
+            content: '""', position: 'absolute',
+            top: -30, right: -30, width: 100, height: 100,
+            borderRadius: '50%', background: 'rgba(255,255,255,0.07)',
+          },
+          '&:hover': { opacity: 0.92 },
+          transition: 'opacity 0.15s ease',
+        }}
       >
-        <Typography variant="h6" fontWeight={800} sx={{ color: '#fff', letterSpacing: '-0.5px' }}>
-          Instify
-        </Typography>
-        <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.75)' }}>Institute Management System</Typography>
+        <Box sx={{ position: 'relative', zIndex: 1 }}>
+          <Stack direction="row" alignItems="center" spacing={1} mb={0.25}>
+            <Box sx={{
+              width: 28, height: 28, borderRadius: 1.5,
+              background: 'rgba(255,255,255,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              backdropFilter: 'blur(8px)',
+            }}>
+              <Typography sx={{ fontSize: '0.95rem', lineHeight: 1 }}>⚡</Typography>
+            </Box>
+            <Typography variant="h6" fontWeight={800} sx={{ color: '#fff', letterSpacing: '-0.5px', fontSize: '1.05rem' }}>
+              Instify
+            </Typography>
+          </Stack>
+          <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.65)', letterSpacing: '0.04em', pl: 4.5 }}>
+            Institute Management
+          </Typography>
+        </Box>
       </Box>
 
-      {/* Dashboard */}
-      <List dense sx={{ pt: 1.5, px: 1.5 }}>
+      {/* Dashboard shortcut */}
+      <Box sx={{ pt: 2, px: 1.5, flexShrink: 0 }}>
         <ListItemButton
           selected={isActive(`/${username}`) && location.pathname.split('/').length <= 2}
           onClick={() => go(`/${username}`)}
           sx={{
-            borderRadius: 2,
-            mb: 0.5,
-            '&.Mui-selected': { bgcolor: 'primary.main', color: '#fff', '& .MuiListItemIcon-root': { color: '#fff' }, '&:hover': { bgcolor: 'primary.dark' } },
+            borderRadius: 2, mb: 0.5,
+            color: S.text,
+            borderLeft: '2.5px solid transparent',
+            transition: 'all 0.15s ease',
+            '&:hover': { bgcolor: S.hover, color: '#fff', borderLeftColor: 'rgba(5,150,105,0.5)' },
+            '&.Mui-selected': {
+              bgcolor: S.activeBg, color: S.activeText,
+              borderLeftColor: S.activeBorder,
+              '&:hover': { bgcolor: S.activeGlow },
+            },
           }}
         >
-          <ListItemIcon sx={{ minWidth: 34 }}><DashboardIcon fontSize="small" /></ListItemIcon>
-          <ListItemText primary="Dashboard" primaryTypographyProps={{ fontWeight: 600, fontSize: '0.875rem' }} />
+          <ListItemIcon sx={{ minWidth: 32, color: 'inherit' }}>
+            <DashboardIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primary="Dashboard"
+            primaryTypographyProps={{ fontWeight: 600, fontSize: '0.875rem', color: 'inherit' }}
+          />
         </ListItemButton>
-      </List>
+      </Box>
 
-      <Divider sx={{ mx: 2 }} />
+      {/* Thin divider */}
+      <Box sx={{ mx: 2, mb: 1, height: '1px', background: 'rgba(255,255,255,0.07)', flexShrink: 0 }} />
 
-      {/* Grouped Nav */}
-      <Box sx={{ flex: 1, overflowY: 'auto', px: 1.5, py: 1 }}>
+      {/* Scrollable nav */}
+      <Box sx={{
+        flex: 1, overflowY: 'auto', px: 1.5, pb: 1,
+        '&::-webkit-scrollbar': { width: 3 },
+        '&::-webkit-scrollbar-thumb': { background: 'rgba(255,255,255,0.1)', borderRadius: 99 },
+        '&::-webkit-scrollbar-track': { background: 'transparent' },
+      }}>
         {groups.map((group) => (
-          <Box key={group.key} sx={{ mb: 0.5 }}>
-            <ListItemButton onClick={() => toggle(group.key)} sx={{ borderRadius: 2, py: 0.5 }}>
-              <ListItemText
-                primary={group.label}
-                primaryTypographyProps={{
-                  fontSize: '0.68rem',
-                  fontWeight: 700,
-                  color: 'text.secondary',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                }}
-              />
+          <Box key={group.key} sx={{ mb: 0.25 }}>
+            {/* Group header */}
+            <Box
+              onClick={() => toggle(group.key)}
+              sx={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                px: 1.5, py: 0.875, cursor: 'pointer', borderRadius: 1.5, mb: 0.25,
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.04)' },
+                transition: 'background 0.15s ease',
+              }}
+            >
+              <Typography sx={{
+                fontSize: '0.62rem', fontWeight: 700, color: S.textMuted,
+                textTransform: 'uppercase', letterSpacing: '0.12em',
+              }}>
+                {group.label}
+              </Typography>
               {expanded[group.key]
-                ? <ExpandLessIcon sx={{ fontSize: 14, color: 'text.secondary' }} />
-                : <ExpandMoreIcon sx={{ fontSize: 14, color: 'text.secondary' }} />}
-            </ListItemButton>
+                ? <ExpandLessIcon sx={{ fontSize: 12, color: S.textMuted }} />
+                : <ExpandMoreIcon sx={{ fontSize: 12, color: S.textMuted }} />}
+            </Box>
 
             <Collapse in={expanded[group.key]}>
-              <List dense disablePadding>
+              <List dense disablePadding sx={{ mt: 0.25 }}>
                 {group.items.map((item) => (
                   <ListItemButton
                     key={item.path}
                     selected={isActive(item.path)}
                     onClick={() => go(item.path)}
-                    sx={itemSx(item)}
+                    sx={navItemSx(item)}
                   >
-                    <ListItemIcon sx={{ minWidth: 30 }}>{item.icon}</ListItemIcon>
+                    <ListItemIcon sx={{ minWidth: 30, color: isActive(item.path) ? S.activeText : S.textSub }}>
+                      {item.icon}
+                    </ListItemIcon>
                     <ListItemText
                       primary={item.label}
                       primaryTypographyProps={{
                         fontSize: '0.825rem',
                         fontWeight: isActive(item.path) ? 600 : 400,
+                        color: 'inherit',
+                        ...(item.highlight && !isActive(item.path) && {
+                          background: 'linear-gradient(90deg, #6ee7b7, #fcd34d)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
+                        }),
                       }}
                     />
                     {item.badge && (
                       <Chip
                         label={item.badge}
                         size="small"
-                        color={item.badge === 'Live' ? 'success' : 'secondary'}
-                        sx={{ height: 16, fontSize: '0.6rem', '& .MuiChip-label': { px: 0.75 } }}
+                        sx={{
+                          height: 16,
+                          fontSize: '0.58rem',
+                          fontWeight: 700,
+                          letterSpacing: '0.03em',
+                          bgcolor: item.badge === 'Live'
+                            ? 'rgba(16,185,129,0.2)'
+                            : item.badge === 'Pro'
+                            ? 'rgba(245,158,11,0.2)'
+                            : 'rgba(59,130,246,0.2)',
+                          color: item.badge === 'Live'
+                            ? '#6ee7b7'
+                            : item.badge === 'Pro'
+                            ? '#fcd34d'
+                            : '#93c5fd',
+                          border: 'none',
+                          '& .MuiChip-label': { px: 0.75 },
+                          ...(item.badge === 'Live' && {
+                            '&::before': {
+                              content: '""',
+                              display: 'inline-block',
+                              width: 5, height: 5,
+                              borderRadius: '50%',
+                              bgcolor: '#6ee7b7',
+                              mr: 0.4,
+                              animation: 'livePulse 2s ease-in-out infinite',
+                            },
+                          }),
+                        }}
                       />
                     )}
                   </ListItemButton>
@@ -236,6 +331,38 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
             </Collapse>
           </Box>
         ))}
+      </Box>
+
+      {/* User info footer */}
+      <Box sx={{
+        p: 2, flexShrink: 0,
+        borderTop: '1px solid rgba(255,255,255,0.07)',
+        background: 'rgba(0,0,0,0.25)',
+      }}>
+        <Stack direction="row" alignItems="center" spacing={1.5}>
+          <Avatar sx={{
+            width: 34, height: 34,
+            background: 'linear-gradient(135deg, #059669, #34d399)',
+            fontSize: '0.75rem', fontWeight: 800,
+            boxShadow: '0 0 0 2px rgba(5,150,105,0.4)',
+          }}>
+            {initials}
+          </Avatar>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: S.text, lineHeight: 1.25 }} noWrap>
+              {user?.name || 'Admin'}
+            </Typography>
+            <Typography sx={{ fontSize: '0.65rem', color: S.textMuted, lineHeight: 1, mt: 0.125 }} noWrap>
+              {roleLabel}
+            </Typography>
+          </Box>
+          <Box sx={{
+            width: 8, height: 8, borderRadius: '50%',
+            bgcolor: '#34d399',
+            boxShadow: '0 0 6px #34d399',
+            flexShrink: 0,
+          }} />
+        </Stack>
       </Box>
     </Box>
   );
@@ -248,7 +375,7 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
         sx={{
           '& .MuiDrawer-paper': {
             width: DRAWER_WIDTH,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.25)',
           },
         }}
       >
@@ -268,8 +395,6 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
           width: DRAWER_WIDTH,
           boxSizing: 'border-box',
           border: 'none',
-          borderRight: '1px solid #d0e8d0',
-          boxShadow: 'none',
         },
       }}
     >
