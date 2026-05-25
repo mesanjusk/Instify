@@ -1,10 +1,10 @@
 // src/pages/Signup.jsx
 import React, { useState, useEffect } from 'react';
 import { useBranding } from '../context/BrandingContext';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import BASE_URL from '../config';
+import apiClient from '../apiClient';
 import { storeUserData, storeInstituteData } from '../utils/storageUtils';
 
 const Signup = () => {
@@ -25,7 +25,7 @@ const Signup = () => {
   const [loadingTypes, setLoadingTypes] = useState(true);
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
-  const [serverOtp, setServerOtp] = useState('');
+  const [sendingOtp, setSendingOtp] = useState(false);
 
   useEffect(() => {
     axios.get(`${BASE_URL}/api/org-categories`)
@@ -52,37 +52,46 @@ const Signup = () => {
       return;
     }
 
-    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    setServerOtp(generatedOtp); // Save it for comparison later
-
-    const message = `Your OTP for Institute registration is ${generatedOtp}`;
-
+    setSendingOtp(true);
     try {
-      const res = await axios.post(`${BASE_URL}/api/institute/send-message`, {
-        mobile: `91${form.institute_call_number}`,
-        message,
-        type: 'signup',
-        userName: form.center_head_name,
+      // OTP generated and sent server-side — never exposed to the client
+      const { data } = await apiClient.post('/api/auth/otp/send-signup', {
+        mobile: form.institute_call_number,
+        center_head_name: form.center_head_name,
       });
 
-      if (res.data.success) {
+      if (data.success) {
         setOtpSent(true);
         toast.success('OTP sent to your mobile');
       } else {
         toast.error('Failed to send OTP');
       }
     } catch (err) {
-      console.error('OTP Send Error:', err);
-      toast.error('Error sending OTP');
+      toast.error('Error sending OTP. Please try again.');
+    } finally {
+      setSendingOtp(false);
     }
   };
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    if (!otp || otp !== serverOtp) {
-      toast.error('Invalid OTP');
+    if (!otp.trim()) { toast.error('Enter the OTP'); return; }
+
+    // Verify OTP server-side before proceeding with registration
+    try {
+      const verifyRes = await apiClient.post('/api/auth/otp/verify', {
+        mobile: form.institute_call_number,
+        otp,
+      });
+      if (!verifyRes.data.success) {
+        toast.error(verifyRes.data.message || 'Invalid OTP');
+        return;
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'OTP verification failed');
       return;
     }
+
     try {
       // Use center_code as passwordHash for admin user
       const signupData = { 
@@ -91,7 +100,7 @@ const Signup = () => {
         passwordHash: form.center_code 
       };
 
-      const res = await axios.post(`${BASE_URL}/api/institute/signup`, signupData);
+      const res = await apiClient.post('/api/institute/signup', signupData);
       const data = res.data;
       if (data.message === 'exist') {
         toast.error('Center code or email already registered');
@@ -119,62 +128,29 @@ const Signup = () => {
 
         document.documentElement.style.setProperty('--theme-color', data.theme_color || '#45818e');
 
-        // --- Account Creation Logic (optional, can remove if not needed) ---
+        // Create default chart-of-accounts entries for the new institute
         try {
-          const groupRes = await axios.get(`${BASE_URL}/api/accountgroup/GetAccountgroupList`);
-          const accountGroup = groupRes.data.result.find(g => g.Account_group === "ACCOUNT");
-          const accountBank = groupRes.data.result.find(g => g.Account_group === "Bank");
+          const groupRes = await apiClient.get('/api/accountgroup/GetAccountgroupList');
+          const groups = groupRes.data.result || [];
+          const accountGroup = groups.find(g => g.Account_group === "ACCOUNT");
+          const accountBank  = groups.find(g => g.Account_group === "Bank");
 
-          if (accountGroup) {
-            await axios.post(`${BASE_URL}/api/account/addAccount`, {
-              Account_name: form.center_head_name,
-              Mobile_number: form.institute_call_number,
-              Account_group: accountGroup.Account_group_uuid,
-              institute_uuid: data.institute_uuid
-            });
-            toast.success("Institute account created");
-          } else {
-            toast.error("ACCOUNT group not found");
-          }
+          const basePayload = { Mobile_number: form.institute_call_number, institute_uuid: data.institute_uuid };
 
-          if (accountGroup) {
-            await axios.post(`${BASE_URL}/api/account/addAccount`, {
-              Account_name: "Fees Receivable",
-              Mobile_number: form.institute_call_number,
-              Account_group: accountGroup.Account_group_uuid,
-              institute_uuid: data.institute_uuid
-            });
-            toast.success("Fees Receivable account created");
-          } else {
-            toast.error("ACCOUNT group not found");
-          }
-          if (accountBank) {
-            await axios.post(`${BASE_URL}/api/account/addAccount`, {
-              Account_name: "Bank",
-              Mobile_number: form.institute_call_number,
-              Account_group: accountBank.Account_group_uuid,
-              institute_uuid: data.institute_uuid
-            });
-            toast.success("Bank account created");
-          } else {
-            toast.error("ACCOUNT group not found");
-          }
-          if (accountBank) {
-            await axios.post(`${BASE_URL}/api/account/addAccount`, {
-              Account_name: "Cash",
-              Mobile_number: form.institute_call_number,
-              Account_group: accountBank.Account_group_uuid,
-              institute_uuid: data.institute_uuid
-            });
-            toast.success("Cash account created");
-          } else {
-            toast.error("ACCOUNT group not found");
-          }
+          const accountsToCreate = [
+            accountGroup && { Account_name: form.center_head_name,  Account_group: accountGroup.Account_group_uuid },
+            accountGroup && { Account_name: 'Fees Receivable',      Account_group: accountGroup.Account_group_uuid },
+            accountBank  && { Account_name: 'Bank',                  Account_group: accountBank.Account_group_uuid },
+            accountBank  && { Account_name: 'Cash',                  Account_group: accountBank.Account_group_uuid },
+          ].filter(Boolean);
+
+          await Promise.all(
+            accountsToCreate.map(a => apiClient.post('/api/account/addAccount', { ...basePayload, ...a }))
+          );
         } catch (err) {
-          console.error("Error creating institute account:", err);
-          toast.error("Failed to create institute account");
+          // Non-fatal: accounts can be created later from settings
+          console.error('Default account setup failed:', err.message);
         }
-        // ---------------------------------------------------------------
 
         if (window.updateAppContext) {
           window.updateAppContext({
@@ -278,9 +254,10 @@ const Signup = () => {
           )}
           <button
             type="submit"
-            className="w-full bg-theme text-white py-2 rounded-md transition hover:opacity-90"
+            disabled={sendingOtp}
+            className="w-full bg-theme text-white py-2 rounded-md transition hover:opacity-90 disabled:opacity-60"
           >
-            {otpSent ? 'Verify OTP & Register' : 'Send OTP'}
+            {sendingOtp ? 'Sending OTP...' : otpSent ? 'Verify OTP & Register' : 'Send OTP'}
           </button>
         </form>
         <div className="text-center mt-4 text-sm text-gray-600">

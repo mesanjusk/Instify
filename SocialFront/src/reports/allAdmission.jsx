@@ -54,14 +54,16 @@ const AllAdmission = () => {
   });
 
   const handleWhatsApp = (mobile, name) => {
-    if (!mobile) return toast.error('Mobile number not available');
-    const message = `Hello ${name || ''}, we are contacting you regarding your admission.`;
-    window.open(`https://wa.me/91${mobile}?text=${encodeURIComponent(message)}`, '_blank');
+    const cleaned = String(mobile || '').replace(/\D/g, '');
+    if (!cleaned) return toast.error('Mobile number not available');
+    const message = `Hello ${String(name || '').replace(/[<>"']/g, '')}, we are contacting you regarding your admission.`;
+    window.open(`https://wa.me/91${cleaned}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const handleCall = (mobile) => {
-    if (!mobile) return toast.error('Mobile number not available');
-    window.open(`tel:${mobile}`);
+    const cleaned = String(mobile || '').replace(/\D/g, '');
+    if (!cleaned) return toast.error('Mobile number not available');
+    window.open(`tel:+91${cleaned}`);
   };
 
   const getCourseName = (courseUuid) => {

@@ -16,6 +16,20 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Auto-logout on expired/invalid token
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Clear session data and redirect to login
+      ['authToken', 'token', 'user', 'institute', 'institute_uuid'].forEach(k => localStorage.removeItem(k));
+      if (window.updateAppContext) window.updateAppContext({ user: null, institute: null });
+      window.location.href = '/';
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const whatsappApi = {
   sendText: (payload) => apiClient.post('/api/whatsapp/send-text', payload),
   sendImage: (payload) => apiClient.post('/api/whatsapp/send-image', payload, {

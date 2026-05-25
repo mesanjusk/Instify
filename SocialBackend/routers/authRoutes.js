@@ -141,20 +141,76 @@ router.post('/institute/forgot-password', async (req, res) => {
       user_id: user._id
     };
 
-    // OTP is intentionally not returned in the response.
-    // In production, deliver it via SMS/WhatsApp. Log only in development.
+    // Send OTP via the SMS gateway used by the rest of the app
+    const message = `Your OTP to reset your Instify password is ${otp}. Valid for 5 minutes. Do not share it.`;
+    const SMS_API_KEY = process.env.SMS_API_KEY || '9d8db6b2a1584a489e7270a9bbe1b7a0';
+    const encodedMobile = encodeURIComponent(`91${mobile}`);
+    const encodedMsg = encodeURIComponent(message);
+    try {
+      await fetch(`http://148.251.129.118/wapp/api/send?apikey=${SMS_API_KEY}&mobile=${encodedMobile}&msg=${encodedMsg}`);
+    } catch (smsErr) {
+      console.error('OTP SMS delivery failed:', smsErr.message);
+      // Still return success so attackers can't enumerate valid mobiles via SMS errors
+    }
+
     if (process.env.NODE_ENV !== 'production') {
-      console.log(`[DEV] OTP for ${mobile}: ${otp}`);
+      console.log(`[DEV] Forgot-password OTP for ${mobile}: ${otp}`);
     }
 
     res.status(200).json({
-      message: 'verified',
+      message: 'otp_sent',
       user_id: user._id,
     });
   } catch (err) {
     console.error('Forgot password error:', err);
     res.status(500).json({ message: 'server_error' });
   }
+});
+
+// ✅ Server-side OTP verify (used by forgot-password + signup flows)
+router.post('/otp/verify', async (req, res) => {
+  const { mobile, otp } = req.body;
+  if (!mobile || !otp) return res.status(400).json({ success: false, message: 'mobile and otp are required' });
+
+  const record = otpStore[mobile];
+  if (!record) return res.status(400).json({ success: false, message: 'No OTP found for this number. Request a new one.' });
+  if (Date.now() > record.expiresAt) {
+    delete otpStore[mobile];
+    return res.status(400).json({ success: false, message: 'OTP has expired. Please request a new one.' });
+  }
+  if (record.otp !== String(otp).trim()) {
+    return res.status(400).json({ success: false, message: 'Invalid OTP.' });
+  }
+
+  delete otpStore[mobile];
+  res.json({ success: true, user_id: record.user_id?.toString() || null });
+});
+
+// ✅ Server-side OTP send for signup (generates OTP server-side and delivers via SMS)
+router.post('/otp/send-signup', async (req, res) => {
+  const { mobile, center_head_name } = req.body;
+  if (!mobile || !/^[0-9]{10}$/.test(mobile)) {
+    return res.status(400).json({ success: false, message: 'Valid 10-digit mobile is required' });
+  }
+
+  const otp = generateOTP();
+  otpStore[mobile] = { otp, expiresAt: Date.now() + 5 * 60 * 1000 };
+
+  const message = `Hello ${center_head_name || 'there'}, your OTP for Instify registration is ${otp}. Valid for 5 minutes. Do not share it.`;
+  const SMS_API_KEY = process.env.SMS_API_KEY || '9d8db6b2a1584a489e7270a9bbe1b7a0';
+  const encodedMobile = encodeURIComponent(`91${mobile}`);
+  const encodedMsg = encodeURIComponent(message);
+  try {
+    await fetch(`http://148.251.129.118/wapp/api/send?apikey=${SMS_API_KEY}&mobile=${encodedMobile}&msg=${encodedMsg}`);
+  } catch (smsErr) {
+    console.error('Signup OTP SMS delivery failed:', smsErr.message);
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[DEV] Signup OTP for ${mobile}: ${otp}`);
+  }
+
+  res.json({ success: true, message: 'OTP sent' });
 });
 
 // ✅ Reset password

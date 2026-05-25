@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -11,9 +10,11 @@ import {
   FormControl, InputLabel
 } from '@mui/material';
 import { Edit, Delete, Add, PictureAsPdf, FileDownload, Search } from '@mui/icons-material';
-import BASE_URL from '../config';
+import apiClient from '../apiClient';
+import { useApp } from '../context/AppContext';
 
 const Students = () => {
+  const { institute_uuid } = useApp();
   const [students, setStudents] = useState([]);
   const [form, setForm] = useState({
     firstName: '',
@@ -22,7 +23,6 @@ const Students = () => {
     dob: '',
     gender: '',
     mobileSelf: '',
-    institute_uuid: ''
   });
   const [editingId, setEditingId] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -30,7 +30,6 @@ const Students = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const searchTimeout = useRef();
-  const institute_uuid = localStorage.getItem("institute_uuid");
 
   // Debounced search
   useEffect(() => {
@@ -40,9 +39,10 @@ const Students = () => {
   }, [search]);
 
   const fetchStudents = async () => {
+    if (!institute_uuid) return;
     try {
       setLoading(true);
-      const res = await axios.get(`${BASE_URL}/api/students`);
+      const res = await apiClient.get('/api/students', { params: { institute_uuid } });
       setStudents(Array.isArray(res.data?.data) ? res.data.data : []);
     } catch (err) {
       toast.error('Failed to fetch students');

@@ -29,7 +29,7 @@ const logoutUser = () => {
   // ✅ Notify and redirect
   toast.success('Logged out successfully');
   setTimeout(() => {
-    window.location.href = '/login'; // Update if your login route differs
+    window.location.href = '/';
   }, 500);
 };
 

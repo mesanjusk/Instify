@@ -86,8 +86,8 @@ const Login = () => {
   };
 
   const handleLogoClick = () => {
-    // redirect in the same tab and keep login session (localStorage/sessionStorage stays intact)
-    window.location.href = 'https://canvas-gray-five.vercel.app';
+    const marketingUrl = import.meta.env.VITE_MARKETING_URL;
+    if (marketingUrl) window.location.href = marketingUrl;
   };
 
   const themeColor = branding?.theme?.color || '#45818e';

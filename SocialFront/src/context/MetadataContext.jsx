@@ -39,9 +39,8 @@ export const MetadataProvider = ({ children }) => {
       setBatches(Array.isArray(batchesRes.data.data) ? batchesRes.data.data : []);
       setPaymentModes(Array.isArray(paymentModesRes.data.data) ? paymentModesRes.data.data : []);
 
-      console.log("✅ Metadata loaded");
     } catch (err) {
-      console.warn('❌ Failed to load metadata', err?.response?.data || err.message);
+      console.error('[MetadataContext] Failed to load metadata:', err.message);
     } finally {
       setLoading(false);
     }
