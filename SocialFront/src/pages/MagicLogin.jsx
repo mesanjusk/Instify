@@ -9,9 +9,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Box, Card, CardContent, CircularProgress, Typography, Button } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
-import axios from 'axios';
-import BASE_URL from '../config';
+import apiClient from '../apiClient';
 import { storeUserData, storeInstituteData } from '../utils/storageUtils';
+import { updateAppContext } from '../context/appContextBridge';
 import { fetchAndStoreMasters } from '../utils/masterUtils';
 
 export default function MagicLogin() {
@@ -23,7 +23,7 @@ export default function MagicLogin() {
   useEffect(() => {
     if (!token) { setState('error'); setErrorMsg('Invalid link — no token found.'); return; }
 
-    axios.get(`${BASE_URL}/api/auth/magic-link/verify/${token}`)
+    apiClient.get(`/api/auth/magic-link/verify/${token}`)
       .then(async ({ data }) => {
         if (!data.success) {
           setState('error');
@@ -35,12 +35,10 @@ export default function MagicLogin() {
         storeUserData({ id: user.id, name: user.name, role: user.role, username: user.username });
         storeInstituteData({ institute_uuid: institute.uuid, institute_name: institute.name, institute_id: institute.id, theme_color: institute.theme_color });
         if (authToken) localStorage.setItem('authToken', authToken);
-        if (window.updateAppContext) {
-          window.updateAppContext({
-            user: JSON.parse(localStorage.getItem('user')),
-            institute: JSON.parse(localStorage.getItem('institute')),
-          });
-        }
+        updateAppContext({
+          user: JSON.parse(localStorage.getItem('user')),
+          institute: JSON.parse(localStorage.getItem('institute')),
+        });
 
         try { await fetchAndStoreMasters(); } catch (_) {}
 

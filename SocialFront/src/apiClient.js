@@ -3,27 +3,28 @@ import BASE_URL from './config';
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  withCredentials: true, // send httpOnly auth_session cookie on every request
+  headers: { 'Content-Type': 'application/json' },
 });
 
+// Attach JWT from localStorage as a fallback Authorization header.
+// Once all clients use the httpOnly cookie, this can be removed.
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  const token = localStorage.getItem('authToken');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
-// Auto-logout on expired/invalid token
+// Auto-logout when the server returns 401 (expired / revoked token)
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
-      // Clear session data and redirect to login
-      ['authToken', 'token', 'user', 'institute', 'institute_uuid'].forEach(k => localStorage.removeItem(k));
-      if (window.updateAppContext) window.updateAppContext({ user: null, institute: null });
+      // Import lazily to avoid a circular-dependency at module init time
+      const { updateAppContext } = await import('./context/appContextBridge.js');
+      const { clearUserAndInstituteData } = await import('./utils/storageUtils.js');
+      clearUserAndInstituteData();
+      updateAppContext({ user: null, institute: null });
       window.location.href = '/';
     }
     return Promise.reject(error);

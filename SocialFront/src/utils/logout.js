@@ -1,36 +1,27 @@
-// src/utils/logoutUser.js
-
 import { clearUserAndInstituteData } from './storageUtils';
 import { purgeAllData } from '../db/dbService';
+import { updateAppContext } from '../context/appContextBridge';
+import apiClient from '../apiClient';
 import toast from 'react-hot-toast';
 
-/**
- * Logs out the user safely by clearing all user/institute data,
- * resetting AppContext if available, and redirecting to login.
- */
-const logoutUser = () => {
-  // ✅ Clear user and institute data
+const logoutUser = async () => {
+  // Clear httpOnly cookie server-side
+  try { await apiClient.post('/api/auth/logout'); } catch (_) {}
+
+  // Clear all local session data
   clearUserAndInstituteData();
+  purgeAllData().catch(() => {});
 
-  // ✅ Purge IndexedDB data (async, non-blocking)
-  purgeAllData().catch(console.error);
+  ['remember_me', 'last_password_change'].forEach(k => {
+    localStorage.removeItem(k);
+    sessionStorage.removeItem(k);
+  });
 
-  // ✅ Clear additional related values
-  localStorage.removeItem('remember_me');
-  localStorage.removeItem('last_password_change');
-  sessionStorage.removeItem('remember_me');
-  sessionStorage.removeItem('last_password_change');
+  // Reset React context via module bridge (no window global needed)
+  updateAppContext({ user: null, institute: null });
 
-  // ✅ Reset AppContext if your app uses it
-  if (window.updateAppContext) {
-    window.updateAppContext({ user: null, institute: null });
-  }
-
-  // ✅ Notify and redirect
   toast.success('Logged out successfully');
-  setTimeout(() => {
-    window.location.href = '/';
-  }, 500);
+  setTimeout(() => { window.location.href = '/'; }, 500);
 };
 
 export default logoutUser;

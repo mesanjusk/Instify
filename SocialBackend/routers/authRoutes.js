@@ -20,6 +20,28 @@ function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+// Short-lived JWT used only for the forgot-password reset step (10 min)
+const RESET_TOKEN_SECRET = process.env.RESET_TOKEN_SECRET || JWT_SECRET + '_reset';
+
+function issueResetToken(userId) {
+  return jwt.sign({ userId: userId.toString(), purpose: 'password_reset' }, RESET_TOKEN_SECRET, { expiresIn: '10m' });
+}
+
+function verifyResetToken(token) {
+  const payload = jwt.verify(token, RESET_TOKEN_SECRET);
+  if (payload.purpose !== 'password_reset') throw new Error('Invalid token purpose');
+  return payload;
+}
+
+function setAuthCookie(res, token) {
+  res.cookie('auth_session', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  });
+}
+
 //
 // ✅ PUBLIC ROUTES
 //
@@ -89,21 +111,18 @@ router.post('/user/login',
     user.last_login_at = new Date();
     await user.save();
 
-    // 🔑 Generate JWT token
     const token = jwt.sign(
-      {
-        user_id: user._id,
-        user_uuid: user.user_uuid,
-        role: user.role,
-        institute_uuid: user.institute_uuid,
-      },
+      { user_id: user._id, user_uuid: user.user_uuid, role: user.role, institute_uuid: user.institute_uuid },
       JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: '7d' }
     );
+
+    // Set httpOnly cookie so the token is not accessible to JS (XSS protection)
+    setAuthCookie(res, token);
 
     res.status(200).json({
       message: 'success',
-      token, 
+      token, // still returned for clients that can't use cookies (mobile apps, etc.)
       user_id: user._id,
       user_name: user.name,
       user_role: user.role,
@@ -183,7 +202,47 @@ router.post('/otp/verify', async (req, res) => {
   }
 
   delete otpStore[mobile];
-  res.json({ success: true, user_id: record.user_id?.toString() || null });
+
+  // If the OTP was for a password reset, issue a short-lived signed reset token
+  // so the client never needs to carry the raw DB user_id in the URL
+  const resetToken = record.user_id ? issueResetToken(record.user_id) : null;
+  res.json({ success: true, resetToken });
+});
+
+// ✅ Forgot-password reset — accepts a resetToken (issued by /otp/verify), no old password needed
+router.post('/forgot-reset-password', async (req, res) => {
+  const { resetToken, new_password } = req.body;
+  if (!resetToken || !new_password) {
+    return res.status(400).json({ message: 'resetToken and new_password are required' });
+  }
+  if (new_password.length < 6) {
+    return res.status(400).json({ message: 'Password must be at least 6 characters' });
+  }
+
+  try {
+    const { userId } = verifyResetToken(resetToken);
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.login_password = await bcrypt.hash(new_password, 10);
+    user.last_password_change = new Date();
+    await user.save();
+
+    res.json({ message: 'reset_success' });
+  } catch (err) {
+    const expired = err.name === 'TokenExpiredError';
+    res.status(401).json({ message: expired ? 'Reset link has expired. Please start over.' : 'Invalid reset token.' });
+  }
+});
+
+// ✅ Logout — clears the httpOnly session cookie
+router.post('/logout', (req, res) => {
+  res.clearCookie('auth_session', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+  });
+  res.json({ success: true });
 });
 
 // ✅ Server-side OTP send for signup (generates OTP server-side and delivers via SMS)
@@ -428,12 +487,13 @@ router.get('/magic-link/verify/:token', async (req, res) => {
     user.last_login_at = new Date();
     await user.save();
 
-    // Issue a full session JWT
     const sessionToken = jwt.sign(
       { user_id: user._id, user_uuid: user.user_uuid, role: user.role, institute_uuid: user.institute_uuid },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    setAuthCookie(res, sessionToken);
 
     res.json({
       success: true,

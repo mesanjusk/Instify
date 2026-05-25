@@ -84,7 +84,7 @@ export default function App() {
       <Route path="/signup" element={<Signup />} />
       <Route path="/upload" element={<ImageUploader />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password/:id" element={<ResetPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/access/:token" element={<MagicLogin />} />
       <Route path="/f/:slug" element={<PublicForm />} />
       <Route path="/idcard-preview/:token" element={<IDCardStudentSelfEdit />} />

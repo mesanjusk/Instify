@@ -49,6 +49,7 @@ export const storeUserData = ({ id, name, role, username }) => {
  */
 export const clearUserAndInstituteData = () => {
   const keys = [
+    'authToken', // JWT stored for Authorization header fallback
     'user',
     'name',
     'user_type',
@@ -62,7 +63,9 @@ export const clearUserAndInstituteData = () => {
     'branding',
     'logo',
     'favicon',
-    'trialExpiresAt'
+    'trialExpiresAt',
+    'expiry_date',
+    'plan_type',
   ];
   keys.forEach(key => localStorage.removeItem(key));
 };

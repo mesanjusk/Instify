@@ -71,7 +71,6 @@ const BrandingProvider = ({ children }) => {
 
         document.title = `${final.institute} | Instify`;
       } catch (err) {
-        console.warn('⚠️ Failed to fetch branding, using default.');
         const rgb = hexToRgb(defaultTheme.color);
         document.documentElement.style.setProperty('--tw-color-primary', rgb);
         document.documentElement.style.setProperty('--theme-color', defaultTheme.color);

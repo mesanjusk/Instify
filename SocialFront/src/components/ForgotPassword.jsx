@@ -13,7 +13,6 @@ const ForgotPassword = () => {
   const [mobile, setMobile] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
-  const [userId, setUserId] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSendOtp = async (e) => {
@@ -33,7 +32,6 @@ const ForgotPassword = () => {
       });
 
       if (data.message === 'otp_sent') {
-        setUserId(data.user_id);
         setOtpSent(true);
         toast.success('OTP sent to your registered mobile number');
       } else {
@@ -56,7 +54,8 @@ const ForgotPassword = () => {
       const { data } = await apiClient.post('/api/auth/otp/verify', { mobile, otp });
       if (data.success) {
         toast.success('OTP verified. Redirecting...');
-        navigate(`/reset-password/${userId}`);
+        // Pass the server-issued resetToken via router state — never expose raw userId in URL
+        navigate('/reset-password', { state: { resetToken: data.resetToken } });
       } else {
         toast.error(data.message || 'Invalid OTP');
       }

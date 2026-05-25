@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useBranding } from '../context/BrandingContext';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
-import BASE_URL from '../config';
+import { updateAppContext } from '../context/appContextBridge';
+import apiClient from '../apiClient';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -54,19 +54,18 @@ const Signup = () => {
     }
 
     try {
-      const res = await axios.post(`${BASE_URL}/api/send-otp`, {
-        mobile: institute_call_number
+      const { data: otpData } = await apiClient.post('/api/auth/otp/send-signup', {
+        mobile: institute_call_number,
+        center_head_name: form.center_head_name,
       });
 
-      if (res.data.success) {
+      if (otpData.success) {
         setOtpSent(true);
-        setServerOtp(res.data.otp); // dev only
         toast.success('OTP sent to your mobile');
       } else {
-        toast.error(res.data.message || 'Failed to send OTP');
+        toast.error(otpData.message || 'Failed to send OTP');
       }
     } catch (err) {
-      console.error(err);
       toast.error('Server error while sending OTP');
     }
   };
@@ -74,13 +73,17 @@ const Signup = () => {
   const handleSignup = async (e) => {
     e.preventDefault();
 
-    if (!otp || otp !== serverOtp) {
-      toast.error('Invalid OTP');
-      return;
+    if (!otp.trim()) { toast.error('Enter the OTP'); return; }
+
+    try {
+      const verifyRes = await apiClient.post('/api/auth/otp/verify', { mobile: form.institute_call_number, otp });
+      if (!verifyRes.data.success) { toast.error(verifyRes.data.message || 'Invalid OTP'); return; }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'OTP verification failed'); return;
     }
 
     try {
-      const res = await axios.post(`${BASE_URL}/api/institute/signup`, {
+      const res = await apiClient.post('/api/institute/signup', {
         ...form,
         plan_type: 'trial'
       });
@@ -112,22 +115,20 @@ const Signup = () => {
         document.documentElement.style.setProperty('--theme-color', data.theme_color || '#5b5b5b');
 
         // ✅ Update Context globally
-        if (window.updateAppContext) {
-          window.updateAppContext({
-            user: {
-              id: data.owner_id,
-              name: form.center_head_name,
-              role: 'admin',
-              username: form.center_code
-            },
-            institute: {
-              institute_id: data.institute_id,
-              institute_uuid: data.institute_uuid,
-              institute_title: data.institute_title,
-              theme_color: data.theme_color || '#5b5b5b'
-            }
-          });
-        }
+        updateAppContext({
+          user: {
+            id: data.owner_id,
+            name: form.center_head_name,
+            role: 'admin',
+            username: form.center_code
+          },
+          institute: {
+            institute_id: data.institute_id,
+            institute_uuid: data.institute_uuid,
+            institute_title: data.institute_title,
+            theme_color: data.theme_color || '#5b5b5b'
+          }
+        });
 
         setTimeout(() => navigate('/dashboard'), 1000);
       } else {

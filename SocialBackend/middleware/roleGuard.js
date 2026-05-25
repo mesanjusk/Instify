@@ -10,8 +10,12 @@ const jwt = require('jsonwebtoken');
  * Must be used before roleGuard.
  */
 function authenticate(req, res, next) {
+  // Accept token from httpOnly cookie first, fall back to Authorization header
+  const cookieToken = req.cookies?.auth_session;
   const header = req.headers.authorization || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const headerToken = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const token = cookieToken || headerToken;
+
   if (!token) return res.status(401).json({ message: 'Unauthorized — no token' });
 
   try {

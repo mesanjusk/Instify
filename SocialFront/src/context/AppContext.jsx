@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { registerContextSetters } from './appContextBridge';
 
 const AppContext = createContext();
 
@@ -7,6 +8,7 @@ export const AppProvider = ({ children }) => {
   const [institute, setInstitute] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Restore session from localStorage on first render
   useEffect(() => {
     try {
       const userStr = localStorage.getItem('user');
@@ -32,19 +34,9 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
+  // Register setters with the module-level bridge so non-React code can update context
   useEffect(() => {
-    window.updateAppContext = ({ user: u, institute: inst } = {}) => {
-      if (u) {
-        setUser(u);
-        localStorage.setItem('user', JSON.stringify(u));
-      }
-      if (inst) {
-        setInstitute(inst);
-        localStorage.setItem('institute', JSON.stringify(inst));
-        const uuid = inst.institute_uuid || inst.uuid;
-        if (uuid) localStorage.setItem('institute_uuid', uuid);
-      }
-    };
+    registerContextSetters(setUser, setInstitute);
   }, []);
 
   const institute_uuid = institute?.institute_uuid || institute?.uuid || null;

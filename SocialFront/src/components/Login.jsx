@@ -1,12 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
-import BASE_URL from '../config';
 import { getInstituteId } from '../utils/instituteUtils';
 import { fetchBranding } from '../utils/brandingUtils';
 import { fetchAndStoreMasters } from '../utils/masterUtils';
 import { storeUserData, storeInstituteData } from '../utils/storageUtils';
+import { updateAppContext } from '../context/appContextBridge';
+import apiClient from '../apiClient';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -43,36 +43,27 @@ const Login = () => {
     setLoading(true);
     const insti = getInstituteId(searchParams);
     try {
-      const { data } = await axios.post(`${BASE_URL}/api/auth/user/login`, { username, password });
+      const { data } = await apiClient.post('/api/auth/user/login', { username, password });
       if (data.message !== 'success') {
         toast.error(data.message || 'Invalid credentials');
         setLoading(false);
         return;
       }
       toast.success(`Welcome, ${data.user_name}`);
-      storeUserData({
-        id: data.user_id,
-        name: data.user_name,
-        role: data.user_role,
-        username: data.login_username,
-      });
-      localStorage.setItem("authToken", data.token);
-      storeInstituteData({
-        institute_uuid: data.institute_uuid,
-        institute_name: data.institute_name,
-        institute_id: data.institute_id,
-        theme_color: data.theme_color,
-      });
-      if (data.trialExpiresAt) {
-        localStorage.setItem('trialExpiresAt', data.trialExpiresAt);
-      }
+
+      const userData = { id: data.user_id, name: data.user_name, role: data.user_role, username: data.login_username };
+      const instituteData = { institute_uuid: data.institute_uuid, institute_name: data.institute_name, institute_id: data.institute_id, theme_color: data.theme_color };
+      storeUserData(userData);
+      storeInstituteData(instituteData);
+      // Store token as fallback for non-cookie environments (mobile apps, Capacitor, etc.)
+      if (data.token) localStorage.setItem('authToken', data.token);
+      if (data.trialExpiresAt) localStorage.setItem('trialExpiresAt', data.trialExpiresAt);
+
       document.documentElement.style.setProperty('--theme-color', data.theme_color || '#5b5b5b');
-      if (window.updateAppContext) {
-        window.updateAppContext({
-          user: JSON.parse(localStorage.getItem('user')),
-          institute: JSON.parse(localStorage.getItem('institute')),
-        });
-      }
+      updateAppContext({
+        user: JSON.parse(localStorage.getItem('user')),
+        institute: JSON.parse(localStorage.getItem('institute')),
+      });
       await fetchBranding(insti, setBranding);
       await fetchAndStoreMasters();
       setTimeout(() => navigate(`/${data.login_username}`), 600);

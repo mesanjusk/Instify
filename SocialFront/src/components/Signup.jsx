@@ -6,6 +6,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import BASE_URL from '../config';
 import apiClient from '../apiClient';
 import { storeUserData, storeInstituteData } from '../utils/storageUtils';
+import { updateAppContext } from '../context/appContextBridge';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -152,12 +153,10 @@ const Signup = () => {
           console.error('Default account setup failed:', err.message);
         }
 
-        if (window.updateAppContext) {
-          window.updateAppContext({
-            user: JSON.parse(localStorage.getItem('user')),
-            institute: JSON.parse(localStorage.getItem('institute')),
-          });
-        }
+        updateAppContext({
+          user: JSON.parse(localStorage.getItem('user')),
+          institute: JSON.parse(localStorage.getItem('institute')),
+        });
 
         setTimeout(() => navigate('/dashboard'), 1000);
       } else {
