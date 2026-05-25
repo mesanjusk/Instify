@@ -1,89 +1,36 @@
-import React, { createContext, useEffect, useState } from 'react';
-import axios from 'axios';
-import BASE_URL from '../config';
+import React, { createContext } from 'react';
 
 export const BrandingContext = createContext();
 
-const defaultTheme = {
-  color: '#5b5b5b', // fallback theme color
+const staticBranding = {
+  color: '#1a7a4a',
   logo: '/pwa-512x512.png',
   favicon: '/icon.svg',
   institute: 'Instify',
-  tagline: 'Manage your institute with ease'
+  tagline: 'Institutions Simplified',
 };
 
-function hexToRgb(hex) {
-  const bigint = parseInt(hex.replace('#', ''), 16);
-  const r = (bigint >> 16) & 255;
-  const g = (bigint >> 8) & 255;
-  const b = bigint & 255;
-  return `${r} ${g} ${b}`;
-}
-
-const getInstituteId = () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const fromQuery = urlParams.get('i');
-  if (fromQuery) return fromQuery;
-
-  const hostname = window.location.hostname;
-  const parts = hostname.split('.');
-  const subdomain = parts.length > 2 ? parts[0] : null;
-
-  if (subdomain && subdomain !== 'www' && subdomain !== 'instify') {
-    return subdomain;
-  }
-
-  return null;
-};
+// Set CSS variables once at module load
+document.documentElement.style.setProperty('--tw-color-primary', '26 122 74');
+document.documentElement.style.setProperty('--theme-color', '#1a7a4a');
+document.documentElement.style.setProperty('--primary', '#1a7a4a');
+document.documentElement.style.setProperty('--primary-hover', '#25a066');
+document.documentElement.style.setProperty('--primary-light', '#34c97e');
+document.documentElement.style.setProperty('--secondary', '#d4a017');
+document.documentElement.style.setProperty('--secondary-hover', '#f0c040');
+document.documentElement.style.setProperty('--dark', '#0a1a0f');
+document.documentElement.style.setProperty('--background', '#f4f9f6');
+document.documentElement.style.setProperty('--white', '#ffffff');
+document.documentElement.style.setProperty('--border', '#d0e8d0');
+document.documentElement.style.setProperty('--text', '#1a1a1a');
+document.documentElement.style.setProperty('--text-muted', '#555555');
+document.documentElement.style.setProperty('--text-light', '#888888');
+document.documentElement.style.setProperty('--error', '#c62828');
+document.documentElement.style.setProperty('--success', '#1b5e20');
 
 const BrandingProvider = ({ children }) => {
-  const [branding, setBranding] = useState(defaultTheme);
-
-  useEffect(() => {
-    const fetchBranding = async () => {
-      const insti = getInstituteId();
-
-      try {
-        const res = await axios.get(`${BASE_URL}/api/branding${insti ? `?i=${insti}` : ''}`);
-        const data = res.data || {};
-
-        const final = {
-          institute: data.institute || defaultTheme.institute,
-          color: data.theme?.color || defaultTheme.color,
-          logo: data.logo || defaultTheme.logo,
-          favicon: data.favicon || defaultTheme.favicon,
-          tagline: data.tagline || defaultTheme.tagline,
-        };
-
-        setBranding(final);
-
-        const rgb = hexToRgb(final.color);
-        document.documentElement.style.setProperty('--tw-color-primary', rgb);
-        document.documentElement.style.setProperty('--theme-color', final.color);
-
-        let link = document.querySelector("link[rel~='icon']");
-        if (!link) {
-          link = document.createElement('link');
-          link.rel = 'icon';
-          document.head.appendChild(link);
-        }
-        link.href = final.favicon || '/icon.svg';
-
-        document.title = `${final.institute} | Instify`;
-      } catch (err) {
-        console.warn('⚠️ Failed to fetch branding, using default.');
-        const rgb = hexToRgb(defaultTheme.color);
-        document.documentElement.style.setProperty('--tw-color-primary', rgb);
-        document.documentElement.style.setProperty('--theme-color', defaultTheme.color);
-        setBranding(defaultTheme);
-      }
-    };
-
-    fetchBranding();
-  }, []);
-
   return (
-    <BrandingContext.Provider value={{ branding }}>
+    <BrandingContext.Provider value={{ branding: staticBranding }}>
       {children}
     </BrandingContext.Provider>
   );

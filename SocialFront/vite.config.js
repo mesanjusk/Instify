@@ -31,9 +31,9 @@ export default defineConfig({
       manifest: {
         name: 'Instify',
         short_name: 'Instify',
-        description: 'Addmission 2 Celebration',
-        theme_color: '#5b5b5b',
-        background_color: '#5b5b5b',
+        description: 'Institutions Simplified',
+        theme_color: '#1a7a4a',
+        background_color: '#f4f9f6',
         display: 'standalone',
         start_url: '/',
         icons: [
