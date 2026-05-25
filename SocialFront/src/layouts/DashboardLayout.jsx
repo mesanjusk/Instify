@@ -4,9 +4,9 @@ import {
   AppBar, Avatar, Badge, Box, Breadcrumbs, IconButton,
   Stack, Toolbar, Tooltip, Typography, Link,
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
+import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
-import LogoutIcon from '@mui/icons-material/Logout';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 
@@ -15,7 +15,7 @@ import BottomNav from '../components/BottomNav';
 import FloatingButtons from './floatingButton';
 import { useApp } from '../context/AppContext';
 
-const DRAWER_WIDTH = 260;
+const DRAWER_WIDTH = 256;
 
 const ROUTE_LABELS = {
   students: 'Students', allAdmission: 'Admissions', courses: 'Courses',
@@ -73,56 +73,58 @@ export default function DashboardLayout() {
       />
 
       {/* Main content column */}
-      <Box
-        sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          minWidth: 0,
-          maxWidth: '100%',
-        }}
-      >
-        {/* Top AppBar */}
-        <AppBar
-          position="sticky"
-          elevation={0}
-          sx={{ bgcolor: 'background.paper', color: 'text.primary' }}
-        >
-          <Toolbar sx={{ gap: 1, minHeight: { xs: 56, sm: 64 }, px: { xs: 2, md: 3 } }}>
-            {/* Hamburger for mobile */}
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, maxWidth: '100%' }}>
+
+        {/* Top AppBar — glass morphism */}
+        <AppBar position="sticky" elevation={0}>
+          <Toolbar sx={{
+            gap: 1,
+            minHeight: { xs: 58, sm: 64 },
+            px: { xs: 2, md: 3 },
+          }}>
+            {/* Hamburger — mobile only */}
             <IconButton
               edge="start"
               onClick={() => setMobileOpen(true)}
-              sx={{ display: { md: 'none' }, mr: 0.5 }}
+              sx={{
+                display: { md: 'none' },
+                mr: 0.5,
+                color: 'text.secondary',
+                '&:hover': { bgcolor: 'rgba(5,150,105,0.08)', color: 'primary.main' },
+              }}
             >
-              <MenuIcon />
+              <MenuRoundedIcon />
             </IconButton>
 
-            {/* Breadcrumb / Title area */}
+            {/* Title / Breadcrumb */}
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              {/* Mobile: just institute name */}
+              {/* Mobile */}
               <Box sx={{ display: { xs: 'block', md: 'none' } }}>
-                <Typography variant="subtitle1" fontWeight={700} noWrap>
+                <Typography variant="subtitle1" fontWeight={700} noWrap sx={{ color: 'text.primary', lineHeight: 1.2 }}>
                   {crumb || instituteName}
                 </Typography>
                 {crumb && (
-                  <Typography variant="caption" color="text.secondary" noWrap>
+                  <Typography variant="caption" color="text.secondary" noWrap sx={{ lineHeight: 1 }}>
                     {instituteName}
                   </Typography>
                 )}
               </Box>
 
-              {/* Desktop: breadcrumb */}
+              {/* Desktop */}
               <Box sx={{ display: { xs: 'none', md: 'block' } }}>
                 {isHome ? (
                   <Box>
-                    <Typography variant="subtitle1" fontWeight={700} noWrap>{instituteName}</Typography>
-                    <Typography variant="caption" color="text.secondary">{roleLabel}</Typography>
+                    <Typography variant="subtitle1" fontWeight={700} noWrap sx={{ color: 'text.primary', lineHeight: 1.2 }}>
+                      {instituteName}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
+                      {roleLabel}
+                    </Typography>
                   </Box>
                 ) : (
                   <Breadcrumbs
-                    separator={<NavigateNextIcon sx={{ fontSize: 14 }} />}
-                    sx={{ '& .MuiBreadcrumbs-ol': { flexWrap: 'nowrap' } }}
+                    separator={<NavigateNextIcon sx={{ fontSize: 13, color: 'text.disabled' }} />}
+                    sx={{ '& .MuiBreadcrumbs-ol': { flexWrap: 'nowrap', alignItems: 'center' } }}
                   >
                     <Link
                       component="button"
@@ -130,12 +132,19 @@ export default function DashboardLayout() {
                       color="text.secondary"
                       underline="hover"
                       onClick={() => navigate(`/${username}`)}
-                      sx={{ display: 'flex', alignItems: 'center', gap: 0.4, fontWeight: 500 }}
+                      sx={{
+                        display: 'flex', alignItems: 'center', gap: 0.4,
+                        fontWeight: 500, fontSize: '0.8125rem',
+                        '&:hover': { color: 'primary.main' },
+                        transition: 'color 0.15s ease',
+                      }}
                     >
-                      <HomeRoundedIcon sx={{ fontSize: 15 }} />
+                      <HomeRoundedIcon sx={{ fontSize: 14 }} />
                       Home
                     </Link>
-                    <Typography variant="body2" color="text.primary" fontWeight={600} noWrap>
+                    <Typography variant="body2" fontWeight={600} noWrap sx={{
+                      color: 'text.primary', fontSize: '0.8125rem',
+                    }}>
                       {crumb}
                     </Typography>
                   </Breadcrumbs>
@@ -145,35 +154,50 @@ export default function DashboardLayout() {
 
             {/* Right actions */}
             <Stack direction="row" spacing={0.5} alignItems="center">
-              <Tooltip title="Notifications">
-                <IconButton size="small">
+              <Tooltip title="Notifications" arrow>
+                <IconButton
+                  size="small"
+                  sx={{
+                    color: 'text.secondary',
+                    '&:hover': { bgcolor: 'rgba(5,150,105,0.08)', color: 'primary.main' },
+                  }}
+                >
                   <Badge badgeContent={0} color="error">
                     <NotificationsNoneIcon fontSize="small" />
                   </Badge>
                 </IconButton>
               </Tooltip>
 
-              <Tooltip title={user?.name || 'Profile'}>
+              <Tooltip title={user?.name || 'Profile'} arrow>
                 <Avatar
-                  sx={{
-                    width: 34,
-                    height: 34,
-                    bgcolor: 'primary.main',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    transition: 'opacity 0.15s',
-                    '&:hover': { opacity: 0.85 },
-                  }}
                   onClick={() => navigate(`/${username}/user`)}
+                  sx={{
+                    width: 34, height: 34,
+                    background: 'linear-gradient(135deg, #059669, #34d399)',
+                    fontSize: '0.78rem', fontWeight: 800,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 0 0 2px rgba(5,150,105,0)',
+                    '&:hover': {
+                      transform: 'scale(1.06)',
+                      boxShadow: '0 0 0 2px rgba(5,150,105,0.4)',
+                    },
+                  }}
                 >
                   {initials}
                 </Avatar>
               </Tooltip>
 
-              <Tooltip title="Logout">
-                <IconButton size="small" onClick={handleLogout} color="error">
-                  <LogoutIcon fontSize="small" />
+              <Tooltip title="Logout" arrow>
+                <IconButton
+                  size="small"
+                  onClick={handleLogout}
+                  sx={{
+                    color: 'text.secondary',
+                    '&:hover': { bgcolor: 'rgba(239,68,68,0.08)', color: 'error.main' },
+                  }}
+                >
+                  <LogoutRoundedIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
             </Stack>
@@ -186,7 +210,7 @@ export default function DashboardLayout() {
           sx={{
             flex: 1,
             px: { xs: 2, md: 3, xl: 4 },
-            pt: { xs: 2, md: 3 },
+            pt: { xs: 2.5, md: 3 },
             pb: { xs: 10, md: 4 },
             overflowY: 'auto',
             maxWidth: { xl: 1600 },
@@ -201,7 +225,7 @@ export default function DashboardLayout() {
       {/* Mobile bottom navigation */}
       <BottomNav username={username} />
 
-      {/* Floating quick-action button */}
+      {/* Floating quick-action */}
       <FloatingButtons
         direction="up"
         buttonsList={[
