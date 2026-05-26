@@ -2,10 +2,12 @@ const express = require('express');
 const router = express.Router();
 const Exam = require('../models/Exam');
 
-// GET all exam entries
+// GET exam entries filtered by institute
 router.get('/', async (req, res) => {
   try {
-    const data = await Exam.find().lean();
+    const { institute_uuid } = req.query;
+    if (!institute_uuid) return res.status(400).json({ error: 'institute_uuid is required' });
+    const data = await Exam.find({ institute_uuid }).lean();
     res.status(200).json(data);
   } catch (err) {
     console.error('❌ Failed to fetch exams:', err);
@@ -17,9 +19,11 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { exam, description } = req.body;
+    const institute_uuid = req.institute_uuid || req.body.institute_uuid;
     if (!exam) return res.status(400).json({ error: 'Exam is required' });
+    if (!institute_uuid) return res.status(400).json({ error: 'institute_uuid is required' });
 
-    const newExam = new Exam({ exam, description });
+    const newExam = new Exam({ exam, description, institute_uuid });
     await newExam.save();
     res.status(201).json(newExam);
   } catch (err) {

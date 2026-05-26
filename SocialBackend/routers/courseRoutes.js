@@ -3,13 +3,15 @@ const Course = require('../models/Course');
 const router = express.Router();
 const { v4: uuid } = require("uuid");
 
-// ✅ GET courses (optionally filter by institute_id)
+// ✅ GET courses filtered by institute
 router.get('/', async (req, res) => {
   try {
-    const data = await Course.find().lean();
+    const { institute_uuid } = req.query;
+    if (!institute_uuid) return res.status(400).json({ error: 'institute_uuid is required' });
+    const data = await Course.find({ institute_uuid }).lean();
     res.status(200).json(data);
   } catch (err) {
-    console.error('❌ Failed to fetch exams:', err);
+    console.error('❌ Failed to fetch courses:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -18,13 +20,18 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const { name, description, courseFees, examFees, duration } = req.body;
+    const institute_uuid = req.institute_uuid || req.body.institute_uuid;
 
     if (!name) {
       return res.status(400).json({ error: 'name is required' });
     }
+    if (!institute_uuid) {
+      return res.status(400).json({ error: 'institute_uuid is required' });
+    }
 
     const newCourse = new Course({
       Course_uuid: uuid(),
+      institute_uuid,
       name,
       description,
       courseFees,

@@ -7,6 +7,7 @@ const courseSchema = new mongoose.Schema({
     default: uuidv4,
     unique: true
   },
+  institute_uuid: { type: String, required: true, index: true },
   name: {
     type: String,
     required: true
