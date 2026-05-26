@@ -105,7 +105,7 @@ router.post('/user/login',
 
     res.status(200).json({
       message: 'success',
-      token, 
+      token,
       user_id: user._id,
       user_name: user.name,
       user_role: user.role,
@@ -114,6 +114,10 @@ router.post('/user/login',
       institute_uuid: institute.institute_uuid,
       institute_name: institute.institute_title,
       theme_color: institute.theme?.color || '6fa8dc',
+      plan_type: institute.plan_type || 'trial',
+      status: institute.status || 'trial',
+      modulesEnabled: institute.modulesEnabled || [],
+      trialExpiresAt: institute.trialExpiresAt || null,
       last_password_change: user.last_password_change || null
     });
   } catch (err) {

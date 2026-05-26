@@ -6,6 +6,7 @@ const Institute = require('../models/institute');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const whatsappService = require('../services/whatsappService');
+const { authenticate, roleGuard } = require('../middleware/roleGuard');
 
 require('dotenv').config();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -141,6 +142,56 @@ res.json({
   } catch (err) {
     console.error('Signup Error:', err);
     res.status(500).json({ message: 'Server error during signup' });
+  }
+});
+
+// GET all institutes — super_admin / owner only
+router.get('/GetOrganizList', authenticate, roleGuard('super_admin', 'owner', 'admin'), async (req, res) => {
+  try {
+    const institutes = await Institute.find({})
+      .select('institute_uuid institute_title institute_type center_code institute_call_number plan_type status modulesEnabled trialExpiresAt createdAt contactEmail center_head_name')
+      .sort({ createdAt: -1 })
+      .lean();
+    res.json({ success: true, result: institutes });
+  } catch (err) {
+    console.error('GetOrganizList error:', err);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+// PUT manage institute plan/modules — super_admin only
+router.put('/manage/:uuid', authenticate, roleGuard('super_admin'), async (req, res) => {
+  try {
+    const { plan_type, status, modulesEnabled, trialExpiresAt } = req.body;
+    const allowed = {};
+    if (plan_type !== undefined) allowed.plan_type = plan_type;
+    if (status !== undefined) allowed.status = status;
+    if (modulesEnabled !== undefined) allowed.modulesEnabled = modulesEnabled;
+    if (trialExpiresAt !== undefined) allowed.trialExpiresAt = new Date(trialExpiresAt);
+
+    const updated = await Institute.findOneAndUpdate(
+      { institute_uuid: req.params.uuid },
+      { $set: allowed },
+      { new: true }
+    );
+    if (!updated) return res.status(404).json({ success: false, message: 'Institute not found' });
+    res.json({ success: true, result: updated });
+  } catch (err) {
+    console.error('manage institute error:', err);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+// DELETE institute — super_admin only
+router.delete('/:uuid', authenticate, roleGuard('super_admin'), async (req, res) => {
+  try {
+    const inst = await Institute.findOneAndDelete({ institute_uuid: req.params.uuid });
+    if (!inst) return res.status(404).json({ success: false, message: 'Institute not found' });
+    await User.deleteMany({ institute_uuid: req.params.uuid });
+    res.json({ success: true, message: 'Institute and all users deleted' });
+  } catch (err) {
+    console.error('delete institute error:', err);
+    res.status(500).json({ success: false, error: 'Server error' });
   }
 });
 

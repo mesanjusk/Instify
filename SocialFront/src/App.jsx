@@ -5,6 +5,7 @@ import { CircularProgress, Box } from '@mui/material';
 import DashboardLayout from './layouts/DashboardLayout';
 import SectionLayout from './layouts/SectionLayout';
 import PrivateRoute from './components/PrivateRoute';
+import FeatureGate from './components/FeatureGate';
 
 // Always-present routes (auth + shell) — load eagerly
 import Login from './components/Login';
@@ -94,9 +95,11 @@ export default function App() {
         path="/:username/section/whatsapp"
         element={
           <PrivateRoute>
-            <Box sx={{ height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              <BaileysWhatsApp />
-            </Box>
+            <FeatureGate module="whatsapp">
+              <Box sx={{ height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <BaileysWhatsApp />
+              </Box>
+            </FeatureGate>
           </PrivateRoute>
         }
       />
@@ -160,22 +163,22 @@ export default function App() {
         <Route path="allAttendance" element={<AllAttendance />} />
         <Route path="allBalance" element={<AllBalance />} />
         <Route path="allBatches" element={<AllBatches />} />
-        <Route path="whatsapp" element={<WhatsAppAdminPage />} />
+        <Route path="whatsapp" element={<FeatureGate module="whatsapp"><WhatsAppAdminPage /></FeatureGate>} />
         <Route path="dashboard/centers/:centerId/whatsapp" element={<WhatsAppIntegrationSettingsPage />} />
         <Route path="allExams" element={<AllExams />} />
         <Route path="fees" element={<Fees />} />
         <Route path="tools" element={<ToolsPanel />} />
         <Route path="allTransaction3" element={<AllTransaction3 />} />
         <Route path="upi-payment" element={<UpiPayment />} />
-        <Route path="csv-import" element={<CsvImport />} />
-        <Route path="bulk-download" element={<BulkDownload />} />
-        <Route path="employees" element={<Employees />} />
+        <Route path="csv-import" element={<FeatureGate module="csv_import"><CsvImport /></FeatureGate>} />
+        <Route path="bulk-download" element={<FeatureGate module="bulk_download"><BulkDownload /></FeatureGate>} />
+        <Route path="employees" element={<FeatureGate module="payroll"><Employees /></FeatureGate>} />
         <Route path="trial-balance" element={<TrialBalance />} />
         <Route path="profit-loss" element={<ProfitLoss />} />
-        <Route path="funnel-report" element={<FunnelReport />} />
-        <Route path="forms" element={<Forms />} />
-        <Route path="forms/:formId/responses" element={<FormResponses />} />
-        <Route path="idcard" element={<IDCardManager />} />
+        <Route path="funnel-report" element={<FeatureGate module="funnel"><FunnelReport /></FeatureGate>} />
+        <Route path="forms" element={<FeatureGate module="forms"><Forms /></FeatureGate>} />
+        <Route path="forms/:formId/responses" element={<FeatureGate module="forms"><FormResponses /></FeatureGate>} />
+        <Route path="idcard" element={<FeatureGate module="idcard"><IDCardManager /></FeatureGate>} />
         <Route path="idcard/:projectUuid/print" element={<IDCardPrint />} />
         {/* Legacy redirects → section routes */}
         <Route path="whatsapp-personal" element={<RedirectToSection section="whatsapp" />} />
