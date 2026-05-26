@@ -22,7 +22,7 @@ const Signup = () => {
   const [loadingTypes, setLoadingTypes] = useState(true);
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
-  const [serverOtp, setServerOtp] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const themeColor = form.theme_color;
 
@@ -46,39 +46,68 @@ const Signup = () => {
   const handleSendOtp = async (e) => {
     e.preventDefault();
 
-    const { institute_call_number } = form;
+    const { institute_call_number, center_code } = form;
 
     if (!/^[0-9]{10}$/.test(institute_call_number)) {
       toast.error('Enter a valid 10-digit mobile number');
       return;
     }
 
+    if (!center_code) {
+      toast.error('Center Code is required');
+      return;
+    }
+
+    setSubmitting(true);
     try {
       const res = await axios.post(`${BASE_URL}/api/send-otp`, {
-        mobile: institute_call_number
+        mobile: institute_call_number,
+        center_code
       });
 
       if (res.data.success) {
         setOtpSent(true);
-        setServerOtp(res.data.otp); // dev only
-        toast.success('OTP sent to your mobile');
+        toast.success('OTP sent to your WhatsApp number');
       } else {
         toast.error(res.data.message || 'Failed to send OTP');
       }
     } catch (err) {
       console.error(err);
-      toast.error('Server error while sending OTP');
+      toast.error(err.response?.data?.message || 'Server error while sending OTP');
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleSignup = async (e) => {
     e.preventDefault();
 
-    if (!otp || otp !== serverOtp) {
-      toast.error('Invalid OTP');
+    if (!otp) {
+      toast.error('Please enter the OTP');
       return;
     }
 
+    setSubmitting(true);
+
+    // Verify OTP via API
+    try {
+      const verifyRes = await axios.post(`${BASE_URL}/api/verify-otp`, {
+        mobile: form.institute_call_number,
+        otp
+      });
+
+      if (!verifyRes.data.success) {
+        toast.error(verifyRes.data.message || 'Invalid OTP');
+        setSubmitting(false);
+        return;
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Invalid OTP');
+      setSubmitting(false);
+      return;
+    }
+
+    // Proceed with signup
     try {
       const res = await axios.post(`${BASE_URL}/api/institute/signup`, {
         ...form,
@@ -92,15 +121,14 @@ const Signup = () => {
       } else if (data.message === 'duplicate_call_number') {
         toast.error('Mobile number already registered');
       } else if (data.message === 'success') {
-        toast.success('Signup successful. You are now on a 14-day trial.');
+        toast.success('Registration successful! Check WhatsApp for your credentials.');
 
-        // ✅ Save in localStorage
         localStorage.setItem('name', form.center_head_name);
         localStorage.setItem('institute_title', data.institute_title);
         localStorage.setItem('institute_uuid', data.institute_uuid);
         localStorage.setItem('center_code', form.center_code);
-        localStorage.setItem('user_type', 'admin'); // <-- Corrected key
-        localStorage.setItem('login_username', form.center_code); // or generate one if required
+        localStorage.setItem('user_type', 'admin');
+        localStorage.setItem('login_username', form.center_code);
         localStorage.setItem('theme_color', data.theme_color || '#5b5b5b');
         localStorage.setItem('institute_id', data.institute_id || '');
 
@@ -108,10 +136,8 @@ const Signup = () => {
           localStorage.setItem('trialExpiresAt', data.trialExpiresAt);
         }
 
-        // ✅ Apply theme color
         document.documentElement.style.setProperty('--theme-color', data.theme_color || '#5b5b5b');
 
-        // ✅ Update Context globally
         if (window.updateAppContext) {
           window.updateAppContext({
             user: {
@@ -129,13 +155,15 @@ const Signup = () => {
           });
         }
 
-        setTimeout(() => navigate('/dashboard'), 1000);
+        setTimeout(() => navigate('/dashboard'), 1500);
       } else {
         toast.error('Unexpected server response');
       }
     } catch (err) {
       console.error('Signup Error:', err);
       toast.error(err.response?.data?.message || 'Server error during signup');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -173,25 +201,32 @@ const Signup = () => {
 
           <input type="text" value={form.center_code} onChange={handleChange('center_code')} placeholder="Center Code" className="w-full px-3 py-2 border rounded-md shadow-sm" style={{ boxShadow: `0 0 0 1.5px ${themeColor}` }} required />
 
-          <input type="tel" value={form.institute_call_number} onChange={handleChange('institute_call_number')} placeholder="Mobile Number" maxLength={10} pattern="[0-9]{10}" className="w-full px-3 py-2 border rounded-md shadow-sm" style={{ boxShadow: `0 0 0 1.5px ${themeColor}` }} required />
+          <input type="tel" value={form.institute_call_number} onChange={handleChange('institute_call_number')} placeholder="Mobile Number (WhatsApp)" maxLength={10} pattern="[0-9]{10}" className="w-full px-3 py-2 border rounded-md shadow-sm" style={{ boxShadow: `0 0 0 1.5px ${themeColor}` }} required />
 
           <input type="text" value={form.center_head_name} onChange={handleChange('center_head_name')} placeholder="Center Head Name" className="w-full px-3 py-2 border rounded-md shadow-sm" style={{ boxShadow: `0 0 0 1.5px ${themeColor}` }} required />
 
           {otpSent && (
-            <input
-              type="text"
-              placeholder="Enter OTP"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              maxLength={6}
-              className="w-full px-3 py-2 border rounded-md shadow-sm"
-              style={{ boxShadow: `0 0 0 1.5px ${themeColor}` }}
-              required
-            />
+            <>
+              <p className="text-sm text-green-600 text-center">OTP sent to your WhatsApp. Please check your messages.</p>
+              <input
+                type="text"
+                placeholder="Enter OTP"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                maxLength={6}
+                className="w-full px-3 py-2 border rounded-md shadow-sm"
+                style={{ boxShadow: `0 0 0 1.5px ${themeColor}` }}
+                required
+              />
+            </>
           )}
 
-          <button type="submit" className="w-full bg-theme text-white py-2 rounded-md transition hover:opacity-90">
-            {otpSent ? 'Verify OTP & Register' : 'Send OTP'}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full bg-theme text-white py-2 rounded-md transition hover:opacity-90 disabled:opacity-60"
+          >
+            {submitting ? 'Please wait...' : otpSent ? 'Verify OTP & Register' : 'Send OTP via WhatsApp'}
           </button>
         </form>
 
