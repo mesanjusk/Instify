@@ -77,6 +77,10 @@ const Login = () => {
         institute_name: data.institute_name,
         institute_id: data.institute_id,
         theme_color: data.theme_color,
+        plan_type: data.plan_type,
+        status: data.status,
+        modulesEnabled: data.modulesEnabled,
+        trialExpiresAt: data.trialExpiresAt,
       });
       if (data.trialExpiresAt) {
         localStorage.setItem('trialExpiresAt', data.trialExpiresAt);

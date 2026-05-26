@@ -4,14 +4,18 @@
  * Store institute-related data safely in localStorage.
  * Accepts an object with optional fields: institute_uuid, institute_name, institute_id, theme_color.
  */
-export const storeInstituteData = ({ institute_uuid, institute_name, institute_id, theme_color }) => {
+export const storeInstituteData = ({ institute_uuid, institute_name, institute_id, theme_color, plan_type, status, modulesEnabled, trialExpiresAt }) => {
   const instituteObj = {
     institute_uuid,
     institute_name,
     institute_id,
     theme_color,
+    plan_type: plan_type || 'trial',
+    status: status || 'trial',
+    modulesEnabled: modulesEnabled || [],
+    trialExpiresAt: trialExpiresAt || null,
   };
-  localStorage.setItem('institute', JSON.stringify(instituteObj)); // ✅ Now stores combined object for AppContext
+  localStorage.setItem('institute', JSON.stringify(instituteObj));
 
   if (institute_uuid) localStorage.setItem('institute_uuid', institute_uuid);
   if (institute_name) localStorage.setItem('institute_title', institute_name);

@@ -1,5 +1,6 @@
 import { Box, Card, CardContent, Stack, Typography } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useApp } from '../context/AppContext';
 import CorporateFareIcon from '@mui/icons-material/CorporateFare';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import PaymentIcon from '@mui/icons-material/Payment';
@@ -15,6 +16,7 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
 import BalanceIcon from '@mui/icons-material/Balance';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
+import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
 
 function AdminCard({ icon, label, desc, color, onClick }) {
   return (
@@ -57,6 +59,7 @@ function AdminCard({ icon, label, desc, color, onClick }) {
 export default function AdminHub() {
   const navigate = useNavigate();
   const { username } = useParams();
+  const { user } = useApp();
   const go = (path) => navigate(`/${username}/${path}`);
 
   const items = [
@@ -78,6 +81,10 @@ export default function AdminHub() {
     { icon: <ShowChartIcon />,           label: 'Profit & Loss',        desc: 'Income vs expense statement',        color: '#10b981', path: 'profit-loss' },
   ];
 
+  const superAdminItems = user?.role === 'super_admin' ? [
+    { icon: <SupervisorAccountIcon />, label: 'Super Admin', desc: 'Manage all institutes & plans', color: '#7c3aed', path: 'tools' },
+  ] : [];
+
   return (
     <Box>
       <Box mb={3}>
@@ -86,6 +93,24 @@ export default function AdminHub() {
           Institute settings, users, accounts, and data management tools.
         </Typography>
       </Box>
+
+      {superAdminItems.length > 0 && (
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            Super Admin
+          </Typography>
+          <Box sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(5, 1fr)' },
+            gap: { xs: 1.25, md: 1.5 },
+            mt: 1,
+          }}>
+            {superAdminItems.map((m) => (
+              <AdminCard key={m.path} {...m} onClick={() => go(m.path)} />
+            ))}
+          </Box>
+        </Box>
+      )}
 
       <Box sx={{
         display: 'grid',
