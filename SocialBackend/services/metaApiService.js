@@ -5,33 +5,20 @@ const GRAPH_BASE_URL = 'https://graph.facebook.com/v19.0/';
 const metaApiClient = axios.create({
   baseURL: GRAPH_BASE_URL,
   timeout: 20000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
 function getAuthHeader() {
-  if (!process.env.WHATSAPP_TOKEN) {
-    throw new Error('WHATSAPP_TOKEN is not configured');
-  }
-
-  return {
-    Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
-  };
+  const token = process.env.WHATSAPP_ACCESS_TOKEN || process.env.WHATSAPP_TOKEN;
+  if (!token) throw new Error('WHATSAPP_ACCESS_TOKEN is not configured');
+  return { Authorization: `Bearer ${token}` };
 }
 
 async function post(path, data) {
   const response = await metaApiClient.post(path, data, {
-    headers: {
-      ...getAuthHeader(),
-    },
+    headers: { ...getAuthHeader() },
   });
-
   return response.data;
 }
 
-module.exports = {
-  metaApiClient,
-  GRAPH_BASE_URL,
-  post,
-};
+module.exports = { metaApiClient, GRAPH_BASE_URL, post };

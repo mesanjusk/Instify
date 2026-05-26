@@ -1,38 +1,31 @@
 const { post } = require('./metaApiService');
 
-async function sendText(to, message) {
-  if (!process.env.PHONE_NUMBER_ID) {
-    throw new Error('PHONE_NUMBER_ID is not configured');
-  }
+const getPhoneNumberId = () => {
+  const id = process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.PHONE_NUMBER_ID;
+  if (!id) throw new Error('WHATSAPP_PHONE_NUMBER_ID is not configured');
+  return id;
+};
 
+async function sendText(to, message) {
+  const phoneNumberId = getPhoneNumberId();
   const payload = {
     messaging_product: 'whatsapp',
     to,
     type: 'text',
-    text: {
-      body: message,
-    },
+    text: { body: message },
   };
-
-  return post(`${process.env.PHONE_NUMBER_ID}/messages`, payload);
+  return post(`${phoneNumberId}/messages`, payload);
 }
 
 async function sendImage(to, imageUrl, caption = '') {
-  if (!process.env.PHONE_NUMBER_ID) {
-    throw new Error('PHONE_NUMBER_ID is not configured');
-  }
-
+  const phoneNumberId = getPhoneNumberId();
   const payload = {
     messaging_product: 'whatsapp',
     to,
     type: 'image',
-    image: {
-      link: imageUrl,
-      caption,
-    },
+    image: { link: imageUrl, caption },
   };
-
-  return post(`${process.env.PHONE_NUMBER_ID}/messages`, payload);
+  return post(`${phoneNumberId}/messages`, payload);
 }
 
 function normalizeToE164(mobile) {
