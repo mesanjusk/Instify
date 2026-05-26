@@ -55,17 +55,18 @@ export default function ToolsPanel() {
   const [editTarget, setEditTarget] = useState(null);
   const [saving, setSaving] = useState(false);
   const isSuperAdmin = user?.role === 'super_admin';
+  const canView = isSuperAdmin || user?.role === 'owner';
 
   useEffect(() => {
-    if (isSuperAdmin) fetchInstitutes();
-  }, [isSuperAdmin]);
+    if (canView) fetchInstitutes();
+  }, [canView]);
 
-  if (!user || !isSuperAdmin) {
+  if (!user || !canView) {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">
           <Typography variant="body1" fontWeight={600}>Access Denied</Typography>
-          <Typography variant="body2">Super admin privileges required.</Typography>
+          <Typography variant="body2">Super admin or owner privileges required.</Typography>
         </Alert>
       </Box>
     );
@@ -160,8 +161,8 @@ export default function ToolsPanel() {
         <Stack direction="row" spacing={1.5} alignItems="center">
           <SupervisorAccount sx={{ color: '#1a7a4a', fontSize: 30 }} />
           <Box>
-            <Typography variant="h5" fontWeight={700}>Super Admin Dashboard</Typography>
-            <Typography variant="body2" color="text.secondary">Manage all institutions, plans & premium features</Typography>
+            <Typography variant="h5" fontWeight={700}>{isSuperAdmin ? 'Super Admin Dashboard' : 'All Institutes'}</Typography>
+            <Typography variant="body2" color="text.secondary">{isSuperAdmin ? 'Manage all institutions, plans & premium features' : 'View all registered institutes'}</Typography>
           </Box>
         </Stack>
         <IconButton onClick={fetchInstitutes} title="Refresh">
@@ -221,19 +222,21 @@ export default function ToolsPanel() {
                     )}
                   </Stack>
 
-                  {/* Actions */}
-                  <Stack direction="row" spacing={0.5} flexShrink={0}>
-                    <Tooltip title="Manage plan & modules">
-                      <IconButton size="small" color="primary" onClick={() => openEdit(inst)}>
-                        <Edit fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete institute">
-                      <IconButton size="small" color="error" onClick={() => handleDelete(inst.institute_uuid, inst.institute_title)}>
-                        <DeleteForever fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </Stack>
+                  {/* Actions — edit/delete only for super_admin */}
+                  {isSuperAdmin && (
+                    <Stack direction="row" spacing={0.5} flexShrink={0}>
+                      <Tooltip title="Manage plan & modules">
+                        <IconButton size="small" color="primary" onClick={() => openEdit(inst)}>
+                          <Edit fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete institute">
+                        <IconButton size="small" color="error" onClick={() => handleDelete(inst.institute_uuid, inst.institute_title)}>
+                          <DeleteForever fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
+                  )}
                 </Stack>
               </CardContent>
             </Card>
