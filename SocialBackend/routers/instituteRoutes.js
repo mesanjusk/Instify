@@ -202,9 +202,12 @@ router.put('/update/:id', async (req, res) => {
 });
 
 router.post('/send-message', async (req, res) => {
-  const { mobile, otp, type, userName } = req.body;
+  const { mobile, otp, message, type, userName } = req.body;
 
-  if (!mobile || !otp || !type || !userName) {
+  // Accept otp directly, or extract 6-digit code from legacy message field
+  const otpValue = otp || (message && message.match(/\b(\d{6})\b/)?.[1]);
+
+  if (!mobile || !otpValue || !type || !userName) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -224,7 +227,7 @@ router.post('/send-message', async (req, res) => {
 
     let whatsappSent = true;
     try {
-      await whatsappService.sendOtpTemplate(mobile, otp);
+      await whatsappService.sendOtpTemplate(mobile, otpValue);
     } catch (waError) {
       console.error('WhatsApp send failed:', waError.message);
       whatsappSent = false;

@@ -40,7 +40,11 @@ const isOriginAllowed = (origin) => {
   if (!origin) return true; // server-to-server / curl
   if (allowedOrigins.includes(origin)) return true;
   // Allow any subdomain of instify.in or sanjusk.in
-  return /^https?:\/\/([a-z0-9-]+\.)?(instify\.in|sanjusk\.in)$/.test(origin);
+  if (/^https?:\/\/([a-z0-9-]+\.)?(instify\.in|sanjusk\.in)$/.test(origin)) return true;
+  // Allow all Vercel preview and production deployments
+  if (/^https:\/\/[a-z0-9-]+-[a-z0-9-]+\.vercel\.app$/.test(origin)) return true;
+  if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin)) return true;
+  return false;
 };
 
 app.use(cors({
