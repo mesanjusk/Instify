@@ -23,26 +23,29 @@ if (missing.length) {
 
 const app = express();
 
+// Base origins always allowed regardless of env var
+const baseOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://instify.in',
+  'https://www.instify.in',
+  'https://app.instify.in',
+  'https://app.sanjusk.in',
+  'https://sanjusk.in',
+  'https://www.sanjusk.in',
+];
+
+// Merge env var origins with base — env var adds to the list, not replaces it
 const allowedOrigins = process.env.CORS_ORIGINS
-  ? process.env.CORS_ORIGINS.split(',').map(o => o.trim())
-  : [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'https://instify.in',
-      'https://www.instify.in',
-      'https://app.instify.in',
-      'https://app.sanjusk.in',
-      'https://sanjusk.in',
-      'https://www.sanjusk.in',
-    ];
+  ? [...new Set([...baseOrigins, ...process.env.CORS_ORIGINS.split(',').map(o => o.trim())])]
+  : baseOrigins;
 
 const isOriginAllowed = (origin) => {
   if (!origin) return true; // server-to-server / curl
   if (allowedOrigins.includes(origin)) return true;
   // Allow any subdomain of instify.in or sanjusk.in
   if (/^https?:\/\/([a-z0-9-]+\.)?(instify\.in|sanjusk\.in)$/.test(origin)) return true;
-  // Allow all Vercel preview and production deployments
-  if (/^https:\/\/[a-z0-9-]+-[a-z0-9-]+\.vercel\.app$/.test(origin)) return true;
+  // Allow all Vercel deployments (production + preview)
   if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin)) return true;
   return false;
 };
