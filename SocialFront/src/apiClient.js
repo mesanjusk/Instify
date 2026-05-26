@@ -13,6 +13,17 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  const institute_uuid = localStorage.getItem('institute_uuid');
+  if (institute_uuid) {
+    // Inject into GET query params automatically
+    if (!config.method || config.method.toLowerCase() === 'get') {
+      config.params = { institute_uuid, ...config.params };
+    }
+    // Also set as header so backend middleware can trust it via JWT
+    config.headers['X-Institute-UUID'] = institute_uuid;
+  }
+
   return config;
 });
 

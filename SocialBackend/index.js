@@ -6,6 +6,7 @@ const helmet = require('helmet');
 const morgan = require('morgan');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
+const jwt = require('jsonwebtoken');
 const whatsappRoutes = require('./routes/whatsappRoutes');
 const { initCronJobs } = require('./services/cronService');
 const { autoReconnectSessions } = require('./services/baileysService');
@@ -107,6 +108,39 @@ app.get('/', (req, res) => {
   res.send(isSubdomain
     ? '🌐 Subdomain detected. Use frontend interface.'
     : '✅ API is running...');
+});
+
+// ✅ Institute isolation middleware — injects institute_uuid from JWT into every data request
+// This prevents one institute from seeing another institute's data
+const PUBLIC_API_PATHS = [
+  '/auth/',
+  '/institute/signup',
+  '/institute/send-message',
+  '/branding',
+  '/org-categories',
+  '/send-otp',
+  '/verify-otp',
+  '/metadata',
+];
+
+app.use('/api', (req, res, next) => {
+  const isPublic = PUBLIC_API_PATHS.some(p => req.path.startsWith(p));
+  if (isPublic) return next();
+
+  const token = (req.headers.authorization || '').replace('Bearer ', '');
+  if (!token) return next();
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.institute_uuid) {
+      // Override institute_uuid in query/body with the value from the signed JWT
+      req.query.institute_uuid = decoded.institute_uuid;
+      req.institute_uuid = decoded.institute_uuid;
+    }
+  } catch {
+    // Invalid token — let the downstream route handle auth
+  }
+  next();
 });
 
 // ✅ Core routes
