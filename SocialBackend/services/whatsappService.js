@@ -34,6 +34,7 @@ async function sendImage(to, imageUrl, caption = '') {
 }
 
 // Sends OTP using the approved 'instify_otp' template
+// Template has body {{1}} + Copy Code button — both need the OTP value
 async function sendOtpTemplate(to, otp) {
   const phoneNumberId = getPhoneNumberId();
   const payload = {
@@ -46,6 +47,12 @@ async function sendOtpTemplate(to, otp) {
       components: [
         {
           type: 'body',
+          parameters: [{ type: 'text', text: String(otp) }],
+        },
+        {
+          type: 'button',
+          sub_type: 'url',
+          index: '0',
           parameters: [{ type: 'text', text: String(otp) }],
         },
       ],
