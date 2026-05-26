@@ -81,7 +81,20 @@ export default function AdminHub() {
     { icon: <ShowChartIcon />,           label: 'Profit & Loss',        desc: 'Income vs expense statement',        color: '#10b981', path: 'profit-loss' },
   ];
 
-  const superAdminItems = user?.role === 'super_admin' ? [
+  const isSuperAdmin = user?.role === 'super_admin';
+  const isOwner = user?.role === 'owner';
+
+  // Filter items by role — "Institutes" only for super_admin/owner
+  const visibleItems = items.filter(m => {
+    if (m.path === 'institutes') return isSuperAdmin || isOwner;
+    return true;
+  // For super_admin, point "Institutes" directly to tools dashboard
+  }).map(m => {
+    if (m.path === 'institutes' && isSuperAdmin) return { ...m, path: 'tools' };
+    return m;
+  });
+
+  const superAdminItems = isSuperAdmin ? [
     { icon: <SupervisorAccountIcon />, label: 'Super Admin', desc: 'Manage all institutes & plans', color: '#7c3aed', path: 'tools' },
   ] : [];
 
@@ -117,7 +130,7 @@ export default function AdminHub() {
         gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(5, 1fr)' },
         gap: { xs: 1.25, md: 1.5 },
       }}>
-        {items.map((m) => (
+        {visibleItems.map((m) => (
           <AdminCard key={m.path} {...m} onClick={() => go(m.path)} />
         ))}
       </Box>
