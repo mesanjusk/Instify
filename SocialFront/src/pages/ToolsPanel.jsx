@@ -26,6 +26,8 @@ const ALL_MODULES = [
   { key: 'exam', label: 'Exam Module' },
   { key: 'advanced_accounts', label: 'Advanced Accounts' },
   { key: 'funnel', label: 'Funnel Report' },
+  { key: 'canvas', label: 'Document Maker' },
+  { key: 'academic', label: 'Academic Hub' },
 ];
 
 const PLAN_COLORS = { paid: '#10b981', trial: '#f59e0b', free: '#6b7280' };
