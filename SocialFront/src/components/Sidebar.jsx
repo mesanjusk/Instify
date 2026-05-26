@@ -120,6 +120,7 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
       label: 'Features',
       items: [
         { label: 'WhatsApp Bot', icon: <WhatsAppIcon fontSize="small" sx={{ color: '#25d366' }} />, path: `/${username}/section/whatsapp`, badge: 'Live', highlight: true },
+        { label: 'ID Card Maker', icon: <BadgeIcon fontSize="small" sx={{ color: '#60a5fa' }} />, path: `/${username}/idcard`, badge: 'New', highlight: true },
         { label: 'Document Maker', icon: <BadgeIcon fontSize="small" sx={{ color: '#fcd34d' }} />, path: `/${username}/section/canvas`, badge: 'Pro', highlight: true },
         { label: 'Public Forms', icon: <DynamicFormIcon fontSize="small" sx={{ color: '#93c5fd' }} />, path: `/${username}/forms`, badge: 'New', highlight: true },
         { label: 'Academic Hub', icon: <UploadFileIcon fontSize="small" />, path: `/${username}/section/academic`, highlight: true },
