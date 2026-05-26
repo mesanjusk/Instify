@@ -6,6 +6,11 @@ const getPhoneNumberId = () => {
   return id;
 };
 
+function normalizeToE164(mobile) {
+  const digits = mobile.replace(/\D/g, '');
+  return digits.startsWith('91') ? digits : `91${digits}`;
+}
+
 async function sendText(to, message) {
   const phoneNumberId = getPhoneNumberId();
   const payload = {
@@ -28,18 +33,29 @@ async function sendImage(to, imageUrl, caption = '') {
   return post(`${phoneNumberId}/messages`, payload);
 }
 
-function normalizeToE164(mobile) {
-  const digits = mobile.replace(/\D/g, '');
-  return digits.startsWith('91') ? digits : `91${digits}`;
+// Sends OTP using the approved 'instify_otp' template
+async function sendOtpTemplate(to, otp) {
+  const phoneNumberId = getPhoneNumberId();
+  const payload = {
+    messaging_product: 'whatsapp',
+    to: normalizeToE164(to),
+    type: 'template',
+    template: {
+      name: 'instify_otp',
+      language: { code: 'en_US' },
+      components: [
+        {
+          type: 'body',
+          parameters: [{ type: 'text', text: String(otp) }],
+        },
+      ],
+    },
+  };
+  return post(`${phoneNumberId}/messages`, payload);
 }
 
 async function sendOtpMessage(mobile, otp) {
-  const to = normalizeToE164(mobile);
-  const message =
-    `*Instify OTP Verification*\n\n` +
-    `Your verification code is: *${otp}*\n\n` +
-    `This code expires in 5 minutes. Do not share it with anyone.\n\n– Team Instify`;
-  return sendText(to, message);
+  return sendOtpTemplate(mobile, otp);
 }
 
 async function sendWelcomeMessage(mobile, name, centerCode) {
@@ -69,6 +85,7 @@ async function sendWelcomeBackMessage(mobile, name, centerCode) {
 module.exports = {
   sendText,
   sendImage,
+  sendOtpTemplate,
   sendOtpMessage,
   sendWelcomeMessage,
   sendWelcomeBackMessage,

@@ -78,11 +78,10 @@ const Signup = () => {
     setLoading(true);
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
     setServerOtp(generatedOtp);
-    const message = `Your OTP for Institute registration is ${generatedOtp}. Valid for 10 minutes.`;
     try {
       const res = await axios.post(`${BASE_URL}/api/institute/send-message`, {
         mobile: `91${form.institute_call_number}`,
-        message,
+        otp: generatedOtp,
         type: 'signup',
         userName: form.center_head_name,
       });
