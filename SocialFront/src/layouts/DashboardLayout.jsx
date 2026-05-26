@@ -1,7 +1,7 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
-  AppBar, Avatar, Badge, Box, Breadcrumbs, IconButton,
+  AppBar, Avatar, Badge, Box, Breadcrumbs, Button, Card, IconButton,
   Stack, Toolbar, Tooltip, Typography, Link,
 } from '@mui/material';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
@@ -50,6 +50,19 @@ export default function DashboardLayout() {
   const initials = (user?.name || 'A').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
   const crumb = getBreadcrumb(location.pathname, username);
   const isHome = location.pathname === `/${username}` || location.pathname === `/${username}/`;
+
+  // Trial expiry check — super_admin and paid-active institutes are never blocked
+  const isTrialExpired = useMemo(() => {
+    if (user?.role === 'super_admin') return false;
+    const plan = institute?.plan_type || 'trial';
+    const status = institute?.status || 'trial';
+    if (plan === 'paid' && status === 'active') return false;
+    const expiryStr = institute?.trialExpiresAt
+      || localStorage.getItem('trialExpiresAt')
+      || localStorage.getItem('expiry_date');
+    if (!expiryStr) return false;
+    return new Date(expiryStr) < new Date();
+  }, [user, institute]);
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to log out?')) {
@@ -218,7 +231,32 @@ export default function DashboardLayout() {
             mx: 'auto',
           }}
         >
-          <Outlet />
+          {isTrialExpired ? (
+            <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Card sx={{ maxWidth: 400, textAlign: 'center', p: 5 }}>
+                <Box sx={{
+                  width: 72, height: 72, borderRadius: '50%',
+                  bgcolor: '#fee2e2', display: 'flex', alignItems: 'center',
+                  justifyContent: 'center', mx: 'auto', mb: 2.5,
+                }}>
+                  <Typography sx={{ fontSize: '2rem' }}>⏰</Typography>
+                </Box>
+                <Typography variant="h5" color="error" fontWeight={800} mb={1} letterSpacing="-0.02em">
+                  Trial Expired
+                </Typography>
+                <Typography color="text.secondary" mb={3} lineHeight={1.7}>
+                  Your free trial has ended. Contact support to activate your plan and continue using Instify.
+                </Typography>
+                <Stack spacing={1.5} alignItems="center">
+                  <Button variant="contained" color="error" onClick={handleLogout} sx={{ px: 4 }}>
+                    Logout
+                  </Button>
+                </Stack>
+              </Card>
+            </Box>
+          ) : (
+            <Outlet />
+          )}
         </Box>
       </Box>
 
