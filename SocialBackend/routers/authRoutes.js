@@ -78,10 +78,11 @@ router.post('/user/login',
   try {
     const { username, password } = req.body;
 
-    const user = await User.findOne({ login_username: username });
+    const trimmedUsername = username.trim();
+    const user = await User.findOne({ login_username: trimmedUsername });
     if (!user) return res.status(401).json({ message: 'Invalid credentials' });
 
-    const isValid = await bcrypt.compare(password, user.login_password);
+    const isValid = await bcrypt.compare(password.trim(), user.login_password);
     if (!isValid) return res.status(401).json({ message: 'Invalid credentials' });
 
     const institute = await Institute.findOne({ institute_uuid: user.institute_uuid });
@@ -127,28 +128,40 @@ router.post('/institute/forgot-password', async (req, res) => {
   try {
     const { center_code, mobile } = req.body;
 
-    const user = await User.findOne({
-      login_username: center_code,
-      mobile
-    });
+    if (!center_code || !mobile) {
+      return res.status(400).json({ message: 'center_code and mobile are required' });
+    }
 
-    if (!user) return res.status(404).json({ message: 'No matching user found' });
+    const trimmedCode = center_code.trim();
+    const trimmedMobile = mobile.trim();
+
+    // Search by center_code first, then verify mobile matches
+    const user = await User.findOne({ login_username: trimmedCode });
+
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with this center code' });
+    }
+
+    // Normalize stored mobile and provided mobile before comparing
+    const storedMobile = String(user.mobile || '').replace(/^91/, '').trim();
+    const inputMobile = trimmedMobile.replace(/^91/, '');
+
+    if (storedMobile !== inputMobile) {
+      return res.status(404).json({ message: 'Mobile number does not match our records' });
+    }
 
     const otp = generateOTP();
 
-    otpStore[mobile] = {
+    otpStore[trimmedMobile] = {
       otp,
-      expiresAt: Date.now() + 5 * 60 * 1000,
+      expiresAt: Date.now() + 10 * 60 * 1000,
       user_id: user._id
     };
 
     try {
-      await whatsappService.sendOtpMessage(mobile, otp);
+      await whatsappService.sendOtpMessage(trimmedMobile, otp);
     } catch (waErr) {
       console.error('WhatsApp OTP send failed:', waErr.message);
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[DEV] Forgot-password OTP for ${mobile}: ${otp}`);
-      }
     }
 
     res.status(200).json({

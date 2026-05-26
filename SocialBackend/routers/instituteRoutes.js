@@ -17,12 +17,13 @@ router.post('/signup', async (req, res) => {
     const {
       institute_title,
       institute_type,
-      center_code,
       institute_call_number,
-      center_head_name,
       theme_color = '6fa8dc',
       plan_type = 'trial'
     } = req.body;
+
+    const center_code = (req.body.center_code || '').trim();
+    const center_head_name = (req.body.center_head_name || '').trim();
 
     if (
       !institute_title ||
