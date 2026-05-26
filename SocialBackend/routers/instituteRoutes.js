@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const Institute = require('../models/institute');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
+const whatsappService = require('../services/whatsappService');
 
 require('dotenv').config();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -115,11 +116,20 @@ newInstitute.users = [newUser._id];
 newInstitute.createdBy = newUser._id;
 await newInstitute.save();
 
+// ✅ Send welcome message with credentials via WhatsApp
+try {
+  await whatsappService.sendWelcomeMessage(institute_call_number, center_head_name, center_code);
+} catch (waErr) {
+  console.error('WhatsApp welcome send failed:', waErr.message);
+}
+
 // ✅ Return response with token
 res.json({
   message: 'success',
   institute_title: newInstitute.institute_title,
   institute_uuid: newInstitute.institute_uuid,
+  institute_id: newInstitute._id,
+  owner_id: newUser._id,
   center_code,
   theme_color,
   trialExpiresAt: trialExpiry,
@@ -198,20 +208,13 @@ router.post('/send-message', async (req, res) => {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
-  const apiKey = '9d8db6b2a1584a489e7270a9bbe1b7a0';
-  const encodedMobile = encodeURIComponent(mobile);
-  const encodedMsg = encodeURIComponent(message);
-  const url = `http://148.251.129.118/wapp/api/send?apikey=${apiKey}&mobile=${encodedMobile}&msg=${encodedMsg}`;
-
   try {
-    const response = await fetch(url);
-    const data = await response.text();
-
     let userId = null;
     if (type === 'forgot') {
+      const rawMobile = mobile.replace(/^91/, '');
       const user = await User.findOne({
-        mobile: mobile.replace(/^91/, ''),         
-        login_username: userName                    
+        mobile: rawMobile,
+        login_username: userName
       });
       if (!user) {
         return res.status(404).json({ success: false, message: 'User not found' });
@@ -219,9 +222,11 @@ router.post('/send-message', async (req, res) => {
       userId = user._id;
     }
 
-    res.status(200).json({ success: true, data, userId });
+    await whatsappService.sendText(mobile, message);
+
+    res.status(200).json({ success: true, userId });
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('WhatsApp send-message error:', error.message);
     res.status(500).json({ error: 'Failed to send message' });
   }
 });

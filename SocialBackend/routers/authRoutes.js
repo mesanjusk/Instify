@@ -9,6 +9,7 @@ const validate = require('../middleware/validate');
 const { generateMagicToken, verifyMagicToken, buildMagicLink } = require('../utils/magicLink');
 const baileysService = require('../services/baileysService');
 const { authenticate, roleGuard } = require('../middleware/roleGuard');
+const whatsappService = require('../services/whatsappService');
 
 require('dotenv').config();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -121,7 +122,7 @@ router.post('/user/login',
 });
 
 
-// ✅ Forgot password
+// ✅ Forgot password — sends OTP via WhatsApp
 router.post('/institute/forgot-password', async (req, res) => {
   try {
     const { center_code, mobile } = req.body;
@@ -141,20 +142,46 @@ router.post('/institute/forgot-password', async (req, res) => {
       user_id: user._id
     };
 
-    // OTP is intentionally not returned in the response.
-    // In production, deliver it via SMS/WhatsApp. Log only in development.
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[DEV] OTP for ${mobile}: ${otp}`);
+    try {
+      await whatsappService.sendOtpMessage(mobile, otp);
+    } catch (waErr) {
+      console.error('WhatsApp OTP send failed:', waErr.message);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[DEV] Forgot-password OTP for ${mobile}: ${otp}`);
+      }
     }
 
     res.status(200).json({
-      message: 'verified',
+      message: 'otp_sent',
       user_id: user._id,
     });
   } catch (err) {
     console.error('Forgot password error:', err);
     res.status(500).json({ message: 'server_error' });
   }
+});
+
+// ✅ Verify forgot-password OTP
+router.post('/institute/verify-forgot-otp', (req, res) => {
+  const { mobile, otp } = req.body;
+  const record = otpStore[mobile];
+
+  if (!record) {
+    return res.status(400).json({ success: false, message: 'OTP not sent to this number' });
+  }
+
+  if (Date.now() > record.expiresAt) {
+    delete otpStore[mobile];
+    return res.status(400).json({ success: false, message: 'OTP expired' });
+  }
+
+  if (record.otp !== otp) {
+    return res.status(400).json({ success: false, message: 'Invalid OTP' });
+  }
+
+  const user_id = record.user_id;
+  delete otpStore[mobile];
+  res.json({ success: true, message: 'OTP verified', user_id });
 });
 
 // ✅ Reset password
@@ -174,7 +201,14 @@ router.post('/institute/reset-password/:id', async (req, res) => {
     const hashedPassword = await bcrypt.hash(new_password, 10);
 
     user.login_password = hashedPassword;
+    user.last_password_change = new Date();
     await user.save();
+
+    try {
+      await whatsappService.sendWelcomeBackMessage(user.mobile, user.name, user.login_username);
+    } catch (waErr) {
+      console.error('WhatsApp welcome-back send failed:', waErr.message);
+    }
 
     res.status(200).json({ message: 'reset_success' });
   } catch (err) {

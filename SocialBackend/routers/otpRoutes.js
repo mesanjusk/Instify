@@ -2,11 +2,12 @@
 const express = require('express');
 const router = express.Router();
 const Institute = require('../models/institute');
+const whatsappService = require('../services/whatsappService');
 
-const otpStore = {}; 
+const otpStore = {};
 
 function generateOTP() {
-  return Math.floor(100000 + Math.random() * 900000).toString(); 
+  return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 router.post('/send-otp', async (req, res) => {
@@ -38,11 +39,18 @@ router.post('/send-otp', async (req, res) => {
     const otp = generateOTP();
     otpStore[mobile] = { otp, expiresAt: Date.now() + 5 * 60 * 1000 };
 
-    console.log(`✅ OTP for ${mobile} is ${otp}`);
+    try {
+      await whatsappService.sendOtpMessage(mobile, otp);
+    } catch (waErr) {
+      console.error('WhatsApp OTP send failed:', waErr.message);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[DEV] OTP for ${mobile}: ${otp}`);
+      }
+    }
 
-    res.json({ success: true, otp }); 
+    res.json({ success: true, message: 'OTP sent to your WhatsApp' });
   } catch (error) {
-    console.error('❌ Error in send-otp:', error);
+    console.error('Error in send-otp:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
@@ -65,7 +73,7 @@ router.post('/verify-otp', (req, res) => {
     return res.status(400).json({ success: false, message: 'Invalid OTP' });
   }
 
-  delete otpStore[mobile]; // OTP used successfully
+  delete otpStore[mobile];
   res.json({ success: true, message: 'OTP verified' });
 });
 
