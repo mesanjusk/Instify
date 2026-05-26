@@ -87,7 +87,9 @@ const Signup = () => {
       });
       if (res.data.success) {
         if (res.data.whatsappSent === false) {
-          toast.error('WhatsApp delivery failed. Please check your number or contact support.');
+          const errDetail = res.data.whatsappError?.error?.message || res.data.whatsappError || '';
+          console.error('WhatsApp error detail:', res.data.whatsappError);
+          toast.error(`WhatsApp failed: ${errDetail || 'Check Render logs for details'}`);
         } else {
           setOtpSent(true);
           toast.success('OTP sent to your WhatsApp');

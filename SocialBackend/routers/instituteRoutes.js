@@ -226,14 +226,17 @@ router.post('/send-message', async (req, res) => {
     }
 
     let whatsappSent = true;
+    let whatsappError = null;
     try {
       await whatsappService.sendOtpTemplate(mobile, otpValue);
     } catch (waError) {
-      console.error('WhatsApp send failed:', waError.message);
+      const metaError = waError.response?.data || waError.message;
+      console.error('WhatsApp send failed:', JSON.stringify(metaError));
       whatsappSent = false;
+      whatsappError = metaError;
     }
 
-    res.status(200).json({ success: true, userId, whatsappSent });
+    res.status(200).json({ success: true, userId, whatsappSent, whatsappError });
   } catch (error) {
     console.error('send-message error:', error.message);
     res.status(500).json({ error: 'Failed to process request' });
