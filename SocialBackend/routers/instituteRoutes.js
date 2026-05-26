@@ -38,19 +38,30 @@ router.post('/signup', async (req, res) => {
 
     const email = `${institute_call_number}@signup.bt`.toLowerCase();
 
-    // Check if user with same email or center code already exists
+    // Check for existing user (center_code or email)
     const existingUser = await User.findOne({
       $or: [{ email }, { login_username: center_code }]
     });
-
     if (existingUser) {
       return res.json({ message: 'exist' });
     }
 
-    // Optional: check if mobile number is already registered
+    // Check for existing mobile in User
     const existingMobile = await User.findOne({ mobile: String(institute_call_number) });
     if (existingMobile) {
       return res.json({ message: 'duplicate_call_number' });
+    }
+
+    // Check for existing Institute (center_code or mobile)
+    const existingInstitute = await Institute.findOne({
+      $or: [
+        { center_code },
+        { institute_call_number: String(institute_call_number) },
+        { contactEmail: email }
+      ]
+    });
+    if (existingInstitute) {
+      return res.json({ message: 'exist' });
     }
 
     const trialExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
@@ -82,64 +93,76 @@ router.post('/signup', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(center_code, 10);
 
-   // Step 2: Create Admin User
-const newUser = new User({
-  user_uuid: uuidv4(),
-  name: center_head_name,
-  email,
-  mobile: String(institute_call_number),
-  login_username: center_code,
-  login_password: hashedPassword,
-  role: 'admin',
-  institute_uuid: instituteUUID,
-  isTrial: true,
-  trialExpiresAt: trialExpiry,
-  theme: {
-    primaryColor: theme_color,
-    logoUrl: ''
-  }
-});
+    // Step 2: Create Admin User
+    let newUser;
+    try {
+      newUser = new User({
+        user_uuid: uuidv4(),
+        name: center_head_name,
+        email,
+        mobile: String(institute_call_number),
+        login_username: center_code,
+        login_password: hashedPassword,
+        role: 'admin',
+        institute_uuid: instituteUUID,
+        isTrial: true,
+        trialExpiresAt: trialExpiry,
+        theme: {
+          primaryColor: theme_color,
+          logoUrl: ''
+        }
+      });
+      await newUser.save();
+    } catch (userErr) {
+      // Roll back the Institute if user creation fails
+      await Institute.findOneAndDelete({ institute_uuid: instituteUUID });
+      throw userErr;
+    }
 
-await newUser.save();
+    // Create JWT token
+    const token = jwt.sign(
+      {
+        user_uuid: newUser.user_uuid,
+        role: newUser.role,
+        institute_uuid: newUser.institute_uuid
+      },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
 
-// 🔐 Create JWT token
-const token = jwt.sign(
-  {
-    user_uuid: newUser.user_uuid,
-    role: newUser.role,
-    institute_uuid: newUser.institute_uuid
-  },
-  JWT_SECRET,
-  { expiresIn: '7d' }
-);
+    // Step 3: Link user in Institute
+    newInstitute.users = [newUser._id];
+    newInstitute.createdBy = newUser._id;
+    await newInstitute.save();
 
-// Step 3: Link user in Institute
-newInstitute.users = [newUser._id];
-newInstitute.createdBy = newUser._id;
-await newInstitute.save();
+    // Send welcome message via WhatsApp (non-blocking)
+    try {
+      await whatsappService.sendWelcomeMessage(institute_call_number, center_head_name, center_code);
+    } catch (waErr) {
+      console.error('WhatsApp welcome send failed:', waErr.message);
+    }
 
-// ✅ Send welcome message with credentials via WhatsApp
-try {
-  await whatsappService.sendWelcomeMessage(institute_call_number, center_head_name, center_code);
-} catch (waErr) {
-  console.error('WhatsApp welcome send failed:', waErr.message);
-}
-
-// ✅ Return response with token
-res.json({
-  message: 'success',
-  institute_title: newInstitute.institute_title,
-  institute_uuid: newInstitute.institute_uuid,
-  institute_id: newInstitute._id,
-  owner_id: newUser._id,
-  center_code,
-  theme_color,
-  trialExpiresAt: trialExpiry,
-  token
-});
-
+    res.json({
+      message: 'success',
+      institute_title: newInstitute.institute_title,
+      institute_uuid: newInstitute.institute_uuid,
+      institute_id: newInstitute._id,
+      owner_id: newUser._id,
+      center_code,
+      theme_color,
+      trialExpiresAt: trialExpiry,
+      token
+    });
 
   } catch (err) {
+    // Handle MongoDB duplicate key errors gracefully
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyPattern || {})[0] || 'field';
+      if (field.includes('mobile') || field.includes('call_number')) {
+        return res.json({ message: 'duplicate_call_number' });
+      }
+      return res.json({ message: 'exist' });
+    }
     console.error('Signup Error:', err);
     res.status(500).json({ message: 'Server error during signup' });
   }
