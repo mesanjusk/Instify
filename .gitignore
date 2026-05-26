@@ -20,6 +20,10 @@ dist-ssr
 SocialBackend/.env
 SocialFront/.env.local
 
+# Electron — MongoDB binary (too large for git; see electron/resources/mongodb/DOWNLOAD_MONGOD.md)
+electron/resources/mongodb/bin/
+electron/dist-electron/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

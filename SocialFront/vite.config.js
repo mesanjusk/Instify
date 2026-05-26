@@ -2,10 +2,13 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const isDesktop = process.env.VITE_IS_DESKTOP === 'true';
+
 export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      disabled: isDesktop,
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
       workbox: {
