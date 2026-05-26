@@ -43,7 +43,6 @@ const Signup = () => {
   const [serverOtp, setServerOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusField, setFocusField] = useState(null);
-  const [whatsappFailed, setWhatsappFailed] = useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -88,11 +87,10 @@ const Signup = () => {
         userName: form.center_head_name,
       });
       if (res.data.success) {
-        setOtpSent(true);
         if (res.data.whatsappSent === false) {
-          setWhatsappFailed(true);
-          toast('WhatsApp unavailable — see OTP below', { icon: '⚠️' });
+          toast.error('WhatsApp delivery failed. Please check your number or contact support.');
         } else {
+          setOtpSent(true);
           toast.success('OTP sent to your WhatsApp');
         }
       } else {
@@ -305,22 +303,6 @@ const Signup = () => {
             </div>
           )}
 
-          {/* WhatsApp fallback warning */}
-          {whatsappFailed && otpSent && (
-            <div style={{
-              background: '#fffbeb', border: '1px solid #fde68a',
-              borderRadius: 10, padding: '12px 14px', marginBottom: 16,
-              display: 'flex', alignItems: 'flex-start', gap: 10,
-            }}>
-              <span style={{ fontSize: '1.1rem', flexShrink: 0 }}>⚠️</span>
-              <div>
-                <p style={{ margin: 0, fontSize: '0.8rem', color: '#92400e', fontWeight: 700 }}>WhatsApp delivery unavailable</p>
-                <p style={{ margin: '4px 0 0', fontSize: '0.82rem', color: '#78350f' }}>
-                  Your OTP: <strong style={{ letterSpacing: 3, fontSize: '1rem' }}>{serverOtp}</strong>
-                </p>
-              </div>
-            </div>
-          )}
 
           <form onSubmit={otpSent ? handleSignup : handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {!otpSent ? (
@@ -391,7 +373,7 @@ const Signup = () => {
                   onFocus={() => setFocusField('otp')} onBlur={() => setFocusField(null)}
                   style={{ ...inputStyle('otp'), textAlign: 'center', fontSize: '1.6rem', letterSpacing: 10, fontWeight: 700 }} />
                 <button type="button"
-                  onClick={() => { setOtpSent(false); setOtp(''); setWhatsappFailed(false); setServerOtp(''); }}
+                  onClick={() => { setOtpSent(false); setOtp(''); setServerOtp(''); }}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: themeColor, fontSize: '0.8rem', fontWeight: 600, padding: '8px 0', fontFamily: 'inherit' }}>
                   ← Change details
                 </button>
