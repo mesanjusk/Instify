@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "vite",
     "build": "npx vite build",
+    "build:desktop": "cross-env VITE_IS_DESKTOP=true npx vite build --outDir dist",
     "preview": "vite preview",
     "sync:tokens": "node scripts/generateUtilityTokens.cjs",
     "prebuild": "npm run sync:tokens",

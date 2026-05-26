@@ -1,5 +1,7 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import DesktopSetup from './components/DesktopSetup';
+import SyncStatusBar from './components/SyncStatusBar';
 import { CircularProgress, Box } from '@mui/material';
 
 import DashboardLayout from './layouts/DashboardLayout';
@@ -76,7 +78,20 @@ function PageLoader() {
 }
 
 export default function App() {
+  const isDesktop = !!window.electronAPI;
+  const [setupDone, setSetupDone] = useState(true);
+
+  useEffect(() => {
+    if (!isDesktop) return;
+    window.electronAPI.getConfig('remoteMongoUri').then(uri => {
+      setSetupDone(!!uri);
+    });
+  }, [isDesktop]);
+
   return (
+    <>
+    {isDesktop && <DesktopSetup open={!setupDone} onComplete={() => setSetupDone(true)} />}
+    {isDesktop && setupDone && <SyncStatusBar />}
     <Suspense fallback={<PageLoader />}>
     <Routes>
       {/* ── Public ───────────────────────────────────────── */}
@@ -193,6 +208,7 @@ export default function App() {
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     </Suspense>
+    </>
   );
 }
 

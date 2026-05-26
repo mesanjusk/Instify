@@ -34,7 +34,7 @@ function randomDelay(min = 2000, max = 4000) {
   return new Promise(r => setTimeout(r, min + Math.random() * (max - min)));
 }
 
-const SESSION_DIR = path.join(__dirname, '../baileys_sessions');
+const SESSION_DIR = process.env.BAILEYS_SESSION_DIR || path.join(__dirname, '../baileys_sessions');
 if (!fs.existsSync(SESSION_DIR)) fs.mkdirSync(SESSION_DIR, { recursive: true });
 
 /** Map<instituteId, { sock, status, qrDataUrl }> */

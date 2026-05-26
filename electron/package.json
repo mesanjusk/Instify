@@ -1,0 +1,74 @@
+{
+  "name": "instify-desktop",
+  "version": "1.0.0",
+  "description": "Instify — Institutions Simplified (Desktop)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:frontend": "cd ../SocialFront && npm run build:desktop",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win"
+  },
+  "build": {
+    "appId": "in.instify.desktop",
+    "productName": "Instify",
+    "copyright": "Copyright © 2025 Instify",
+    "directories": {
+      "output": "dist-electron",
+      "buildResources": "assets"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "sync/**/*",
+      "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/mongodb/",
+        "to": "mongodb/",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "../SocialBackend/",
+        "to": "backend/",
+        "filter": ["**/*", "!.env", "!.git"]
+      },
+      {
+        "from": "../SocialFront/dist/",
+        "to": "frontend/",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
+      "installerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Instify"
+    },
+    "afterPack": "scripts/afterPack.js"
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0",
+    "mongoose": "^7.6.1"
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.0",
+    "electron-updater": "^6.1.7"
+  }
+}
