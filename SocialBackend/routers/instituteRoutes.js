@@ -222,12 +222,18 @@ router.post('/send-message', async (req, res) => {
       userId = user._id;
     }
 
-    await whatsappService.sendText(mobile, message);
+    let whatsappSent = true;
+    try {
+      await whatsappService.sendText(mobile, message);
+    } catch (waError) {
+      console.error('WhatsApp send failed:', waError.message);
+      whatsappSent = false;
+    }
 
-    res.status(200).json({ success: true, userId });
+    res.status(200).json({ success: true, userId, whatsappSent });
   } catch (error) {
-    console.error('WhatsApp send-message error:', error.message);
-    res.status(500).json({ error: 'Failed to send message' });
+    console.error('send-message error:', error.message);
+    res.status(500).json({ error: 'Failed to process request' });
   }
 });
 
