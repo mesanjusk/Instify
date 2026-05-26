@@ -97,7 +97,7 @@ const AllTransaction = () => {
         const message = `Dear ${name}, your balance is ₹${balance} as of ${today}. Please clear it soon. - ${senderName}`;
 
         try {
-            const res = await fetch('https://misbackend-e078.onrender.com/usertask/send-message', {
+            const res = await fetch('https://instify-kfpm.onrender.com/usertask/send-message', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
