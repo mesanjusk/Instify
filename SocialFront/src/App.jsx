@@ -107,9 +107,11 @@ export default function App() {
         path="/:username/section/canvas"
         element={
           <PrivateRoute>
-            <Box sx={{ height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              <CanvasEditor />
-            </Box>
+            <FeatureGate module="canvas">
+              <Box sx={{ height: '100dvh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <CanvasEditor />
+              </Box>
+            </FeatureGate>
           </PrivateRoute>
         }
       />
@@ -117,9 +119,11 @@ export default function App() {
         path="/:username/section/academic"
         element={
           <PrivateRoute>
-            <SectionLayout title="Academic" subtitle="Students, courses & attendance" color="#1a7a4a">
-              <AcademicHub />
-            </SectionLayout>
+            <FeatureGate module="academic">
+              <SectionLayout title="Academic" subtitle="Students, courses & attendance" color="#1a7a4a">
+                <AcademicHub />
+              </SectionLayout>
+            </FeatureGate>
           </PrivateRoute>
         }
       />

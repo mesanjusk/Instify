@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 const TRIAL_MODULES = [
   'whatsapp', 'idcard', 'payroll', 'csv_import',
   'bulk_download', 'forms', 'exam', 'advanced_accounts', 'funnel',
+  'canvas', 'academic',
 ];
 
 /**
