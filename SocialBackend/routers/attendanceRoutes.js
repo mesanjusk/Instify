@@ -60,7 +60,9 @@ router.post('/addAttendance/:institute_uuid', async (req, res) => {
 // ✅ GET /attendance/GetAttendanceList
 router.get("/GetAttendanceList", async (req, res) => {
   try {
-    const data = await Attendance.find({});
+    const { institute_uuid } = req.query;
+    if (!institute_uuid) return res.status(400).json({ success: false, message: "institute_uuid is required" });
+    const data = await Attendance.find({ institute_uuid });
     res.json(data.length ? { success: true, result: data } : { success: false, message: "No records found" });
   } catch (err) {
     console.error("Error fetching attendance:", err);

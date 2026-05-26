@@ -6,10 +6,12 @@ const { v4: uuid } = require("uuid");
 // 📥 GET all batches
 router.get('/', async (req, res) => {
   try {
-    const data = await Batch.find().lean();
+    const { institute_uuid } = req.query;
+    if (!institute_uuid) return res.status(400).json({ error: 'institute_uuid is required' });
+    const data = await Batch.find({ institute_uuid }).lean();
     res.status(200).json(data);
   } catch (err) {
-    console.error('❌ Failed to fetch exams:', err);
+    console.error('❌ Failed to fetch batches:', err);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -17,12 +19,16 @@ router.get('/', async (req, res) => {
 // ➕ POST new batch
 router.post('/', async (req, res) => {
   try {
-    const {name, timing } = req.body;
+    const { name, timing } = req.body;
+    const institute_uuid = req.institute_uuid || req.body.institute_uuid;
     if (!name) {
       return res.status(400).json({ error: 'name are required' });
     }
+    if (!institute_uuid) {
+      return res.status(400).json({ error: 'institute_uuid is required' });
+    }
 
-    const newBatch = new Batch({ name, timing, Batch_uuid: uuid() });
+    const newBatch = new Batch({ name, timing, Batch_uuid: uuid(), institute_uuid });
     await newBatch.save();
     res.status(201).json(newBatch);
   } catch (err) {

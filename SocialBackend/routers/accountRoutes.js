@@ -45,7 +45,9 @@ router.post("/addAccount", async (req, res) => {
 // Get all accounts
 router.get("/GetAccountList", async (req, res) => {
     try {
-        const data = await Account.find({});
+        const { institute_uuid } = req.query;
+        if (!institute_uuid) return res.status(400).json({ success: false, message: "institute_uuid is required" });
+        const data = await Account.find({ institute_uuid });
         if (data.length) {
             res.json({ success: true, result: data.filter(a => a.Mobile_number) });
         } else {
