@@ -8,6 +8,7 @@ import { saveRecord } from '../db/dbService';
 export const fetchAndStoreMasters = async () => {
   try {
     const institute_uuid = localStorage.getItem('institute_uuid');
+    if (!institute_uuid) return; // not logged in yet — skip silently
 
     const [courses, educations, exams, paymentModes, batches] = await Promise.all([
       axios.get(`${BASE_URL}/api/courses`, { params: { institute_uuid } }),

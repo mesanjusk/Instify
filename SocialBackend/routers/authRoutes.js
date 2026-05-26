@@ -47,8 +47,7 @@ router.post('/institute/login',
     const institute = await Institute.findOne({ institute_uuid: user.institute_uuid });
     if (!institute) return res.status(404).json({ message: 'Institute not found' });
 
-    user.last_login_at = new Date();
-    await user.save();
+    await User.updateOne({ _id: user._id }, { $set: { last_login_at: new Date() } });
 
     res.status(200).json({
       message: 'success',
@@ -88,8 +87,8 @@ router.post('/user/login',
     const institute = await Institute.findOne({ institute_uuid: user.institute_uuid });
     if (!institute) return res.status(404).json({ message: 'Institute not found' });
 
-    user.last_login_at = new Date();
-    await user.save();
+    // Use updateOne to bypass Mongoose enum validation (safe for any role value)
+    await User.updateOne({ _id: user._id }, { $set: { last_login_at: new Date() } });
 
     // 🔑 Generate JWT token
     const token = jwt.sign(
@@ -217,9 +216,7 @@ router.post('/institute/reset-password/:id', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(new_password, 10);
 
-    user.login_password = hashedPassword;
-    user.last_password_change = new Date();
-    await user.save();
+    await User.updateOne({ _id: user._id }, { $set: { login_password: hashedPassword, last_password_change: new Date() } });
 
     try {
       await whatsappService.sendWelcomeBackMessage(user.mobile, user.name, user.login_username);
@@ -420,8 +417,7 @@ router.get('/magic-link/verify/:token', async (req, res) => {
     const institute = await Institute.findOne({ institute_uuid: user.institute_uuid });
     if (!institute) return res.status(404).json({ success: false, message: 'Institute not found' });
 
-    user.last_login_at = new Date();
-    await user.save();
+    await User.updateOne({ _id: user._id }, { $set: { last_login_at: new Date() } });
 
     // Issue a full session JWT
     const sessionToken = jwt.sign(
