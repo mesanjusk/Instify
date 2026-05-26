@@ -370,6 +370,22 @@ const Login = () => {
               </div>
             </div>
 
+            {/* Forgot password */}
+            <div style={{ textAlign: 'right', marginTop: -8 }}>
+              <button
+                type="button"
+                onClick={() => navigate('/forgot-password')}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: '0.8rem', fontWeight: 600, color: themeColor,
+                  fontFamily: 'inherit', padding: 0,
+                  textDecoration: 'underline', textDecorationColor: `${themeColor}50`,
+                }}
+              >
+                Forgot password?
+              </button>
+            </div>
+
             {/* Submit button */}
             <button
               type="submit"

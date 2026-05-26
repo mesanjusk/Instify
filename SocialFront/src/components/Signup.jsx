@@ -404,7 +404,7 @@ const Signup = () => {
           </form>
 
           {/* Footer */}
-          <div style={{ textAlign: 'center', marginTop: 28 }}>
+          <div style={{ textAlign: 'center', marginTop: 28, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
               Already have an account?{' '}
               <button onClick={() => navigate('/')}
@@ -417,6 +417,15 @@ const Signup = () => {
                 Sign In
               </button>
             </span>
+            <button onClick={() => navigate('/forgot-password')}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                fontSize: '0.8rem', fontWeight: 600, color: '#64748b',
+                fontFamily: 'inherit', padding: 0,
+                textDecoration: 'underline', textDecorationColor: '#cbd5e1',
+              }}>
+              Forgot password?
+            </button>
           </div>
         </div>
 
