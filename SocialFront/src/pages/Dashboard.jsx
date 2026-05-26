@@ -425,11 +425,11 @@ export default function Dashboard() {
             />
             <FeatureCard
               icon={<BadgeIcon sx={{ color: '#fff', fontSize: 24 }} />}
-              title="Documents"
-              desc="ID cards, certificates"
-              gradient="linear-gradient(135deg, #b45309 0%, #f59e0b 100%)"
-              badge="Pro"
-              onClick={() => navigate(`/${username}/section/canvas`)}
+              title="ID Card Maker"
+              desc="Single, bulk, class-wise cards"
+              gradient="linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)"
+              badge="New"
+              onClick={() => navigate(`/${username}/idcard`)}
               delay={0.37}
             />
             <FeatureCard

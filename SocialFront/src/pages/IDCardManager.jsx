@@ -3,9 +3,11 @@ import {
   Alert, Box, Button, Chip, CircularProgress, Dialog, DialogActions,
   DialogContent, DialogTitle, Divider, FormControlLabel, IconButton,
   MenuItem, Select, Stack, Switch, Tab, Tabs, TextField, Tooltip,
-  Typography, Paper,
+  Typography, Paper, Card, CardContent, CardActionArea, LinearProgress,
+  Avatar,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
@@ -19,6 +21,12 @@ import DownloadIcon from '@mui/icons-material/Download';
 import BlockIcon from '@mui/icons-material/Block';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import FilterListIcon from '@mui/icons-material/FilterList';
+import TableChartIcon from '@mui/icons-material/TableChart';
+import GroupsIcon from '@mui/icons-material/Groups';
+import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
+import BadgeIcon from '@mui/icons-material/Badge';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import LayersIcon from '@mui/icons-material/Layers';
 import * as XLSX from 'xlsx';
 import apiClient from '../apiClient';
 import { useNavigate } from 'react-router-dom';
@@ -35,6 +43,45 @@ const STATUS_LABEL = {
   student_submitted: 'Submitted',
   approved: 'Approved',
 };
+
+const MODE_CARDS = [
+  {
+    key: 'single',
+    icon: <PersonAddIcon sx={{ fontSize: 32 }} />,
+    title: 'Single Card',
+    desc: 'Add one student manually and upload their photo',
+    color: '#0ea5e9',
+    bg: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)',
+    iconBg: '#0ea5e9',
+  },
+  {
+    key: 'bulk',
+    icon: <PhotoLibraryIcon sx={{ fontSize: 32 }} />,
+    title: 'Bulk Photo Upload',
+    desc: 'Upload photos for multiple students at once by roll number',
+    color: '#8b5cf6',
+    bg: 'linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%)',
+    iconBg: '#8b5cf6',
+  },
+  {
+    key: 'excel',
+    icon: <TableChartIcon sx={{ fontSize: 32 }} />,
+    title: 'Import from Excel / CSV',
+    desc: 'Import hundreds of students from a spreadsheet file',
+    color: '#10b981',
+    bg: 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)',
+    iconBg: '#10b981',
+  },
+  {
+    key: 'classbatch',
+    icon: <GroupsIcon sx={{ fontSize: 32 }} />,
+    title: 'Class / Batch Wise',
+    desc: 'View and manage cards filtered by class or batch',
+    color: '#f59e0b',
+    bg: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+    iconBg: '#f59e0b',
+  },
+];
 
 // ── Webcam capture dialog ─────────────────────────────────────────────────────
 function WebcamDialog({ open, onCapture, onClose }) {
@@ -91,8 +138,11 @@ function StudentCard({ student, onPhotoUpload, onWebcam, onRemoveBg, onStatusCha
   }
 
   return (
-    <Box sx={{ border: '1px solid #e2e8f0', borderRadius: 2, p: 1.5, bgcolor: '#fff', display: 'flex', flexDirection: 'column', gap: 1 }}>
-      {/* Photo */}
+    <Box sx={{
+      border: '1px solid #e2e8f0', borderRadius: 2, p: 1.5, bgcolor: '#fff',
+      display: 'flex', flexDirection: 'column', gap: 1,
+      transition: 'box-shadow 0.15s', '&:hover': { boxShadow: 3 },
+    }}>
       <Box sx={{ position: 'relative', width: '100%', paddingTop: '100%', borderRadius: 1.5, overflow: 'hidden', bgcolor: '#f1f5f9' }}>
         {photo ? (
           <img src={photo} alt={displayName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -109,7 +159,6 @@ function StudentCard({ student, onPhotoUpload, onWebcam, onRemoveBg, onStatusCha
         />
       </Box>
 
-      {/* Info */}
       <Box>
         <Typography fontWeight={600} fontSize="0.8rem" noWrap>{displayName}</Typography>
         <Typography variant="caption" color="text.secondary">
@@ -117,7 +166,6 @@ function StudentCard({ student, onPhotoUpload, onWebcam, onRemoveBg, onStatusCha
         </Typography>
       </Box>
 
-      {/* Actions */}
       {tab === 0 && (
         <Stack direction="row" flexWrap="wrap" gap={0.5}>
           <Tooltip title="Upload photo">
@@ -173,8 +221,8 @@ function StudentCard({ student, onPhotoUpload, onWebcam, onRemoveBg, onStatusCha
   );
 }
 
-// ── Create Project dialog ──────────────────────────────────────────────────────
-function CreateProjectDialog({ open, onSave, onClose, instituteUuid }) {
+// ── Create Project dialog ─────────────────────────────────────────────────────
+function CreateProjectDialog({ open, onSave, onClose }) {
   const [title, setTitle] = useState('');
   const [year, setYear] = useState(`${new Date().getFullYear()}-${new Date().getFullYear() + 1}`);
   const [sigUrl, setSigUrl] = useState('');
@@ -191,15 +239,20 @@ function CreateProjectDialog({ open, onSave, onClose, instituteUuid }) {
     setUploading(false);
   }
 
+  function handleClose() {
+    setTitle(''); setYear(`${new Date().getFullYear()}-${new Date().getFullYear() + 1}`);
+    setSigUrl(''); onClose();
+  }
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Create ID Card Project</DialogTitle>
+    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ fontWeight: 700 }}>Create New ID Card Project</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
-          <TextField label="Project Title *" value={title} onChange={e => setTitle(e.target.value)} size="small" fullWidth placeholder="e.g. 2024-25 Student ID Cards" />
+          <TextField label="Project Title *" value={title} onChange={e => setTitle(e.target.value)} size="small" fullWidth placeholder="e.g. 2025-26 Student ID Cards" />
           <TextField label="Academic Year" value={year} onChange={e => setYear(e.target.value)} size="small" fullWidth />
           <Box>
-            <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Principal Signature (PNG)</Typography>
+            <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Principal Signature (PNG preferred)</Typography>
             <Button variant="outlined" size="small" component="label" startIcon={uploading ? <CircularProgress size={14} /> : <UploadFileIcon />} disabled={uploading}>
               {sigUrl ? 'Change Signature' : 'Upload Signature'}
               <input hidden type="file" accept="image/*" onChange={e => uploadSig(e.target.files[0])} />
@@ -209,10 +262,51 @@ function CreateProjectDialog({ open, onSave, onClose, instituteUuid }) {
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" disabled={!title} onClick={() => onSave({ title, academic_year: year, principal_signature_url: sigUrl })}>Create</Button>
+        <Button onClick={handleClose}>Cancel</Button>
+        <Button variant="contained" disabled={!title} onClick={() => onSave({ title, academic_year: year, principal_signature_url: sigUrl })}>
+          Create Project
+        </Button>
       </DialogActions>
     </Dialog>
+  );
+}
+
+// ── Add Single Student dialog ─────────────────────────────────────────────────
+function AddSingleStudentDialog({ open, onSave, onClose }) {
+  const [form, setForm] = useState({ student_name: '', class_name: '', section: '', roll_number: '' });
+
+  function handleClose() { setForm({ student_name: '', class_name: '', section: '', roll_number: '' }); onClose(); }
+
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ fontWeight: 700 }}>Add Single Student</DialogTitle>
+      <DialogContent>
+        <Stack spacing={2} sx={{ pt: 1 }}>
+          <TextField label="Student Name *" value={form.student_name} onChange={e => setForm(f => ({ ...f, student_name: e.target.value }))} size="small" fullWidth />
+          <Stack direction="row" spacing={1.5}>
+            <TextField label="Class *" value={form.class_name} onChange={e => setForm(f => ({ ...f, class_name: e.target.value }))} size="small" fullWidth placeholder="e.g. 10A" />
+            <TextField label="Section" value={form.section} onChange={e => setForm(f => ({ ...f, section: e.target.value }))} size="small" fullWidth />
+          </Stack>
+          <TextField label="Roll Number" value={form.roll_number} onChange={e => setForm(f => ({ ...f, roll_number: e.target.value }))} size="small" fullWidth />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose}>Cancel</Button>
+        <Button variant="contained" disabled={!form.student_name || !form.class_name} onClick={() => onSave(form)}>
+          Add Student
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+// ── Stat pill ─────────────────────────────────────────────────────────────────
+function StatPill({ label, value, color = 'text.primary', bg = '#f8fafc' }) {
+  return (
+    <Box sx={{ bgcolor: bg, borderRadius: 2, px: 2, py: 1, minWidth: 80, textAlign: 'center', border: '1px solid #e2e8f0' }}>
+      <Typography fontWeight={700} color={color} fontSize="1.1rem">{value}</Typography>
+      <Typography variant="caption" color="text.secondary">{label}</Typography>
+    </Box>
   );
 }
 
@@ -221,13 +315,14 @@ export default function IDCardManager() {
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [students, setStudents] = useState([]);
-  const [tab, setTab] = useState(0); // 0=students 1=approvals 2=print
+  const [tab, setTab] = useState(0);
   const [classFilter, setClassFilter] = useState('');
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [studentsLoading, setStudentsLoading] = useState(false);
   const [alert, setAlert] = useState(null);
   const [createDialog, setCreateDialog] = useState(false);
+  const [addSingleDialog, setAddSingleDialog] = useState(false);
   const [bulkDialog, setBulkDialog] = useState(false);
   const [excelDialog, setExcelDialog] = useState(false);
   const [webcamTarget, setWebcamTarget] = useState(null);
@@ -243,7 +338,6 @@ export default function IDCardManager() {
 
   function showAlert(type, text) { setAlert({ type, text }); setTimeout(() => setAlert(null), 5000); }
 
-  // Load projects
   async function loadProjects() {
     setLoading(true);
     try {
@@ -253,7 +347,6 @@ export default function IDCardManager() {
     finally { setLoading(false); }
   }
 
-  // Load students for selected project
   async function loadStudents(projectUuid, cls = classFilter) {
     setStudentsLoading(true);
     try {
@@ -271,12 +364,10 @@ export default function IDCardManager() {
   }
 
   useEffect(() => { loadProjects(); }, []);
-
   useEffect(() => {
     if (selectedProject) loadStudents(selectedProject.project_uuid, classFilter);
   }, [selectedProject, classFilter, tab]);
 
-  // Create project
   async function createProject(data) {
     try {
       const res = await apiClient.post('/api/idcard/projects', { ...data, institute_uuid: instituteUuid, createdBy: username });
@@ -286,7 +377,15 @@ export default function IDCardManager() {
     } catch (err) { showAlert('error', err.response?.data?.message || 'Failed'); }
   }
 
-  // Excel parse
+  async function addSingleStudent(data) {
+    try {
+      await apiClient.post(`/api/idcard/projects/${selectedProject.project_uuid}/students`, { students: [data] });
+      setAddSingleDialog(false);
+      showAlert('success', 'Student added!');
+      loadStudents(selectedProject.project_uuid);
+    } catch (err) { showAlert('error', err.response?.data?.message || 'Failed'); }
+  }
+
   function parseExcel(file) {
     const reader = new FileReader();
     reader.onload = e => {
@@ -300,7 +399,6 @@ export default function IDCardManager() {
     reader.readAsArrayBuffer(file);
   }
 
-  // Import students
   async function importStudents() {
     setImporting(true);
     try {
@@ -313,7 +411,6 @@ export default function IDCardManager() {
     finally { setImporting(false); }
   }
 
-  // Single photo upload
   async function uploadPhoto(idcardUuid, file, source = 'teacher') {
     if (!file) return;
     const fd = new FormData();
@@ -326,7 +423,6 @@ export default function IDCardManager() {
     } catch { showAlert('error', 'Photo upload failed'); }
   }
 
-  // Webcam capture
   async function handleWebcamCapture(blob) {
     if (!webcamTarget) return;
     const file = new File([blob], 'webcam.jpg', { type: 'image/jpeg' });
@@ -334,7 +430,6 @@ export default function IDCardManager() {
     setWebcamTarget(null);
   }
 
-  // Bulk photo upload
   async function bulkUpload(files) {
     setBulkUploading(true);
     const fd = new FormData();
@@ -349,7 +444,6 @@ export default function IDCardManager() {
     finally { setBulkUploading(false); }
   }
 
-  // Remove BG
   async function removeBg(idcardUuid) {
     try {
       const res = await apiClient.post(`/api/idcard/students/${idcardUuid}/remove-bg`);
@@ -358,7 +452,6 @@ export default function IDCardManager() {
     } catch (err) { showAlert('error', err.response?.data?.message || 'BG removal failed'); }
   }
 
-  // Status change
   async function updateStatus(idcardUuid, update) {
     try {
       await apiClient.put(`/api/idcard/students/${idcardUuid}/status`, update);
@@ -366,7 +459,6 @@ export default function IDCardManager() {
     } catch { showAlert('error', 'Update failed'); }
   }
 
-  // Share magic link
   async function shareLink(idcardUuid) {
     try {
       const res = await apiClient.post(`/api/idcard/students/${idcardUuid}/magic-link`);
@@ -374,7 +466,6 @@ export default function IDCardManager() {
     } catch { showAlert('error', 'Failed to generate link'); }
   }
 
-  // Approve / Reject
   async function approveStudent(idcardUuid) {
     try {
       await apiClient.put(`/api/idcard/students/${idcardUuid}/approve`, { approved_by: username });
@@ -382,6 +473,7 @@ export default function IDCardManager() {
       loadStudents(selectedProject.project_uuid);
     } catch { showAlert('error', 'Approve failed'); }
   }
+
   async function rejectStudent(idcardUuid) {
     try {
       await apiClient.put(`/api/idcard/students/${idcardUuid}/reject`);
@@ -390,52 +482,147 @@ export default function IDCardManager() {
     } catch { showAlert('error', 'Reject failed'); }
   }
 
+  function handleModeClick(key) {
+    if (!selectedProject) { showAlert('info', 'Please open or create a project first.'); return; }
+    if (key === 'single') setAddSingleDialog(true);
+    else if (key === 'bulk') setBulkDialog(true);
+    else if (key === 'excel') document.getElementById('excel-file-input')?.click();
+    else if (key === 'classbatch') setClassFilter(classes[0] || '');
+  }
+
   const filteredStudents = tab === 1
     ? students.filter(s => s.card_status === 'student_submitted')
     : tab === 2
     ? students.filter(s => s.card_status === 'approved')
     : students;
 
-  // ── Projects list ────────────────────────────────────────────────────────────
+  const photoReady = students.filter(s => s.photo_url).length;
+  const missing = students.filter(s => !s.photo_url && s.card_status !== 'not_available').length;
+  const approved = students.filter(s => s.card_status === 'approved').length;
+  const submitted = students.filter(s => s.card_status === 'student_submitted').length;
+  const notAvailable = students.filter(s => s.card_status === 'not_available').length;
+
+  // ── Landing / Projects list ────────────────────────────────────────────────
   if (!selectedProject) {
     return (
       <Box>
         {alert && <Alert severity={alert.type} sx={{ mb: 2 }} onClose={() => setAlert(null)}>{alert.text}</Alert>}
-        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-          <Box>
-            <Typography variant="h6" fontWeight={700}>ID Card Manager</Typography>
-            <Typography variant="caption" color="text.secondary">Create and manage student ID card projects</Typography>
-          </Box>
-          <Button variant="contained" size="small" startIcon={<AddIcon />} onClick={() => setCreateDialog(true)}>New Project</Button>
+
+        {/* Hero banner */}
+        <Box sx={{
+          background: 'linear-gradient(135deg, #064e3b 0%, #059669 60%, #34d399 100%)',
+          borderRadius: 3, p: { xs: 3, md: 4 }, mb: 3, color: '#fff', position: 'relative', overflow: 'hidden',
+        }}>
+          <Box sx={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+          <Box sx={{ position: 'absolute', bottom: -20, right: 60, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
+          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={2}>
+            <Box>
+              <Stack direction="row" alignItems="center" spacing={1.5} mb={0.5}>
+                <BadgeIcon sx={{ fontSize: 28 }} />
+                <Typography variant="h5" fontWeight={800} letterSpacing="-0.02em">ID Card Maker</Typography>
+              </Stack>
+              <Typography sx={{ opacity: 0.85, fontSize: '0.93rem', maxWidth: 520 }}>
+                Create professional student ID cards — single, bulk, class-wise, or from Excel/CSV. Perfect for school &amp; college re-opening season.
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              size="large"
+              startIcon={<AddIcon />}
+              onClick={() => setCreateDialog(true)}
+              sx={{ bgcolor: '#fff', color: '#059669', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0, '&:hover': { bgcolor: '#f0fdf4' } }}
+            >
+              New Project
+            </Button>
+          </Stack>
+        </Box>
+
+        {/* 4 creation mode cards */}
+        <Typography variant="subtitle1" fontWeight={700} color="text.primary" mb={1.5}>
+          How would you like to create ID cards?
+        </Typography>
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+          gap: 2, mb: 4,
+        }}>
+          {MODE_CARDS.map(m => (
+            <Paper
+              key={m.key}
+              variant="outlined"
+              onClick={() => handleModeClick(m.key)}
+              sx={{
+                borderRadius: 2.5, overflow: 'hidden', cursor: 'pointer',
+                transition: 'all 0.18s', border: '1.5px solid #e2e8f0',
+                '&:hover': { boxShadow: `0 4px 20px ${m.color}33`, borderColor: m.color, transform: 'translateY(-2px)' },
+              }}
+            >
+              <Box sx={{ background: m.bg, px: 2.5, py: 2.5, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                <Avatar sx={{ bgcolor: m.iconBg, width: 48, height: 48, color: '#fff' }}>
+                  {m.icon}
+                </Avatar>
+                <Box>
+                  <Typography fontWeight={700} fontSize="0.92rem" color={m.color}>{m.title}</Typography>
+                  <Typography variant="caption" color="text.secondary" lineHeight={1.4}>{m.desc}</Typography>
+                </Box>
+                <Stack direction="row" alignItems="center" spacing={0.5} sx={{ color: m.color }}>
+                  <Typography variant="caption" fontWeight={600}>Get started</Typography>
+                  <ChevronRightIcon sx={{ fontSize: 14 }} />
+                </Stack>
+              </Box>
+            </Paper>
+          ))}
+        </Box>
+
+        {/* Projects list */}
+        <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
+          <Typography variant="subtitle1" fontWeight={700}>My Projects</Typography>
+          <Chip label={`${projects.length} project${projects.length !== 1 ? 's' : ''}`} size="small" variant="outlined" />
         </Stack>
 
-        {loading ? <Box textAlign="center" py={6}><CircularProgress /></Box> : (
+        {loading ? (
+          <Box textAlign="center" py={6}><CircularProgress /></Box>
+        ) : projects.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 8, border: '2px dashed #e2e8f0', borderRadius: 3 }}>
+            <BadgeIcon sx={{ fontSize: 48, color: '#cbd5e1', mb: 1 }} />
+            <Typography color="text.secondary" mb={2}>No projects yet. Create your first ID card project to get started.</Typography>
+            <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateDialog(true)}>Create Project</Button>
+          </Box>
+        ) : (
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)', lg: 'repeat(3,1fr)' }, gap: 2 }}>
             {projects.map(p => (
-              <Paper key={p.project_uuid} variant="outlined" sx={{ p: 2, borderRadius: 2, cursor: 'pointer', '&:hover': { boxShadow: 3 } }} onClick={() => setSelectedProject(p)}>
-                <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                  <Box>
-                    <Typography fontWeight={700}>{p.title}</Typography>
-                    <Typography variant="caption" color="text.secondary">{p.academic_year}</Typography>
-                  </Box>
-                  <Chip size="small" label={p.status} color={p.status === 'active' ? 'success' : 'default'} />
-                </Stack>
-                {p.principal_signature_url && (
-                  <Box mt={1.5}>
-                    <Typography variant="caption" color="text.secondary">Principal Signature</Typography>
-                    <img src={p.principal_signature_url} alt="sig" style={{ height: 32, display: 'block', objectFit: 'contain' }} />
-                  </Box>
-                )}
-                <Typography variant="caption" color="text.secondary" display="block" mt={1}>
-                  Created {new Date(p.createdAt).toLocaleDateString()}
-                </Typography>
+              <Paper
+                key={p.project_uuid} variant="outlined"
+                sx={{ borderRadius: 2.5, overflow: 'hidden', cursor: 'pointer', transition: 'all 0.15s', '&:hover': { boxShadow: 4, borderColor: '#059669' } }}
+                onClick={() => setSelectedProject(p)}
+              >
+                <Box sx={{ height: 5, background: p.status === 'active' ? 'linear-gradient(90deg,#059669,#34d399)' : '#e2e8f0' }} />
+                <Box sx={{ p: 2.5 }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={1}>
+                    <Box flex={1} mr={1}>
+                      <Typography fontWeight={700} fontSize="0.97rem">{p.title}</Typography>
+                      <Typography variant="caption" color="text.secondary">{p.academic_year}</Typography>
+                    </Box>
+                    <Chip size="small" label={p.status === 'active' ? 'Active' : 'Completed'} color={p.status === 'active' ? 'success' : 'default'} />
+                  </Stack>
+                  {p.principal_signature_url && (
+                    <Box mt={1.5} p={1} bgcolor="#f8fafc" borderRadius={1}>
+                      <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Principal Signature</Typography>
+                      <img src={p.principal_signature_url} alt="sig" style={{ height: 28, objectFit: 'contain' }} />
+                    </Box>
+                  )}
+                  <Stack direction="row" justifyContent="space-between" alignItems="center" mt={2}>
+                    <Typography variant="caption" color="text.secondary">
+                      {new Date(p.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </Typography>
+                    <Stack direction="row" alignItems="center" spacing={0.5} color="primary.main">
+                      <Typography variant="caption" fontWeight={600}>Open</Typography>
+                      <ChevronRightIcon sx={{ fontSize: 14 }} />
+                    </Stack>
+                  </Stack>
+                </Box>
               </Paper>
             ))}
-            {projects.length === 0 && (
-              <Box sx={{ gridColumn: '1/-1', textAlign: 'center', py: 6 }}>
-                <Typography color="text.secondary">No projects yet. Create your first ID card project.</Typography>
-              </Box>
-            )}
           </Box>
         )}
 
@@ -444,74 +631,140 @@ export default function IDCardManager() {
     );
   }
 
-  // ── Project detail view ───────────────────────────────────────────────────────
+  // ── Project detail view ──────────────────────────────────────────────────────
   return (
     <Box>
       {alert && <Alert severity={alert.type} sx={{ mb: 2 }} onClose={() => setAlert(null)}>{alert.text}</Alert>}
 
       {/* Header */}
-      <Stack direction="row" alignItems="center" spacing={1} mb={2}>
-        <IconButton size="small" onClick={() => setSelectedProject(null)}><ArrowBackIcon /></IconButton>
+      <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>
+        <IconButton size="small" onClick={() => { setSelectedProject(null); setStudents([]); setClasses([]); setClassFilter(''); setTab(0); }}>
+          <ArrowBackIcon />
+        </IconButton>
         <Box flex={1}>
-          <Typography variant="h6" fontWeight={700}>{selectedProject.title}</Typography>
-          <Typography variant="caption" color="text.secondary">{selectedProject.academic_year}</Typography>
+          <Typography variant="h6" fontWeight={700} lineHeight={1.2}>{selectedProject.title}</Typography>
+          <Typography variant="caption" color="text.secondary">{selectedProject.academic_year} · {students.length} students</Typography>
         </Box>
-        <Button size="small" variant="outlined" startIcon={<UploadFileIcon />} component="label">
-          Import Excel
-          <input hidden type="file" accept=".xlsx,.xls,.csv" onChange={e => parseExcel(e.target.files[0])} />
-        </Button>
-        <Button size="small" variant="outlined" startIcon={<PhotoCameraIcon />} onClick={() => setBulkDialog(true)}>
-          Bulk Photos
-        </Button>
-        <Button size="small" variant="contained" startIcon={<PrintIcon />}
-          onClick={() => navigate(`/${username}/idcard/${selectedProject.project_uuid}/print`)}>
-          Print
-        </Button>
+        <Chip size="small" label={selectedProject.status === 'active' ? 'Active' : 'Completed'} color={selectedProject.status === 'active' ? 'success' : 'default'} />
       </Stack>
 
-      {/* Tabs */}
-      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2 }}>
-        <Tab label={`All Students (${students.length})`} />
-        <Tab label={`Approvals (${students.filter(s => s.card_status === 'student_submitted').length})`} />
-        <Tab label={`Print Ready (${students.filter(s => s.card_status === 'approved').length})`} />
-      </Tabs>
+      {/* 4 Action cards */}
+      <Box sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' },
+        gap: 1.5, mb: 3,
+      }}>
+        {/* Single card */}
+        <Paper variant="outlined" sx={{ borderRadius: 2, p: 2, cursor: 'pointer', border: '1.5px solid #e0f2fe', bgcolor: '#f0f9ff', '&:hover': { boxShadow: 2, borderColor: '#0ea5e9' } }}
+          onClick={() => setAddSingleDialog(true)}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Avatar sx={{ bgcolor: '#0ea5e9', width: 36, height: 36 }}><PersonAddIcon sx={{ fontSize: 18 }} /></Avatar>
+            <Box>
+              <Typography fontWeight={700} fontSize="0.82rem" color="#0369a1">Single Card</Typography>
+              <Typography variant="caption" color="text.secondary">Add one student</Typography>
+            </Box>
+          </Stack>
+        </Paper>
 
-      {/* Class filter */}
-      {tab === 0 && classes.length > 0 && (
-        <Stack direction="row" spacing={1} mb={2} flexWrap="wrap">
-          <Chip label="All" onClick={() => setClassFilter('')} color={!classFilter ? 'primary' : 'default'} variant={!classFilter ? 'filled' : 'outlined'} size="small" icon={<FilterListIcon />} />
-          {classes.map(c => (
-            <Chip key={c} label={c} onClick={() => setClassFilter(c === classFilter ? '' : c)} color={classFilter === c ? 'primary' : 'default'} variant={classFilter === c ? 'filled' : 'outlined'} size="small" />
-          ))}
-        </Stack>
-      )}
+        {/* Bulk photos */}
+        <Paper variant="outlined" sx={{ borderRadius: 2, p: 2, cursor: 'pointer', border: '1.5px solid #ede9fe', bgcolor: '#faf5ff', '&:hover': { boxShadow: 2, borderColor: '#8b5cf6' } }}
+          onClick={() => setBulkDialog(true)}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Avatar sx={{ bgcolor: '#8b5cf6', width: 36, height: 36 }}><PhotoLibraryIcon sx={{ fontSize: 18 }} /></Avatar>
+            <Box>
+              <Typography fontWeight={700} fontSize="0.82rem" color="#6d28d9">Bulk Photos</Typography>
+              <Typography variant="caption" color="text.secondary">Upload all at once</Typography>
+            </Box>
+          </Stack>
+        </Paper>
+
+        {/* Excel / CSV */}
+        <Paper variant="outlined" component="label" sx={{ borderRadius: 2, p: 2, cursor: 'pointer', border: '1.5px solid #d1fae5', bgcolor: '#f0fdf4', '&:hover': { boxShadow: 2, borderColor: '#10b981' } }}>
+          <input id="excel-file-input" hidden type="file" accept=".xlsx,.xls,.csv" onChange={e => parseExcel(e.target.files[0])} />
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Avatar sx={{ bgcolor: '#10b981', width: 36, height: 36 }}><TableChartIcon sx={{ fontSize: 18 }} /></Avatar>
+            <Box>
+              <Typography fontWeight={700} fontSize="0.82rem" color="#065f46">Excel / CSV</Typography>
+              <Typography variant="caption" color="text.secondary">Import from file</Typography>
+            </Box>
+          </Stack>
+        </Paper>
+
+        {/* Print */}
+        <Paper variant="outlined" sx={{ borderRadius: 2, p: 2, cursor: 'pointer', border: '1.5px solid #fef3c7', bgcolor: '#fffbeb', '&:hover': { boxShadow: 2, borderColor: '#f59e0b' } }}
+          onClick={() => navigate(`/${username}/idcard/${selectedProject.project_uuid}/print`)}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Avatar sx={{ bgcolor: '#f59e0b', width: 36, height: 36 }}><PrintIcon sx={{ fontSize: 18 }} /></Avatar>
+            <Box>
+              <Typography fontWeight={700} fontSize="0.82rem" color="#92400e">Print Cards</Typography>
+              <Typography variant="caption" color="text.secondary">Print / export PDF</Typography>
+            </Box>
+          </Stack>
+        </Paper>
+      </Box>
 
       {/* Stats row */}
-      {tab === 0 && (
-        <Stack direction="row" spacing={2} mb={2} flexWrap="wrap">
-          {[
-            { label: 'Total', val: students.length, color: 'text.primary' },
-            { label: 'Photo Ready', val: students.filter(s => s.photo_url).length, color: 'success.main' },
-            { label: 'Missing Photo', val: students.filter(s => !s.photo_url && s.card_status !== 'not_available').length, color: 'error.main' },
-            { label: 'Not Available', val: students.filter(s => s.card_status === 'not_available').length, color: 'text.secondary' },
-            { label: 'Approved', val: students.filter(s => s.card_status === 'approved').length, color: 'primary.main' },
-          ].map(({ label, val, color }) => (
-            <Box key={label} sx={{ bgcolor: '#f8fafc', borderRadius: 2, px: 2, py: 1, minWidth: 80, textAlign: 'center' }}>
-              <Typography fontWeight={700} color={color}>{val}</Typography>
-              <Typography variant="caption" color="text.secondary">{label}</Typography>
-            </Box>
-          ))}
-        </Stack>
+      <Stack direction="row" spacing={1.5} mb={3} flexWrap="wrap" useFlexGap>
+        <StatPill label="Total" value={students.length} />
+        <StatPill label="Photo Ready" value={photoReady} color="success.main" bg="#f0fdf4" />
+        <StatPill label="Missing Photo" value={missing} color="error.main" bg="#fef2f2" />
+        <StatPill label="Submitted" value={submitted} color="warning.main" bg="#fffbeb" />
+        <StatPill label="Approved" value={approved} color="primary.main" bg="#eff6ff" />
+        <StatPill label="Not Available" value={notAvailable} color="text.secondary" />
+      </Stack>
+
+      {/* Photo progress bar */}
+      {students.length > 0 && (
+        <Box mb={2.5}>
+          <Stack direction="row" justifyContent="space-between" mb={0.5}>
+            <Typography variant="caption" color="text.secondary">Photo completion</Typography>
+            <Typography variant="caption" fontWeight={600} color="success.main">{Math.round((photoReady / students.length) * 100)}%</Typography>
+          </Stack>
+          <LinearProgress variant="determinate" value={(photoReady / students.length) * 100} sx={{ height: 6, borderRadius: 3, bgcolor: '#e2e8f0' }} color="success" />
+        </Box>
+      )}
+
+      {/* Tabs */}
+      <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ mb: 2, borderBottom: '1px solid #e2e8f0' }}>
+        <Tab label={`All Students (${students.length})`} />
+        <Tab label={submitted > 0 ? `Approvals (${submitted})` : 'Approvals'} />
+        <Tab label={approved > 0 ? `Print Ready (${approved})` : 'Print Ready'} />
+      </Tabs>
+
+      {/* Class / Batch filter */}
+      {classes.length > 0 && (
+        <Box mb={2}>
+          <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap alignItems="center">
+            <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ mr: 0.5 }}>
+              <FilterListIcon sx={{ fontSize: 13, mr: 0.25, verticalAlign: 'middle' }} />
+              Class / Batch:
+            </Typography>
+            <Chip label="All" onClick={() => setClassFilter('')} color={!classFilter ? 'primary' : 'default'} variant={!classFilter ? 'filled' : 'outlined'} size="small" />
+            {classes.map(c => (
+              <Chip key={c} label={c} onClick={() => setClassFilter(c === classFilter ? '' : c)} color={classFilter === c ? 'primary' : 'default'} variant={classFilter === c ? 'filled' : 'outlined'} size="small" />
+            ))}
+          </Stack>
+        </Box>
       )}
 
       {/* Student grid */}
       {studentsLoading ? (
         <Box textAlign="center" py={6}><CircularProgress /></Box>
       ) : filteredStudents.length === 0 ? (
-        <Box textAlign="center" py={6}>
-          <Typography color="text.secondary">
-            {tab === 1 ? 'No pending approvals.' : tab === 2 ? 'No approved cards yet.' : 'No students. Import an Excel file to get started.'}
+        <Box sx={{ textAlign: 'center', py: 8, border: '2px dashed #e2e8f0', borderRadius: 3 }}>
+          <PeopleIcon sx={{ fontSize: 48, color: '#cbd5e1', mb: 1 }} />
+          <Typography color="text.secondary" mb={2}>
+            {tab === 1 ? 'No pending approvals.' : tab === 2 ? 'No approved cards yet.' : 'No students yet. Use the options above to add students.'}
           </Typography>
+          {tab === 0 && (
+            <Stack direction="row" spacing={1.5} justifyContent="center">
+              <Button size="small" variant="outlined" startIcon={<PersonAddIcon />} onClick={() => setAddSingleDialog(true)}>Add Single</Button>
+              <Button size="small" variant="outlined" component="label" startIcon={<TableChartIcon />}>
+                Import Excel
+                <input hidden type="file" accept=".xlsx,.xls,.csv" onChange={e => parseExcel(e.target.files[0])} />
+              </Button>
+            </Stack>
+          )}
         </Box>
       ) : (
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2,1fr)', sm: 'repeat(3,1fr)', md: 'repeat(4,1fr)', lg: 'repeat(5,1fr)', xl: 'repeat(6,1fr)' }, gap: 1.5 }}>
@@ -535,21 +788,27 @@ export default function IDCardManager() {
       {/* Webcam */}
       <WebcamDialog open={!!webcamTarget} onCapture={handleWebcamCapture} onClose={() => setWebcamTarget(null)} />
 
-      {/* Bulk upload dialog */}
+      {/* Add single student dialog */}
+      <AddSingleStudentDialog open={addSingleDialog} onSave={addSingleStudent} onClose={() => setAddSingleDialog(false)} />
+
+      {/* Bulk photo upload dialog */}
       <Dialog open={bulkDialog} onClose={() => setBulkDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Bulk Photo Upload</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Bulk Photo Upload</DialogTitle>
         <DialogContent>
           <Stack spacing={2} sx={{ pt: 1 }}>
             <Alert severity="info" sx={{ fontSize: '0.78rem' }}>
-              Photos are auto-matched by filename = roll number (e.g. 01.jpg) or student name. Upload one class at a time for best results.
+              Photos are auto-matched by filename = roll number (e.g. <strong>01.jpg</strong>) or student name. Upload one class at a time for best results.
             </Alert>
             {classes.length > 0 && (
-              <Select value={bulkClass} onChange={e => setBulkClass(e.target.value)} size="small" displayEmpty>
-                <MenuItem value="">All Classes</MenuItem>
-                {classes.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-              </Select>
+              <Box>
+                <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Filter by Class / Batch (optional)</Typography>
+                <Select value={bulkClass} onChange={e => setBulkClass(e.target.value)} size="small" displayEmpty fullWidth>
+                  <MenuItem value="">All Classes</MenuItem>
+                  {classes.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                </Select>
+              </Box>
             )}
-            <Button variant="outlined" component="label" startIcon={bulkUploading ? <CircularProgress size={16} /> : <UploadFileIcon />} disabled={bulkUploading}>
+            <Button variant="outlined" component="label" startIcon={bulkUploading ? <CircularProgress size={16} /> : <UploadFileIcon />} disabled={bulkUploading} size="large">
               {bulkUploading ? 'Uploading…' : 'Select Photos'}
               <input hidden type="file" accept="image/*" multiple onChange={e => bulkUpload(e.target.files)} />
             </Button>
@@ -560,45 +819,52 @@ export default function IDCardManager() {
 
       {/* Excel preview dialog */}
       <Dialog open={excelDialog} onClose={() => setExcelDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Import Students — Preview ({excelRows.length} rows)</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>
+          Import Students — Preview
+          <Chip label={`${excelRows.length} rows`} size="small" sx={{ ml: 1.5 }} color="primary" />
+        </DialogTitle>
         <DialogContent>
           <Alert severity="info" sx={{ mb: 2, fontSize: '0.78rem' }}>
-            System will auto-detect columns for name, roll number, class, and section. All other columns are stored as extra fields.
+            Columns auto-detected: <strong>student_name, roll_number, class, section</strong>. All other columns are stored as extra fields.
           </Alert>
           {excelPreview.length > 0 && (
-            <Box sx={{ overflowX: 'auto' }}>
+            <Box sx={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: 1 }}>
               <table style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
                 <thead>
                   <tr style={{ background: '#f1f5f9' }}>
-                    {Object.keys(excelPreview[0]).map(k => <th key={k} style={{ padding: '6px 10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>{k}</th>)}
+                    {Object.keys(excelPreview[0]).map(k => <th key={k} style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid #e2e8f0', fontWeight: 600 }}>{k}</th>)}
                   </tr>
                 </thead>
                 <tbody>
                   {excelPreview.map((row, i) => (
-                    <tr key={i}>
-                      {Object.values(row).map((v, j) => <td key={j} style={{ padding: '5px 10px', borderBottom: '1px solid #f1f5f9' }}>{String(v)}</td>)}
+                    <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                      {Object.values(row).map((v, j) => <td key={j} style={{ padding: '6px 12px', borderBottom: '1px solid #f1f5f9' }}>{String(v)}</td>)}
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {excelRows.length > 5 && <Typography variant="caption" color="text.secondary">…and {excelRows.length - 5} more rows</Typography>}
+              {excelRows.length > 5 && (
+                <Box sx={{ px: 2, py: 1, bgcolor: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+                  <Typography variant="caption" color="text.secondary">…and {excelRows.length - 5} more rows</Typography>
+                </Box>
+              )}
             </Box>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setExcelDialog(false)}>Cancel</Button>
-          <Button variant="contained" onClick={importStudents} disabled={importing}>
-            {importing ? <CircularProgress size={18} /> : `Import ${excelRows.length} Students`}
+          <Button variant="contained" onClick={importStudents} disabled={importing} startIcon={importing ? <CircularProgress size={16} /> : <DownloadIcon />}>
+            {importing ? 'Importing…' : `Import ${excelRows.length} Students`}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* Magic link dialog */}
       <Dialog open={!!linkDialog} onClose={() => setLinkDialog(null)} maxWidth="xs" fullWidth>
-        <DialogTitle>Student Self-Edit Link</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Student Self-Edit Link</DialogTitle>
         <DialogContent>
-          <Alert severity="success" sx={{ mb: 2 }}>Link generated! Share this with the student.</Alert>
-          <Box sx={{ bgcolor: '#f8fafc', borderRadius: 1, p: 1.5, wordBreak: 'break-all', fontSize: '0.8rem' }}>
+          <Alert severity="success" sx={{ mb: 2 }}>Link generated! Share this with the student so they can upload their own photo.</Alert>
+          <Box sx={{ bgcolor: '#f8fafc', borderRadius: 1, p: 1.5, wordBreak: 'break-all', fontSize: '0.8rem', border: '1px solid #e2e8f0' }}>
             {linkDialog?.link}
           </Box>
         </DialogContent>
