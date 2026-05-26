@@ -2,15 +2,16 @@ const { WhatsAppIntegration, WhatsAppMessageLog } = require('./whatsapp.model');
 const whatsappService = require('./whatsapp.service');
 
 async function verifyWebhook(req, res) {
-  if (!process.env.META_WEBHOOK_VERIFY_TOKEN) {
-    return res.status(500).json({ success: false, message: 'META_WEBHOOK_VERIFY_TOKEN is not configured' });
+  const webhookVerifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || process.env.META_WEBHOOK_VERIFY_TOKEN;
+  if (!webhookVerifyToken) {
+    return res.status(500).json({ success: false, message: 'WHATSAPP_WEBHOOK_VERIFY_TOKEN is not configured' });
   }
 
   const mode = req.query['hub.mode'];
   const token = req.query['hub.verify_token'];
   const challenge = req.query['hub.challenge'];
 
-  if (mode === 'subscribe' && token === process.env.META_WEBHOOK_VERIFY_TOKEN) {
+  if (mode === 'subscribe' && token === webhookVerifyToken) {
     return res.status(200).send(challenge);
   }
 

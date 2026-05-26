@@ -14,7 +14,7 @@ async function sendTextMessage(req, res) {
     const data = await whatsappService.sendText(to, message);
 
     await Message.create({
-      sender: process.env.PHONE_NUMBER_ID || 'system',
+      sender: process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.PHONE_NUMBER_ID || 'system',
       receiver: to,
       message,
       type: 'text',
@@ -37,7 +37,7 @@ async function sendImageMessage(req, res) {
     const { mediaUrl, response } = await whatsappMediaService.sendImageFromUpload(to, image, caption);
 
     await Message.create({
-      sender: process.env.PHONE_NUMBER_ID || 'system',
+      sender: process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.PHONE_NUMBER_ID || 'system',
       receiver: to,
       message: caption || '',
       type: 'image',
@@ -55,7 +55,7 @@ async function webhookVerify(req, res) {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
-    const verifyToken = process.env.VERIFY_TOKEN || process.env.META_WEBHOOK_VERIFY_TOKEN;
+    const verifyToken = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || process.env.VERIFY_TOKEN || process.env.META_WEBHOOK_VERIFY_TOKEN;
 
     if (mode === 'subscribe' && token === verifyToken) {
       return res.status(200).send(challenge);
@@ -85,7 +85,7 @@ async function webhookReceive(req, res) {
 
           await Message.create({
             sender: from,
-            receiver: value?.metadata?.display_phone_number || process.env.PHONE_NUMBER_ID || 'system',
+            receiver: value?.metadata?.display_phone_number || process.env.WHATSAPP_PHONE_NUMBER_ID || process.env.PHONE_NUMBER_ID || 'system',
             message: textBody,
             type,
             mediaUrl,
