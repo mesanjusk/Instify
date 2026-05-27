@@ -3,6 +3,7 @@ const Lead = require('../models/Lead');
 const Student = require('../models/Student');
 const Fees = require('../models/Fees');
 const MessageTemplate = require('../models/MessageTemplate');
+const Achievement = require('../models/Achievement');
 const baileysService = require('./baileysService');
 
 function fmt(date) {
@@ -33,11 +34,14 @@ async function getTemplate(institute_uuid, key, defaults) {
   } catch { return defaults[key]; }
 }
 
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
 const DEFAULT_TEMPLATES = {
   followup: 'Hello {{name}},\nThis is a reminder for your follow-up today ({{date}}) regarding the *{{course}}* enquiry.\nPlease contact us for more details.\n– Instify',
   fees: 'Dear {{name}},\nYour fee instalment of ₹{{amount}} was due on {{date}}.\nOutstanding balance: ₹{{balance}}\nPlease clear the dues at the earliest.\n– Instify',
   birthday: '🎂 Happy Birthday, *{{name}}*!\nWishing you a wonderful day filled with joy.\n– Instify Team',
   magic_link: 'Hello {{name}},\nYour Instify account is ready.\nClick to access: {{link}}\n– Instify',
+  greeting_star_of_month: '🌟 Congratulations, *{{name}}*!\nYou have been selected as the *Star of the Month* for {{month}} {{year}}.\nKeep up the fantastic work!\n– Instify Team',
 };
 
 function fillTemplate(tpl, vars) {
@@ -107,11 +111,48 @@ function scheduleBirthdayWishes() {
   }, { timezone: 'Asia/Kolkata' });
 }
 
+function scheduleAchievementGreetings() {
+  // Run on 1st of each month at 9 AM to send star-of-month greetings
+  cron.schedule('0 9 1 * *', async () => {
+    console.log('[Cron] Running star-of-month achievement greetings…');
+    try {
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const year = now.getFullYear();
+      const monthName = MONTH_NAMES[month - 2] || MONTH_NAMES[11]; // previous month
+
+      const achievements = await Achievement.find({
+        type: 'star_of_month',
+        month: month - 1 === 0 ? 12 : month - 1,
+        year: month - 1 === 0 ? year - 1 : year,
+        messageSent: false,
+      });
+
+      for (const ach of achievements) {
+        const student = await Student.findOne({ uuid: ach.student_uuid });
+        if (!student) continue;
+        const mobile = student.mobileSelf || student.mobileParent;
+        if (!mobile) continue;
+        const tpl = await getTemplate(ach.institute_uuid, 'greeting_star_of_month');
+        const msg = fillTemplate(tpl, {
+          name: student.firstName,
+          month: monthName,
+          year: String(year),
+        });
+        await trySend(ach.institute_uuid, mobile, msg);
+        await Achievement.findByIdAndUpdate(ach._id, { messageSent: true, messageSentAt: new Date() });
+      }
+      console.log(`[Cron] Star-of-month greetings sent for ${achievements.length} student(s)`);
+    } catch (err) { console.error('[Cron] Achievement greeting job error:', err.message); }
+  }, { timezone: 'Asia/Kolkata' });
+}
+
 function initCronJobs() {
   scheduleFollowupReminders();
   scheduleFeeReminders();
   scheduleBirthdayWishes();
-  console.log('✅ Cron jobs scheduled (follow-ups, fees, birthdays)');
+  scheduleAchievementGreetings();
+  console.log('✅ Cron jobs scheduled (follow-ups, fees, birthdays, achievements)');
 }
 
 module.exports = { initCronJobs };

@@ -68,6 +68,7 @@ const Forms = lazy(() => import('./pages/Forms'));
 const FormResponses = lazy(() => import('./pages/FormResponses'));
 const IDCardStudentSelfEdit = lazy(() => import('./pages/IDCardStudentSelfEdit'));
 const IDCardPrint = lazy(() => import('./pages/IDCardPrint'));
+const Greetings = lazy(() => import('./pages/Greetings'));
 
 function PageLoader() {
   return (
@@ -200,6 +201,7 @@ export default function App() {
         <Route path="forms/:formId/responses" element={<FeatureGate module="forms"><FormResponses /></FeatureGate>} />
         <Route path="idcard" element={<RedirectToSection section="canvas" />} />
         <Route path="idcard/:projectUuid/print" element={<IDCardPrint />} />
+        <Route path="greetings" element={<Greetings />} />
         {/* Legacy redirects → section routes */}
         <Route path="whatsapp-personal" element={<RedirectToSection section="whatsapp" />} />
         <Route path="canvas-editor" element={<RedirectToSection section="canvas" />} />

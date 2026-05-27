@@ -32,6 +32,7 @@ import BalanceIcon from '@mui/icons-material/Balance';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import FunnelIcon from '@mui/icons-material/FilterAlt';
 import DynamicFormIcon from '@mui/icons-material/DynamicForm';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 
 const DRAWER_WIDTH = 256;
 
@@ -120,6 +121,7 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
       label: 'Features',
       items: [
         { label: 'WhatsApp Bot', icon: <WhatsAppIcon fontSize="small" sx={{ color: '#25d366' }} />, path: `/${username}/section/whatsapp`, badge: 'Live', highlight: true },
+        { label: 'Greetings', icon: <EmojiEventsIcon fontSize="small" sx={{ color: '#f59e0b' }} />, path: `/${username}/greetings`, badge: 'New', highlight: true },
         { label: 'Document Maker', icon: <BadgeIcon fontSize="small" sx={{ color: '#fcd34d' }} />, path: `/${username}/section/canvas`, badge: 'Pro', highlight: true },
         { label: 'Public Forms', icon: <DynamicFormIcon fontSize="small" sx={{ color: '#93c5fd' }} />, path: `/${username}/forms`, badge: 'New', highlight: true },
         { label: 'Academic Hub', icon: <UploadFileIcon fontSize="small" />, path: `/${username}/section/academic`, highlight: true },
