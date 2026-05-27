@@ -77,6 +77,20 @@ async function parseFile(file) {
   return parseCSV(file.buffer);
 }
 
+// Parse DD/MM/YYYY, DD-MM-YYYY, or YYYY-MM-DD into a Date
+function parseDob(val) {
+  if (!val) return undefined;
+  const s = String(val).trim();
+  // DD/MM/YYYY or DD-MM-YYYY
+  const m1 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (m1) return new Date(`${m1[3]}-${m1[2].padStart(2,'0')}-${m1[1].padStart(2,'0')}`);
+  // YYYY-MM-DD or ISO
+  const m2 = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (m2) return new Date(s);
+  const d = new Date(s);
+  return isNaN(d) ? undefined : d;
+}
+
 // ── Students ──────────────────────────────────────────────────────────────
 router.post('/students', upload.single('file'), async (req, res) => {
   try {
@@ -92,10 +106,10 @@ router.post('/students', upload.single('file'), async (req, res) => {
 
     for (const row of rows) {
       try {
-        const firstName = (row.firstname || row.first_name || '').trim();
+        const firstName = (row.firstname || row.first_name || row['first name'] || '').trim();
         if (!firstName) { results.errors.push({ row, reason: 'firstName missing' }); continue; }
 
-        const mobile = (row.mobileself || row.mobile || row.phone || '').trim();
+        const mobile = (row.mobileself || row.mobile || row.phone || row['mobile no'] || '').trim();
         if (mobile) {
           const exists = await Student.findOne({ institute_uuid, mobileSelf: mobile });
           if (exists) { results.skipped++; continue; }
@@ -104,12 +118,15 @@ router.post('/students', upload.single('file'), async (req, res) => {
         await Student.create({
           uuid: uuidv4(),
           institute_uuid,
+          regNo: (row.regno || row.reg_no || row['reg no'] || '').trim(),
           firstName,
-          middleName: (row.middlename || row.middle_name || '').trim(),
-          lastName: (row.lastname || row.last_name || '').trim(),
+          middleName: (row.middlename || row.middle_name || row['middle name'] || '').trim(),
+          lastName: (row.lastname || row.last_name || row['last name'] || '').trim(),
           mobileSelf: mobile,
           mobileParent: (row.mobileparent || row.parent_mobile || '').trim(),
-          dob: row.dob ? new Date(row.dob) : undefined,
+          mothersName: (row.mothersname || row.mothers_name || row['mothers name'] || '').trim(),
+          aadharNo: (row.aadharno || row.adhar_no || row['adhar no'] || row.aadhaar || '').trim(),
+          dob: row.dob || row['date of birth'] ? parseDob(row.dob || row['date of birth']) : undefined,
           gender: row.gender?.trim() || undefined,
           address: (row.address || '').trim(),
           education: (row.education || '').trim(),

@@ -31,12 +31,13 @@ const TYPE_CONFIG = {
     icon: <PeopleIcon fontSize="small" />,
     color: '#1a7a4a',
     apiPath: '/api/csv-import/students',
-    headers: ['firstName', 'lastName', 'middleName', 'mobileSelf', 'mobileParent', 'dob', 'gender', 'address', 'education'],
+    headers: ['Reg No', 'First Name', 'Middle Name', 'Last Name', 'Mothers Name', 'Date Of Birth', 'Mobile No', 'Adhar No', 'Education'],
     sample: {
-      firstName: 'Rahul', lastName: 'Sharma', middleName: '', mobileSelf: '9876543210',
-      mobileParent: '9876543211', dob: '2000-05-15', gender: 'Male', address: 'Mumbai', education: 'B.Com',
+      'Reg No': '3645', 'First Name': 'Rahul', 'Middle Name': 'Kumar', 'Last Name': 'Sharma',
+      'Mothers Name': 'Sunita', 'Date Of Birth': '15/05/2000', 'Mobile No': '9876543210',
+      'Adhar No': '1234 5678 9012', 'Education': 'Class 5',
     },
-    notes: 'Duplicate mobile numbers within the same institute are skipped.',
+    notes: 'Duplicate mobile numbers within the same institute are skipped. Date format: DD/MM/YYYY.',
   },
   admissions: {
     label: 'Admissions',

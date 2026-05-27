@@ -11,10 +11,13 @@ const studentSchema = new mongoose.Schema({
   dob: Date,
   gender: { type: String, enum: ['Male', 'Female', 'Other'] },
 
+  regNo: String,
   mobileSelf: { type: String },
   mobileSelfWhatsapp: { type: Boolean, default: false },
   mobileParent: { type: String },
   mobileParentWhatsapp: { type: Boolean, default: false },
+  mothersName: String,
+  aadharNo: String,
   address: String,
   education: String,
   schoolName: String,
