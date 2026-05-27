@@ -12,6 +12,7 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import PaymentIcon from '@mui/icons-material/Payment';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 
 function ModuleCard({ icon, label, desc, color, onClick }) {
   return (
@@ -69,6 +70,7 @@ export default function AcademicHub() {
     { icon: <EventNoteIcon />,      label: 'Follow-ups',    desc: "Today's follow-up list",          color: '#ef4444', path: 'followup' },
     { icon: <PaymentIcon />,        label: 'Fees',          desc: "Today's fee collections",         color: '#10b981', path: 'fees' },
     { icon: <ReceiptLongIcon />,    label: 'Collect Fee',   desc: 'Record a fee receipt',            color: '#0ea5e9', path: 'addReciept' },
+    { icon: <UploadFileIcon />,     label: 'Bulk Import',   desc: 'Import from CSV / Excel / JSON',  color: '#7c3aed', path: 'academic-bulk-import' },
   ];
 
   return (

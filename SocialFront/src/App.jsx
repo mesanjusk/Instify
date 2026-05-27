@@ -59,6 +59,7 @@ const BaileysWhatsApp = lazy(() => import('./pages/BaileysWhatsApp'));
 const CanvasEditor = lazy(() => import('./pages/CanvasEditor'));
 const UpiPayment = lazy(() => import('./pages/UpiPayment'));
 const CsvImport = lazy(() => import('./pages/CsvImport'));
+const AcademicBulkImport = lazy(() => import('./pages/AcademicBulkImport'));
 const BulkDownload = lazy(() => import('./pages/BulkDownload'));
 const Employees = lazy(() => import('./pages/Employees'));
 const TrialBalance = lazy(() => import('./pages/TrialBalance'));
@@ -192,6 +193,7 @@ export default function App() {
         <Route path="allTransaction3" element={<AllTransaction3 />} />
         <Route path="upi-payment" element={<UpiPayment />} />
         <Route path="csv-import" element={<FeatureGate module="csv_import"><CsvImport /></FeatureGate>} />
+        <Route path="academic-bulk-import" element={<AcademicBulkImport />} />
         <Route path="bulk-download" element={<FeatureGate module="bulk_download"><BulkDownload /></FeatureGate>} />
         <Route path="employees" element={<FeatureGate module="payroll"><Employees /></FeatureGate>} />
         <Route path="trial-balance" element={<TrialBalance />} />
