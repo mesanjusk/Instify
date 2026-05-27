@@ -264,6 +264,30 @@ function studentToRow(s, batchName) {
   };
 }
 
+function normalizeCsvRowToStudent(row, idx) {
+  const firstName = row.firstName || row.first_name || row.name || row.Name || row.Student_Name || row['First Name'] || '';
+  const lastName  = row.lastName  || row.last_name  || row['Last Name']  || '';
+  return {
+    _id: `csv_${idx}`, uuid: `csv_${idx}`,
+    firstName, lastName,
+    rollNo:     row.rollNo    || row.roll_number || row['Roll Number'] || row['Roll No']   || row.reg_no || row['Reg No'] || '',
+    regNo:      row.regNo     || row.reg_no      || '',
+    course:     row.course    || row.Course      || row.programme     || row.Programme     || '',
+    batch:      row.batch     || row.Batch       || row.class         || row.Class         || '',
+    mobileSelf: row.mobile    || row.Mobile      || row.phone         || row.Phone         || '',
+    email:      row.email     || row.Email       || '',
+    fatherName: row.father_name  || row.fatherName  || row['Father Name']  || '',
+    mothersName:row.mother_name  || row.mothersName  || row['Mother Name']  || '',
+    aadharNo:   row.aadhar_no   || row.aadharNo    || row['Aadhar No']    || '',
+    dob:        row.dob         || row.DOB          || row['Date of Birth']|| '',
+    education:  row.education   || row.Education    || '',
+    class_name: row.class_name  || row.class        || row.Class           || '',
+    section:    row.section     || row.Section      || '',
+    photo_url:  row.photo_url   || row.Photo_URL    || row.photo           || null,
+    _isFromCsv: true,
+  };
+}
+
 /* ─── Canvas seeder ──────────────────────────────────────────── */
 async function seedCanvas(canvas, docType, tpl, data, instName) {
   const { fabric } = await getFabric();
@@ -1452,13 +1476,42 @@ export default function DocumentMaker() {
     openEditor(pendingDocType, pendingTplIdx, mode);
   }
 
-  function saveBulkCanvas() {
+  async function saveBulkCanvas() {
     const fc = fabricRef.current;
     if (!fc || !batchStudents.length) return;
     const cur = batchStudents[carouselIdx];
     const curKey = cur?.uuid || cur?._id || String(carouselIdx);
+    suppressDirtyRef.current = true;
     carouselStatesRef.current[curKey] = JSON.stringify(fc.toJSON(CUSTOM_PROPS));
-    showAlert('success', `Saved card for ${carouselFields.name || 'student'}`);
+    suppressDirtyRef.current = false;
+
+    // Merge edited carousel fields back into batchStudents
+    const nameParts = (carouselFields.name || '').trim().split(/\s+/);
+    const updatedStudent = {
+      ...cur,
+      firstName: nameParts[0] || cur.firstName,
+      lastName:  nameParts.slice(1).join(' ') || cur.lastName || '',
+      rollNo:    carouselFields.rollNo  || cur.rollNo,
+      course:    carouselFields.course  || cur.course,
+      batch:     carouselFields.batch   || cur.batch,
+    };
+    setBatchStudents(prev => { const a = [...prev]; a[carouselIdx] = updatedStudent; return a; });
+
+    // Persist to DB for real (non-CSV) students
+    const isDbStudent = cur?.uuid && !String(cur.uuid).startsWith('csv_');
+    if (isDbStudent) {
+      try {
+        await apiClient.patch(`/api/students/${cur.uuid}`, {
+          rollNo: carouselFields.rollNo,
+          course: carouselFields.course,
+        });
+        showAlert('success', `Updated ${carouselFields.name || 'student'} in database`);
+      } catch {
+        showAlert('success', `Card saved for ${carouselFields.name || 'student'}`);
+      }
+    } else {
+      showAlert('success', `Card saved for ${carouselFields.name || 'student'}`);
+    }
   }
 
   async function exportBulkPDF() {
@@ -1879,7 +1932,7 @@ export default function DocumentMaker() {
   }
 
   function getActiveRows() {
-    if (dataSource === 'csv' && csvRows.length) return csvRows;
+    // batchStudents now holds both DB-fetched and CSV-normalized students
     return batchStudents.map(s => studentToRow(s, selBatch));
   }
 
@@ -1919,20 +1972,29 @@ export default function DocumentMaker() {
     if (!file) return;
     setCsvFile(file.name);
     const ext = file.name.split('.').pop().toLowerCase();
+    const processRows = (data) => {
+      setCsvRows(data);
+      setDataSource('csv');
+      const normalized = data.map((row, idx) => normalizeCsvRowToStudent(row, idx));
+      carouselStatesRef.current = {};
+      carouselBaseTemplateRef.current = null;
+      setBatchStudents(normalized);
+      setCarouselIdx(0);
+      if (normalized.length > 0) {
+        const row = studentToRow(normalized[0], selBatch);
+        setCarouselFields({ name: row.name, rollNo: row.roll_number, course: row.course, batch: row.batch });
+      }
+      showAlert('success', `Loaded ${data.length} students from ${file.name}`);
+    };
     try {
       if (ext === 'csv') {
         const Papa = (await import('papaparse')).default;
-        Papa.parse(file, {
-          header: true, skipEmptyLines: true,
-          complete: r => { setCsvRows(r.data); setDataSource('csv'); showAlert('success', `Loaded ${r.data.length} rows from CSV`); },
-        });
+        Papa.parse(file, { header: true, skipEmptyLines: true, complete: r => processRows(r.data) });
       } else {
         const XLSX = await import('xlsx');
         const buf = await file.arrayBuffer();
         const wb = XLSX.read(buf);
-        const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-        setCsvRows(data); setDataSource('csv');
-        showAlert('success', `Loaded ${data.length} rows from Excel`);
+        processRows(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]));
       }
     } catch { showAlert('error', 'Failed to parse file'); }
   }
@@ -3868,35 +3930,45 @@ export default function DocumentMaker() {
             {toolTab === 5 && (
               <Stack spacing={1.75}>
 
-                {/* Bulk workflow guide */}
-                {batchStudents.length === 0 && (
-                  <Box sx={{ p: 1.5, bgcolor: '#fffbeb', borderRadius: 2.5, border: '1.5px solid #fcd34d' }}>
-                    <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#92400e', mb: 0.75 }}>How to make bulk ID cards</Typography>
-                    {[
-                      '1. Add tab → Smart Placeholders → insert {{name}}, {{roll_number}} etc.',
-                      '2. Add tab → Photo Frames → "Batch Photo Frame" (auto-fills photos)',
-                      '3. Export tab → Data Source → pick batch or upload CSV/Excel',
-                      '4. Use carousel below to preview & adjust each student',
-                      '5. Export ZIP (one PNG each) or PDF (all on pages)',
-                    ].map((step, i) => (
-                      <Typography key={i} sx={{ fontSize: '0.72rem', color: '#78350f', lineHeight: 1.7 }}>{step}</Typography>
-                    ))}
-                  </Box>
-                )}
+                {/* ── Data Source — always at top ── */}
+                <Box sx={{ p: 1.5, bgcolor: '#f8fafc', borderRadius: 2.5, border: '1.5px solid #e2e8f0' }}>
+                  <Typography sx={{ fontSize: '0.75rem', color: '#475569', mb: 1, fontWeight: 700 }}>Load Students</Typography>
+                  <Select value={selBatch} onChange={e => setSelBatch(e.target.value)} displayEmpty size="small" fullWidth
+                    sx={{ bgcolor: '#fff', fontSize: '0.8rem', mb: 1, '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}>
+                    <MenuItem value=""><em style={{ color: '#94a3b8' }}>Select batch from database…</em></MenuItem>
+                    {batches.map(b => <MenuItem key={b._id || b.Batch_uuid} value={b.name}>{b.name}{b.timing ? ` (${b.timing})` : ''}</MenuItem>)}
+                  </Select>
+                  <Button size="small" component="label" fullWidth variant="outlined"
+                    startIcon={<TableChartIcon sx={{ fontSize: 16 }} />}
+                    sx={{ textTransform: 'none', fontSize: '0.8rem', borderColor: '#10b981', color: '#059669', '&:hover': { bgcolor: '#f0fdf4', borderColor: '#059669' } }}>
+                    {csvFile ? `Re-upload (${csvRows.length} loaded)` : 'Upload CSV / Excel file'}
+                    <input hidden type="file" ref={csvInputRef} accept=".csv,.xlsx,.xls" onChange={e => handleCsvUpload(e.target.files[0])} />
+                  </Button>
+                  {loadingBatch && <CircularProgress size={16} sx={{ mt: 1, color: '#d4a017', display: 'block', mx: 'auto' }} />}
+                  {batchStudents.length > 0 && (
+                    <Typography sx={{ fontSize: '0.72rem', color: '#10b981', mt: 0.75, fontWeight: 600, textAlign: 'center' }}>
+                      {batchStudents.length} students loaded {dataSource === 'csv' ? `from ${csvFile}` : `from batch`}
+                    </Typography>
+                  )}
+                </Box>
 
-                {batchStudents.length > 0 && (
+                {/* ── Carousel — preview & edit each student ── */}
+                {batchStudents.length > 0 ? (
                   <Box sx={{ bgcolor: '#f8fafc', borderRadius: 2.5, border: '1.5px solid #e2e8f0', p: 1.5 }}>
-                    {/* Header row with navigation */}
+                    {/* Navigation header */}
                     <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.25}>
-                      <Typography sx={{ fontSize: '0.82rem', color: '#475569', fontWeight: 700 }}>
-                        Student {carouselIdx + 1} / {batchStudents.length}
-                      </Typography>
-                      <Stack direction="row" spacing={0.5} alignItems="center">
-                        <IconButton size="small" onClick={() => goCarousel(carouselIdx - 1)} disabled={carouselIdx === 0}
-                          sx={{ color: '#d4a017', p: 0.5, border: '1px solid #e2e8f0', borderRadius: 1.5, '&.Mui-disabled': { opacity: 0.3 } }}>
-                          <ChevronLeftIcon sx={{ fontSize: 20 }} />
-                        </IconButton>
-                        <Box sx={{ display: 'flex', gap: 0.4 }}>
+                      <IconButton size="small" onClick={() => goCarousel(carouselIdx - 1)} disabled={carouselIdx === 0}
+                        sx={{ color: '#d4a017', p: 0.5, border: '1px solid #e2e8f0', borderRadius: 1.5, '&.Mui-disabled': { opacity: 0.3 } }}>
+                        <ChevronLeftIcon sx={{ fontSize: 22 }} />
+                      </IconButton>
+                      <Box sx={{ textAlign: 'center', flex: 1, mx: 0.5 }}>
+                        <Typography sx={{ fontSize: '0.82rem', color: '#1e293b', fontWeight: 700 }} noWrap>
+                          {carouselFields.name || batchStudents[carouselIdx]?.firstName || 'Student'}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.68rem', color: '#94a3b8' }}>
+                          {carouselIdx + 1} / {batchStudents.length}
+                        </Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.4, mt: 0.4 }}>
                           {batchStudents.slice(Math.max(0, carouselIdx - 2), carouselIdx + 3).map((_, i) => {
                             const absIdx = Math.max(0, carouselIdx - 2) + i;
                             return (
@@ -3908,63 +3980,43 @@ export default function DocumentMaker() {
                             );
                           })}
                         </Box>
-                        <IconButton size="small" onClick={() => goCarousel(carouselIdx + 1)} disabled={carouselIdx === batchStudents.length - 1}
-                          sx={{ color: '#d4a017', p: 0.5, border: '1px solid #e2e8f0', borderRadius: 1.5, '&.Mui-disabled': { opacity: 0.3 } }}>
-                          <ChevronRightIcon sx={{ fontSize: 20 }} />
-                        </IconButton>
-                      </Stack>
+                      </Box>
+                      <IconButton size="small" onClick={() => goCarousel(carouselIdx + 1)} disabled={carouselIdx === batchStudents.length - 1}
+                        sx={{ color: '#d4a017', p: 0.5, border: '1px solid #e2e8f0', borderRadius: 1.5, '&.Mui-disabled': { opacity: 0.3 } }}>
+                        <ChevronRightIcon sx={{ fontSize: 22 }} />
+                      </IconButton>
                     </Stack>
 
-                    {/* Photo thumbnail + camera button */}
+                    {/* Photo thumbnail + add/replace */}
                     {(() => {
                       const stu = batchStudents[carouselIdx];
                       const photoUrl = stu?.photo_url || stu?.bg_removed_url;
-                      const carouselPhotoRef = { current: null };
                       return (
                         <Stack direction="row" gap={1.5} alignItems="flex-start" mb={1.25}>
-                          {/* Thumbnail */}
-                          <Box sx={{ width: 64, height: 80, borderRadius: 2, overflow: 'hidden', border: '1.5px solid #e2e8f0', flexShrink: 0, bgcolor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-                            {photoUrl ? (
-                              <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            ) : (
-                              <PeopleIcon sx={{ fontSize: 28, color: '#cbd5e1' }} />
-                            )}
+                          <Box sx={{ width: 64, height: 80, borderRadius: 2, overflow: 'hidden', border: photoUrl ? '2px solid #10b981' : '2px dashed #cbd5e1', flexShrink: 0, bgcolor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {photoUrl
+                              ? <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              : <PeopleIcon sx={{ fontSize: 28, color: '#cbd5e1' }} />}
                           </Box>
-                          {/* Photo actions */}
                           <Box sx={{ flex: 1 }}>
-                            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#1e293b', mb: 0.5 }} noWrap>
-                              {stu?.firstName || stu?.student_name || carouselFields.name || 'Student'}
+                            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#1e293b', mb: 0.75 }} noWrap>
+                              {stu?.firstName || carouselFields.name || 'Student'}
                             </Typography>
-                            {photoUrl ? (
-                              <Stack direction="row" gap={0.5} flexWrap="wrap">
-                                <Button size="small" startIcon={<PhotoCameraIcon sx={{ fontSize: 14 }} />}
-                                  onClick={() => setCarouselWebcam(true)}
-                                  sx={{ fontSize: '0.68rem', textTransform: 'none', bgcolor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', py: 0.4, px: 0.75 }}>
-                                  Retake
-                                </Button>
-                                <Button size="small" component="label" startIcon={<ImageIcon sx={{ fontSize: 14 }} />}
-                                  sx={{ fontSize: '0.68rem', textTransform: 'none', bgcolor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', py: 0.4, px: 0.75 }}>
-                                  Replace
-                                  <input hidden type="file" accept="image/*" onChange={e => { if (e.target.files?.[0]) handleCarouselPhotoFile(e.target.files[0]); e.target.value = ''; }} />
-                                </Button>
-                              </Stack>
-                            ) : (
-                              <Stack direction="row" gap={0.5} flexWrap="wrap">
-                                <Button size="small" variant="contained" startIcon={<PhotoCameraIcon sx={{ fontSize: 14 }} />}
-                                  onClick={() => setCarouselWebcam(true)}
-                                  sx={{ fontSize: '0.72rem', textTransform: 'none', bgcolor: '#059669', '&:hover': { bgcolor: '#047857' }, py: 0.5 }}>
-                                  Take Photo
-                                </Button>
-                                <Button size="small" component="label" startIcon={<ImageIcon sx={{ fontSize: 14 }} />}
-                                  sx={{ fontSize: '0.72rem', textTransform: 'none', bgcolor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', py: 0.5 }}>
-                                  Upload
-                                  <input hidden type="file" accept="image/*" onChange={e => { if (e.target.files?.[0]) handleCarouselPhotoFile(e.target.files[0]); e.target.value = ''; }} />
-                                </Button>
-                              </Stack>
-                            )}
+                            <Stack direction="row" gap={0.5} flexWrap="wrap">
+                              <Button size="small" startIcon={<PhotoCameraIcon sx={{ fontSize: 13 }} />}
+                                onClick={() => setCarouselWebcam(true)}
+                                sx={{ fontSize: '0.68rem', textTransform: 'none', bgcolor: photoUrl ? '#f1f5f9' : '#059669', color: photoUrl ? '#475569' : '#fff', border: photoUrl ? '1px solid #e2e8f0' : 'none', py: 0.4, px: 0.75, '&:hover': { bgcolor: photoUrl ? '#e2e8f0' : '#047857' } }}>
+                                {photoUrl ? 'Retake' : 'Camera'}
+                              </Button>
+                              <Button size="small" component="label" startIcon={<ImageIcon sx={{ fontSize: 13 }} />}
+                                sx={{ fontSize: '0.68rem', textTransform: 'none', bgcolor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', py: 0.4, px: 0.75 }}>
+                                {photoUrl ? 'Replace' : 'Upload'}
+                                <input hidden type="file" accept="image/*" onChange={e => { if (e.target.files?.[0]) handleCarouselPhotoFile(e.target.files[0]); e.target.value = ''; }} />
+                              </Button>
+                            </Stack>
                             {!photoUrl && (
-                              <Typography sx={{ fontSize: '0.65rem', color: '#f87171', mt: 0.5, fontWeight: 600 }}>
-                                No photo — canvas photo frame will be empty
+                              <Typography sx={{ fontSize: '0.62rem', color: '#f87171', mt: 0.5, fontWeight: 600 }}>
+                                No photo — frame stays blank on card
                               </Typography>
                             )}
                           </Box>
@@ -3977,23 +4029,47 @@ export default function DocumentMaker() {
                       {[['name', 'Name'], ['rollNo', 'Roll No'], ['course', 'Course'], ['batch', 'Batch']].map(([key, lbl]) => (
                         <TextField key={key} label={lbl} value={carouselFields[key] || ''} size="small"
                           onChange={e => setCarouselFields(prev => ({ ...prev, [key]: e.target.value }))}
-                          sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#fff', fontSize: '0.82rem' }, '& label': { fontSize: '0.78rem' } }}
+                          sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#fff', fontSize: '0.8rem' }, '& label': { fontSize: '0.75rem' } }}
                         />
                       ))}
                     </Box>
                     <Stack direction="row" gap={0.75}>
                       <Button size="small" fullWidth onClick={applyCarouselToCanvas}
-                        sx={{ bgcolor: '#d4a01722', color: '#d4a017', border: '1.5px solid #d4a01744', textTransform: 'none', fontSize: '0.82rem', py: 0.75, '&:hover': { bgcolor: '#d4a01733' }, borderRadius: 1.5 }}>
+                        sx={{ bgcolor: '#d4a01722', color: '#d4a017', border: '1.5px solid #d4a01744', textTransform: 'none', fontSize: '0.8rem', py: 0.75, '&:hover': { bgcolor: '#d4a01733' }, borderRadius: 1.5 }}>
                         Apply to Canvas
                       </Button>
                       <Button size="small" onClick={saveBulkCanvas}
-                        sx={{ flexShrink: 0, bgcolor: '#1e293b22', color: '#1e293b', border: '1.5px solid #1e293b33', textTransform: 'none', fontSize: '0.82rem', py: 0.75, px: 1.5, '&:hover': { bgcolor: '#1e293b33' }, borderRadius: 1.5 }}>
+                        sx={{ flexShrink: 0, bgcolor: '#059669', color: '#fff', textTransform: 'none', fontSize: '0.8rem', py: 0.75, px: 1.5, '&:hover': { bgcolor: '#047857' }, borderRadius: 1.5 }}>
                         Save
                       </Button>
                     </Stack>
                   </Box>
+                ) : (
+                  <Box sx={{ textAlign: 'center', py: 2, color: '#94a3b8' }}>
+                    <GroupsIcon sx={{ fontSize: 36, mb: 0.5 }} />
+                    <Typography sx={{ fontSize: '0.78rem' }}>Select a batch or upload CSV/Excel above to start bulk export</Typography>
+                  </Box>
                 )}
 
+                {/* ── Bulk export buttons ── */}
+                {batchStudents.length > 0 && (
+                  <Stack direction="row" spacing={1}>
+                    <Button size="small" startIcon={generating ? <CircularProgress size={13} color="inherit" /> : <FolderZipIcon />}
+                      onClick={generateBatchZip} disabled={generating} fullWidth
+                      sx={{ bgcolor: '#f1f5f9', color: '#1e293b', border: '1px solid #e2e8f0', '&:hover': { bgcolor: '#e2e8f0' }, fontSize: '0.78rem', py: 0.85 }}>
+                      {generating ? '...' : `ZIP (${batchStudents.length})`}
+                    </Button>
+                    <Button size="small" startIcon={generating ? <CircularProgress size={13} color="inherit" /> : <PictureAsPdfIcon />}
+                      onClick={generateBatchPDF} disabled={generating} fullWidth
+                      sx={{ bgcolor: '#d4a01722', color: '#d4a017', border: '1.5px solid #d4a01744', '&:hover': { bgcolor: '#d4a01733' }, fontSize: '0.78rem', py: 0.85 }}>
+                      {generating ? '...' : `PDF (${batchStudents.length})`}
+                    </Button>
+                  </Stack>
+                )}
+
+                <Divider sx={{ my: 0.25 }} />
+
+                {/* ── Single card export ── */}
                 <Stack direction="row" spacing={1} alignItems="center">
                   <Select value={fillStudent} onChange={e => { setFillStudent(e.target.value); fillFromStudent(e.target.value); }}
                     displayEmpty size="small"
@@ -4024,44 +4100,6 @@ export default function DocumentMaker() {
                     {printing ? 'Printing...' : 'Print'}
                   </Button>
                 </Stack>
-
-                <Box>
-                  <Typography sx={{ fontSize: '0.75rem', color: '#64748b', mb: 1, fontWeight: 700 }}>Data Source</Typography>
-                  <Stack direction="row" spacing={0.75} flexWrap="wrap">
-                    <Chip label="DB Students" size="small" onClick={() => setDataSource('batch')}
-                      variant={dataSource === 'batch' ? 'filled' : 'outlined'} color="primary"
-                      sx={{ fontSize: '0.75rem', height: 30, cursor: 'pointer' }} />
-                    <Chip label={csvFile || 'Upload CSV/Excel'} size="small" onClick={() => csvInputRef.current?.click()}
-                      variant={dataSource === 'csv' ? 'filled' : 'outlined'} color="secondary"
-                      sx={{ fontSize: '0.75rem', height: 30, cursor: 'pointer' }} />
-                  </Stack>
-                  {dataSource === 'csv' && csvRows.length > 0 && (
-                    <Typography sx={{ fontSize: '0.72rem', color: '#10b981', mt: 0.75, fontWeight: 600 }}>
-                      {csvRows.length} rows loaded from {csvFile}
-                    </Typography>
-                  )}
-                  <input hidden type="file" ref={csvInputRef} accept=".csv,.xlsx,.xls"
-                    onChange={e => handleCsvUpload(e.target.files[0])} />
-                </Box>
-
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Select value={selBatch} onChange={e => setSelBatch(e.target.value)} displayEmpty size="small"
-                    sx={{ flex: 1, bgcolor: '#f1f5f9', color: '#1e293b', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' }, fontSize: '0.8rem' }}>
-                    <MenuItem value=""><em style={{ color: '#94a3b8' }}>Select batch for bulk...</em></MenuItem>
-                    {batches.map(b => <MenuItem key={b._id || b.Batch_uuid} value={b.name}>{b.name}{b.timing ? ` (${b.timing})` : ''}</MenuItem>)}
-                  </Select>
-                  <Button size="small" startIcon={generating ? <CircularProgress size={14} color="inherit" /> : <FolderZipIcon />}
-                    onClick={generateBatchZip} disabled={generating || !getActiveRows().length}
-                    sx={{ flexShrink: 0, bgcolor: '#f1f5f9', color: '#1e293b', border: '1px solid #e2e8f0', '&:hover': { bgcolor: '#e2e8f0' }, fontSize: '0.75rem' }}>
-                    {generating ? '...' : `ZIP (${getActiveRows().length})`}
-                  </Button>
-                  <Button size="small" startIcon={generating ? <CircularProgress size={14} color="inherit" /> : <PictureAsPdfIcon />}
-                    onClick={generateBatchPDF} disabled={generating || !getActiveRows().length}
-                    sx={{ flexShrink: 0, bgcolor: '#d4a01722', color: '#d4a017', border: '1.5px solid #d4a01744', '&:hover': { bgcolor: '#d4a01733' }, fontSize: '0.75rem' }}>
-                    {generating ? '...' : 'PDF'}
-                  </Button>
-                </Stack>
-                {loadingBatch && <CircularProgress size={20} sx={{ mx: 'auto', color: '#d4a017' }} />}
 
                 <Box>
                   <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.25}>
