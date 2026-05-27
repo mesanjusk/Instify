@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Avatar, Box, Button, Card, CardContent, Chip, CircularProgress,
@@ -29,7 +29,7 @@ function getGreeting() {
   return 'Good Evening';
 }
 
-function StatCard({ icon, label, value, color, gradient, onClick, loading, delay = 0 }) {
+const StatCard = memo(function StatCard({ icon, label, value, color, gradient, onClick, loading, delay = 0 }) {
   return (
     <Card
       onClick={onClick}
@@ -90,9 +90,9 @@ function StatCard({ icon, label, value, color, gradient, onClick, loading, delay
       </CardContent>
     </Card>
   );
-}
+});
 
-function FeatureCard({ icon, iconGlow, title, desc, badge, badgeColor, gradient, onClick, delay = 0 }) {
+const FeatureCard = memo(function FeatureCard({ icon, iconGlow, title, desc, badge, badgeColor, gradient, onClick, delay = 0 }) {
   return (
     <Card
       onClick={onClick}
@@ -169,9 +169,9 @@ function FeatureCard({ icon, iconGlow, title, desc, badge, badgeColor, gradient,
       </CardContent>
     </Card>
   );
-}
+});
 
-function QuickAction({ icon, label, color, gradient, onClick }) {
+const QuickAction = memo(function QuickAction({ icon, label, color, gradient, onClick }) {
   return (
     <Stack
       direction="row" spacing={1.5} alignItems="center"
@@ -204,7 +204,7 @@ function QuickAction({ icon, label, color, gradient, onClick }) {
       </Box>
     </Stack>
   );
-}
+});
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -273,53 +273,55 @@ export default function Dashboard() {
 
   const waConnected = waStatus === 'connected';
 
-  const statCards = [
+  const navTo = useCallback((path) => navigate(path), [navigate]);
+
+  const statCards = useMemo(() => [
     {
       label: 'Total Students', value: stats.students ?? '—',
       icon: <PeopleIcon sx={{ fontSize: 20, color: '#059669' }} />,
       color: '#059669', gradient: 'linear-gradient(135deg, #059669, #34d399)',
-      onClick: () => navigate(`/${username}/students`),
+      onClick: () => navTo(`/${username}/students`),
     },
     {
       label: 'Admissions', value: stats.admissions ?? '—',
       icon: <SchoolIcon sx={{ fontSize: 20, color: '#3b82f6' }} />,
       color: '#3b82f6', gradient: 'linear-gradient(135deg, #3b82f6, #93c5fd)',
-      onClick: () => navigate(`/${username}/allAdmission`),
+      onClick: () => navTo(`/${username}/allAdmission`),
     },
     {
       label: 'Enquiries', value: stats.enquiries ?? '—',
       icon: <TrendingUpIcon sx={{ fontSize: 20, color: '#f59e0b' }} />,
       color: '#f59e0b', gradient: 'linear-gradient(135deg, #f59e0b, #fcd34d)',
-      onClick: () => navigate(`/${username}/leads`),
+      onClick: () => navTo(`/${username}/leads`),
     },
     {
       label: "Today's Revenue", value: `₹${(stats.feesToday || 0).toLocaleString()}`,
       icon: <AttachMoneyIcon sx={{ fontSize: 20, color: '#10b981' }} />,
       color: '#10b981', gradient: 'linear-gradient(135deg, #10b981, #6ee7b7)',
-      onClick: () => navigate(`/${username}/fees`),
+      onClick: () => navTo(`/${username}/fees`),
     },
     {
       label: 'Follow-ups Today', value: stats.followupToday ?? '—',
       icon: <EventNoteIcon sx={{ fontSize: 20, color: '#ef4444' }} />,
       color: '#ef4444', gradient: 'linear-gradient(135deg, #ef4444, #fca5a5)',
-      onClick: () => navigate(`/${username}/followup`),
+      onClick: () => navTo(`/${username}/followup`),
     },
     {
       label: 'Active Courses', value: stats.courses ?? '—',
       icon: <LibraryBooksIcon sx={{ fontSize: 20, color: '#8b5cf6' }} />,
       color: '#8b5cf6', gradient: 'linear-gradient(135deg, #8b5cf6, #c4b5fd)',
-      onClick: () => navigate(`/${username}/courses`),
+      onClick: () => navTo(`/${username}/courses`),
     },
-  ];
+  ], [stats, username, navTo]);
 
-  const quickActions = [
+  const quickActions = useMemo(() => [
     { icon: <AddRoundedIcon fontSize="small" />, label: 'New Admission', color: '#059669', gradient: 'linear-gradient(135deg, #059669, #34d399)', path: `/${username}/addNewAdd` },
     { icon: <PeopleIcon fontSize="small" />, label: 'Add Student', color: '#3b82f6', gradient: 'linear-gradient(135deg, #3b82f6, #93c5fd)', path: `/${username}/students` },
     { icon: <ReceiptIcon fontSize="small" />, label: 'Collect Fee', color: '#f59e0b', gradient: 'linear-gradient(135deg, #f59e0b, #fcd34d)', path: `/${username}/addReciept` },
     { icon: <ChecklistIcon fontSize="small" />, label: 'Attendance', color: '#0891b2', gradient: 'linear-gradient(135deg, #0891b2, #67e8f9)', path: `/${username}/addAttendance` },
     { icon: <TrendingUpIcon fontSize="small" />, label: 'Add Lead', color: '#ef4444', gradient: 'linear-gradient(135deg, #ef4444, #fca5a5)', path: `/${username}/add-lead` },
     { icon: <EventNoteIcon fontSize="small" />, label: 'Follow-ups', color: '#8b5cf6', gradient: 'linear-gradient(135deg, #8b5cf6, #c4b5fd)', path: `/${username}/followup` },
-  ];
+  ], [username]);
 
   return (
     <Box>
