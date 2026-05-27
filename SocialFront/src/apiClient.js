@@ -3,29 +3,90 @@ import BASE_URL from './config';
 
 const apiClient = axios.create({
   baseURL: BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
+// ── Request: inject auth token + institute_uuid ────────────────────────────────
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('authToken') || localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
+  if (token) config.headers.Authorization = `Bearer ${token}`;
 
   const institute_uuid = localStorage.getItem('institute_uuid');
   if (institute_uuid) {
-    // Inject into GET query params automatically
     if (!config.method || config.method.toLowerCase() === 'get') {
       config.params = { institute_uuid, ...config.params };
     }
-    // Also set as header so backend middleware can trust it via JWT
     config.headers['X-Institute-UUID'] = institute_uuid;
   }
 
   return config;
 });
+
+// ── Response: auto-refresh JWT on 401 ────────────────────────────────────────
+let _refreshing = false;
+let _waitQueue = [];
+
+apiClient.interceptors.response.use(
+  (res) => res,
+  async (error) => {
+    const original = error.config;
+
+    // Only attempt refresh on 401 and only once per request
+    if (error.response?.status !== 401 || original._retry) {
+      return Promise.reject(error);
+    }
+
+    // Skip refresh for the refresh endpoint itself to avoid infinite loops
+    if (original.url?.includes('/auth/refresh') || original.url?.includes('/auth/user/login')) {
+      return Promise.reject(error);
+    }
+
+    const storedRefresh = localStorage.getItem('refreshToken');
+    if (!storedRefresh) {
+      // No refresh token — force logout
+      localStorage.clear();
+      window.location.href = '/login';
+      return Promise.reject(error);
+    }
+
+    if (_refreshing) {
+      // Queue the request until the refresh completes
+      return new Promise((resolve, reject) => {
+        _waitQueue.push({ resolve, reject });
+      }).then((newToken) => {
+        original.headers.Authorization = `Bearer ${newToken}`;
+        return apiClient(original);
+      });
+    }
+
+    original._retry = true;
+    _refreshing = true;
+
+    try {
+      const { data } = await axios.post(`${BASE_URL}/api/auth/refresh`, {
+        refreshToken: storedRefresh,
+      });
+
+      localStorage.setItem('authToken', data.token);
+      localStorage.setItem('refreshToken', data.refreshToken);
+      apiClient.defaults.headers.common.Authorization = `Bearer ${data.token}`;
+
+      _waitQueue.forEach((p) => p.resolve(data.token));
+      _waitQueue = [];
+
+      original.headers.Authorization = `Bearer ${data.token}`;
+      return apiClient(original);
+    } catch (refreshErr) {
+      _waitQueue.forEach((p) => p.reject(refreshErr));
+      _waitQueue = [];
+      localStorage.clear();
+      window.location.href = '/login';
+      return Promise.reject(refreshErr);
+    } finally {
+      _refreshing = false;
+    }
+  }
+);
 
 export const whatsappApi = {
   sendText: (payload) => apiClient.post('/api/whatsapp/send-text', payload),

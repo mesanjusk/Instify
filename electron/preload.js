@@ -21,4 +21,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // App info
   getAppVersion: () => ipcRenderer.invoke('app:version'),
+
+  // Auto-updater
+  onUpdateAvailable: (cb) => {
+    const handler = (_, data) => cb(data);
+    ipcRenderer.on('app:update-available', handler);
+    return () => ipcRenderer.removeListener('app:update-available', handler);
+  },
+  onUpdateDownloaded: (cb) => {
+    const handler = (_, data) => cb(data);
+    ipcRenderer.on('app:update-downloaded', handler);
+    return () => ipcRenderer.removeListener('app:update-downloaded', handler);
+  },
+  installUpdate: () => ipcRenderer.invoke('app:install-update'),
 });

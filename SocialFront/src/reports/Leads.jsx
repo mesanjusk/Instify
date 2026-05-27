@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
@@ -6,6 +6,8 @@ import { FaPhoneAlt, FaWhatsapp } from 'react-icons/fa';
 import BASE_URL from '../config';
 import LeadStatusModal from "../components/leads/LeadStatusModal";
 import { saveRecords, getAllRecords } from '../db/dbService';
+
+const LEADS_PAGE_SIZE = 24;
 
 const Leads = () => {
   const [leads, setLeads] = useState([]);
@@ -15,6 +17,7 @@ const Leads = () => {
   const navigate = useNavigate();
   const { username } = useParams();
   const [courses, setCourses] = useState([]);
+  const [leadsPage, setLeadsPage] = useState(1);
 
   const fetchCourses = async () => {
     try {
@@ -56,19 +59,27 @@ const Leads = () => {
     fetchCourses();
   }, []);
 
-  const filteredLeads = leads
-    .filter((lead) => {
-      if (!Array.isArray(lead.followups) || lead.followups.length === 0) return false;
-      const latestFollowup = [...lead.followups].sort(
-        (a, b) => new Date(b.date) - new Date(a.date)
-      )[0];
-      return latestFollowup?.status === 'follow-up';
-    })
-    .filter((lead) => {
-      const name = `${lead.studentData?.firstName || ''} ${lead.studentData?.lastName || ''}`.toLowerCase();
-      const mobile = lead.studentData?.mobileSelf || '';
-      return name.includes(search.toLowerCase()) || mobile.includes(search);
-    });
+  const filteredLeads = useMemo(() =>
+    leads
+      .filter((lead) => {
+        if (!Array.isArray(lead.followups) || lead.followups.length === 0) return false;
+        const latestFollowup = [...lead.followups].sort(
+          (a, b) => new Date(b.date) - new Date(a.date)
+        )[0];
+        return latestFollowup?.status === 'follow-up';
+      })
+      .filter((lead) => {
+        const name = `${lead.studentData?.firstName || ''} ${lead.studentData?.lastName || ''}`.toLowerCase();
+        const mobile = lead.studentData?.mobileSelf || '';
+        return name.includes(search.toLowerCase()) || mobile.includes(search);
+      }),
+    [leads, search]
+  );
+
+  useEffect(() => { setLeadsPage(1); }, [search]);
+
+  const leadsTotalPages = Math.ceil(filteredLeads.length / LEADS_PAGE_SIZE);
+  const pagedLeads = filteredLeads.slice((leadsPage - 1) * LEADS_PAGE_SIZE, leadsPage * LEADS_PAGE_SIZE);
 
 
 
@@ -121,7 +132,7 @@ const Leads = () => {
       {!loading && filteredLeads.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
 
-          {filteredLeads.map((lead) => (
+          {pagedLeads.map((lead) => (
             <div
               key={lead.uuid}
               className="border rounded-lg p-3 shadow hover:shadow-md transition cursor-pointer flex flex-col justify-between"
@@ -162,6 +173,32 @@ const Leads = () => {
 
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {leadsTotalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, flexWrap: 'wrap', gap: 8 }}>
+          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+            {(leadsPage - 1) * LEADS_PAGE_SIZE + 1}–{Math.min(leadsPage * LEADS_PAGE_SIZE, filteredLeads.length)} of {filteredLeads.length} leads
+          </span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              disabled={leadsPage === 1}
+              onClick={() => setLeadsPage(p => p - 1)}
+              style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: leadsPage === 1 ? '#f8fafc' : '#fff', cursor: leadsPage === 1 ? 'default' : 'pointer', fontSize: '0.8rem' }}
+            >
+              ←
+            </button>
+            <span style={{ fontSize: '0.8rem', padding: '4px 8px', color: '#374151' }}>{leadsPage} / {leadsTotalPages}</span>
+            <button
+              disabled={leadsPage === leadsTotalPages}
+              onClick={() => setLeadsPage(p => p + 1)}
+              style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: leadsPage === leadsTotalPages ? '#f8fafc' : '#fff', cursor: leadsPage === leadsTotalPages ? 'default' : 'pointer', fontSize: '0.8rem' }}
+            >
+              →
+            </button>
+          </div>
         </div>
       )}
     </div>

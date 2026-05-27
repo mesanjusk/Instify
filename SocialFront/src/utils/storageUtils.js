@@ -67,7 +67,10 @@ export const clearUserAndInstituteData = () => {
     'branding',
     'logo',
     'favicon',
-    'trialExpiresAt'
+    'trialExpiresAt',
+    'authToken',
+    'token',
+    'refreshToken',
   ];
   keys.forEach(key => localStorage.removeItem(key));
 };

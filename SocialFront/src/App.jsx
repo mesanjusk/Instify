@@ -2,6 +2,8 @@ import { lazy, Suspense, useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import DesktopSetup from './components/DesktopSetup';
 import SyncStatusBar from './components/SyncStatusBar';
+import UpdateNotifier from './components/UpdateNotifier';
+import useOfflineQueue from './hooks/useOfflineQueue';
 import { CircularProgress, Box } from '@mui/material';
 
 import DashboardLayout from './layouts/DashboardLayout';
@@ -82,6 +84,7 @@ function PageLoader() {
 export default function App() {
   const isDesktop = !!window.electronAPI;
   const [setupDone, setSetupDone] = useState(true);
+  useOfflineQueue();
 
   useEffect(() => {
     if (!isDesktop) return;
@@ -94,6 +97,7 @@ export default function App() {
     <>
     {isDesktop && <DesktopSetup open={!setupDone} onComplete={() => setSetupDone(true)} />}
     {isDesktop && setupDone && <SyncStatusBar />}
+    {isDesktop && <UpdateNotifier />}
     <Suspense fallback={<PageLoader />}>
     <Routes>
       {/* ── Public ───────────────────────────────────────── */}

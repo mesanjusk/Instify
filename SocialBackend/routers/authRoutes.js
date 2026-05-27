@@ -1,5 +1,6 @@
 const express = require('express');
 const { v4: uuid } = require('uuid');
+const crypto = require('crypto');
 const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const jwt = require("jsonwebtoken");
@@ -15,6 +16,11 @@ const whatsappService = require('../services/whatsappService');
 
 require('dotenv').config();
 const JWT_SECRET = process.env.JWT_SECRET;
+const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+function generateRefreshToken() {
+  return crypto.randomBytes(64).toString('hex');
+}
 
 const router = express.Router();
 
@@ -100,7 +106,7 @@ router.post('/user/login',
     // Use updateOne to bypass Mongoose enum validation (safe for any role value)
     await User.updateOne({ _id: user._id }, { $set: { last_login_at: new Date() } });
 
-    // 🔑 Generate JWT token
+    // 🔑 Generate JWT (24h) + long-lived refresh token (30d)
     const token = jwt.sign(
       {
         user_id: user._id,
@@ -109,12 +115,19 @@ router.post('/user/login',
         institute_uuid: user.institute_uuid,
       },
       JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: '24h' }
     );
+
+    const refreshToken = generateRefreshToken();
+    await User.updateOne({ _id: user._id }, {
+      refreshToken,
+      refreshTokenExpiry: new Date(Date.now() + REFRESH_TTL_MS),
+    });
 
     res.status(200).json({
       message: 'success',
       token,
+      refreshToken,
       user_id: user._id,
       user_name: user.name,
       user_role: user.role,
@@ -368,6 +381,38 @@ router.put('/:id', authenticate, roleGuard('super_admin', 'owner', 'admin'), asy
   } catch (err) {
     console.error('Error updating user:', err);
     res.status(500).json({ success: false, message: 'Error updating user' });
+  }
+});
+
+// ✅ Refresh — exchange a valid refresh token for a new JWT
+router.post('/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) return res.status(401).json({ message: 'No refresh token provided' });
+
+    const user = await User.findOne({
+      refreshToken,
+      refreshTokenExpiry: { $gt: new Date() },
+    });
+    if (!user) return res.status(401).json({ message: 'Invalid or expired refresh token' });
+
+    const token = jwt.sign(
+      { user_id: user._id, user_uuid: user.user_uuid, role: user.role, institute_uuid: user.institute_uuid },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    // Rotate refresh token on every use
+    const newRefreshToken = generateRefreshToken();
+    await User.updateOne({ _id: user._id }, {
+      refreshToken: newRefreshToken,
+      refreshTokenExpiry: new Date(Date.now() + REFRESH_TTL_MS),
+    });
+
+    res.json({ token, refreshToken: newRefreshToken });
+  } catch (err) {
+    console.error('Token refresh error:', err.message);
+    res.status(500).json({ message: 'server_error' });
   }
 });
 

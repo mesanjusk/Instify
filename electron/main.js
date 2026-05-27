@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, Tray, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, Tray, dialog, shell } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const net_module = require('net');
@@ -260,6 +260,39 @@ function registerIPC() {
     if (!syncEngine) return { ok: false, message: 'Sync engine not started' };
     return syncEngine.runCycle();
   });
+
+  ipcMain.handle('app:install-update', () => {
+    try {
+      const { autoUpdater } = require('electron-updater');
+      autoUpdater.quitAndInstall();
+    } catch { /* not available in dev */ }
+  });
+}
+
+// ── Auto-updater ──────────────────────────────────────────────────────────────
+function setupAutoUpdater() {
+  if (IS_DEV) return; // Skip during development
+  try {
+    const { autoUpdater } = require('electron-updater');
+    autoUpdater.autoDownload = true;
+    autoUpdater.autoInstallOnAppQuit = true;
+
+    autoUpdater.on('update-available', (info) => {
+      mainWindow?.webContents.send('app:update-available', { version: info.version });
+    });
+
+    autoUpdater.on('update-downloaded', (info) => {
+      mainWindow?.webContents.send('app:update-downloaded', { version: info.version });
+    });
+
+    autoUpdater.on('error', (err) => {
+      console.error('[updater] error:', err.message);
+    });
+
+    autoUpdater.checkForUpdates().catch(() => {});
+  } catch (err) {
+    console.error('[updater] failed to initialise:', err.message);
+  }
 }
 
 // ── Graceful shutdown ─────────────────────────────────────────────────────────
@@ -292,6 +325,7 @@ app.whenReady().then(async () => {
 
   createWindow();
   createTray();
+  setupAutoUpdater();
 
   // Only start sync if institute is configured for hybrid or cloud_only mode
   const remoteUri = store.get('remoteMongoUri', '');

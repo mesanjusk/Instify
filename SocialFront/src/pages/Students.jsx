@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
@@ -8,10 +8,12 @@ import {
   Box, Card, CardContent, Stack, Typography, TextField, Button,
   Dialog, DialogTitle, DialogContent, DialogActions, IconButton,
   Tooltip, InputAdornment, CircularProgress, MenuItem, Select,
-  FormControl, InputLabel
+  FormControl, InputLabel, Pagination
 } from '@mui/material';
 import { Edit, Delete, Add, PictureAsPdf, FileDownload, Search } from '@mui/icons-material';
 import BASE_URL from '../config';
+
+const PAGE_SIZE = 25;
 
 const Students = () => {
   const [students, setStudents] = useState([]);
@@ -29,6 +31,7 @@ const Students = () => {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
   const searchTimeout = useRef();
   const institute_uuid = localStorage.getItem("institute_uuid");
 
@@ -106,9 +109,18 @@ const Students = () => {
     }
   };
 
-  const filteredStudents = students.filter(s =>
-    s.firstName.toLowerCase().includes(debouncedSearch.toLowerCase())
+  const filteredStudents = useMemo(
+    () => students.filter(s =>
+      `${s.firstName} ${s.lastName} ${s.mobileSelf}`.toLowerCase().includes(debouncedSearch.toLowerCase())
+    ),
+    [students, debouncedSearch]
   );
+
+  // Reset to first page when search changes
+  useEffect(() => { setPage(1); }, [debouncedSearch]);
+
+  const totalPages = Math.ceil(filteredStudents.length / PAGE_SIZE);
+  const pagedStudents = filteredStudents.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const exportPDF = () => {
     const doc = new jsPDF();
@@ -215,7 +227,7 @@ const Students = () => {
             gap: 1.5
           }}
         >
-          {filteredStudents.map((s) => (
+          {pagedStudents.map((s) => (
             <Card
               key={s._id}
               sx={{ cursor: 'pointer', '&:hover': { boxShadow: '0 4px 16px rgba(26,122,74,0.12)' } }}
@@ -249,6 +261,23 @@ const Students = () => {
             </Card>
           ))}
         </Box>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 3 }} flexWrap="wrap" gap={1}>
+          <Typography variant="caption" color="text.secondary">
+            Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredStudents.length)} of {filteredStudents.length} students
+          </Typography>
+          <Pagination
+            count={totalPages}
+            page={page}
+            onChange={(_, v) => { setPage(v); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            size="small"
+            color="primary"
+            sx={{ '& .MuiPaginationItem-root.Mui-selected': { bgcolor: '#1a7a4a', color: '#fff' } }}
+          />
+        </Stack>
       )}
 
       {/* Add/Edit Dialog */}
