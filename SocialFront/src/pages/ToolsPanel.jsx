@@ -11,9 +11,9 @@ import {
   TextField, Tooltip, Typography, MenuItem, Select, FormControl, InputLabel,
 } from '@mui/material';
 import {
-  Business, CheckCircle, DeleteForever, Edit, HourglassEmpty,
+  Business, CheckCircle, DeleteForever, Download, Edit, HourglassEmpty,
   ManageAccounts, PauseCircle, Refresh, School, SupervisorAccount,
-  Cloud, SyncAlt, Computer,
+  Cloud, SyncAlt, Computer, DesktopWindows,
 } from '@mui/icons-material';
 import { formatDisplayDate } from '../utils/dateUtils';
 
@@ -55,6 +55,8 @@ function StatCard({ icon, label, value, color }) {
   );
 }
 
+const AUTH_HEADER = () => ({ Authorization: `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('token')}` });
+
 export default function ToolsPanel() {
   const { user } = useApp();
   const navigate = useNavigate();
@@ -65,9 +67,55 @@ export default function ToolsPanel() {
   const isSuperAdmin = user?.role === 'super_admin';
   const canView = isSuperAdmin || user?.role === 'owner';
 
+  // Desktop app download state
+  const [desktopApp, setDesktopApp] = useState(null);
+  const [desktopLoading, setDesktopLoading] = useState(true);
+  const [desktopDialog, setDesktopDialog] = useState(false);
+  const [desktopForm, setDesktopForm] = useState({ version: '', url: '', releaseNotes: '' });
+  const [desktopSaving, setDesktopSaving] = useState(false);
+
   useEffect(() => {
-    if (canView) fetchInstitutes();
+    if (canView) {
+      fetchInstitutes();
+      fetchDesktopApp();
+    }
   }, [canView]);
+
+  const fetchDesktopApp = async () => {
+    setDesktopLoading(true);
+    try {
+      const res = await axios.get(`${BASE_URL}/api/admin/desktop-app`, { headers: AUTH_HEADER() });
+      setDesktopApp(res.data);
+    } catch {
+      setDesktopApp({ available: false });
+    } finally {
+      setDesktopLoading(false);
+    }
+  };
+
+  const openDesktopDialog = () => {
+    setDesktopForm({
+      version: desktopApp?.version || '',
+      url: desktopApp?.url || '',
+      releaseNotes: desktopApp?.releaseNotes || '',
+    });
+    setDesktopDialog(true);
+  };
+
+  const saveDesktopApp = async () => {
+    if (!desktopForm.url.trim()) { toast.error('Download URL is required'); return; }
+    setDesktopSaving(true);
+    try {
+      await axios.put(`${BASE_URL}/api/admin/desktop-app`, desktopForm, { headers: AUTH_HEADER() });
+      toast.success('Desktop app info updated');
+      setDesktopDialog(false);
+      fetchDesktopApp();
+    } catch {
+      toast.error('Failed to save');
+    } finally {
+      setDesktopSaving(false);
+    }
+  };
 
   if (!user || !canView) {
     return (
@@ -83,12 +131,10 @@ export default function ToolsPanel() {
   const fetchInstitutes = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${BASE_URL}/api/institute/GetOrganizList`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('token')}` },
-      });
+      const res = await axios.get(`${BASE_URL}/api/institute/GetOrganizList`, { headers: AUTH_HEADER() });
       if (res.data?.success) setInstitutes(res.data.result);
       else toast.error('Failed to load institutes');
-    } catch (err) {
+    } catch {
       toast.error('Failed to load institutes');
     } finally {
       setLoading(false);
@@ -98,9 +144,7 @@ export default function ToolsPanel() {
   const handleDelete = async (uuid, name) => {
     if (!window.confirm(`Delete "${name}" and all its data? This cannot be undone.`)) return;
     try {
-      await axios.delete(`${BASE_URL}/api/institute/${uuid}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('token')}` },
-      });
+      await axios.delete(`${BASE_URL}/api/institute/${uuid}`, { headers: AUTH_HEADER() });
       toast.success('Institute deleted');
       fetchInstitutes();
     } catch {
@@ -141,7 +185,7 @@ export default function ToolsPanel() {
       const res = await axios.put(
         `${BASE_URL}/api/institute/manage/${editTarget.institute_uuid}`,
         payload,
-        { headers: { Authorization: `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('token')}` } }
+        { headers: AUTH_HEADER() }
       );
       if (res.data?.success) {
         toast.success('Institute updated');
@@ -187,6 +231,134 @@ export default function ToolsPanel() {
         <StatCard icon={<HourglassEmpty />} label="On Trial" value={stats.trial} color="#f59e0b" />
         <StatCard icon={<PauseCircle />} label="Expired" value={stats.expired} color="#ef4444" />
       </Stack>
+
+      <Divider sx={{ mb: 3 }} />
+
+      {/* Desktop App Download */}
+      <Card variant="outlined" sx={{ mb: 3, background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)', borderColor: '#bae6fd' }}>
+        <CardContent sx={{ p: { xs: 2, md: 2.5 }, '&:last-child': { pb: { xs: 2, md: 2.5 } } }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }} justifyContent="space-between">
+            <Stack direction="row" spacing={1.5} alignItems="center">
+              <Box sx={{ width: 44, height: 44, borderRadius: 2.5, bgcolor: '#0369a1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <DesktopWindows sx={{ color: '#fff', fontSize: 22 }} />
+              </Box>
+              <Box>
+                <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                  <Typography variant="subtitle1" fontWeight={700} color="#0c4a6e">
+                    Instify Desktop App
+                  </Typography>
+                  <Chip label="Windows" size="small" sx={{ bgcolor: '#0369a1', color: '#fff', fontSize: '0.65rem', height: 18, fontWeight: 600 }} />
+                  {desktopApp?.available && desktopApp.version && (
+                    <Chip label={`v${desktopApp.version}`} size="small" variant="outlined" sx={{ fontSize: '0.65rem', height: 18, borderColor: '#0369a1', color: '#0369a1' }} />
+                  )}
+                </Stack>
+                {desktopLoading ? (
+                  <Typography variant="caption" color="text.secondary">Loading…</Typography>
+                ) : desktopApp?.available ? (
+                  <>
+                    <Typography variant="caption" color="text.secondary">
+                      {desktopApp.publishedAt ? `Published ${new Date(desktopApp.publishedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Available for download'}
+                    </Typography>
+                    {desktopApp.releaseNotes && (
+                      <Typography variant="caption" color="#0369a1" display="block" sx={{ whiteSpace: 'pre-line', mt: 0.5, maxWidth: 480 }}>
+                        {desktopApp.releaseNotes}
+                      </Typography>
+                    )}
+                  </>
+                ) : (
+                  <Typography variant="caption" color="text.secondary">
+                    {isSuperAdmin ? 'No installer published yet — click Set Link to add one.' : 'Desktop installer not yet available.'}
+                  </Typography>
+                )}
+              </Box>
+            </Stack>
+            <Stack direction="row" spacing={1} flexShrink={0}>
+              {desktopApp?.available && (
+                <Button
+                  variant="contained"
+                  startIcon={<Download />}
+                  component="a"
+                  href={desktopApp.url}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{ bgcolor: '#0369a1', '&:hover': { bgcolor: '#075985' }, fontWeight: 600, whiteSpace: 'nowrap' }}
+                >
+                  Download .exe
+                </Button>
+              )}
+              {isSuperAdmin && (
+                <Button
+                  variant="outlined"
+                  startIcon={<Edit />}
+                  onClick={openDesktopDialog}
+                  sx={{ borderColor: '#0369a1', color: '#0369a1', '&:hover': { borderColor: '#075985', bgcolor: '#f0f9ff' }, whiteSpace: 'nowrap' }}
+                >
+                  {desktopApp?.available ? 'Update Link' : 'Set Link'}
+                </Button>
+              )}
+            </Stack>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      {/* Desktop App Edit Dialog (super_admin only) */}
+      <Dialog open={desktopDialog} onClose={() => setDesktopDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Stack direction="row" spacing={1} alignItems="center">
+            <DesktopWindows color="primary" />
+            <Box>
+              <Typography fontWeight={700}>Desktop App Download Link</Typography>
+              <Typography variant="caption" color="text.secondary">Paste the installer URL after uploading to GitHub Releases or any hosting</Typography>
+            </Box>
+          </Stack>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2.5} pt={0.5}>
+            <TextField
+              label="Version"
+              size="small"
+              fullWidth
+              placeholder="e.g. 1.2.0"
+              value={desktopForm.version}
+              onChange={e => setDesktopForm(p => ({ ...p, version: e.target.value }))}
+            />
+            <TextField
+              label="Download URL (.exe)"
+              size="small"
+              fullWidth
+              required
+              placeholder="https://github.com/mesanjusk/Instify/releases/download/v1.2.0/Instify.Setup.1.2.0.exe"
+              value={desktopForm.url}
+              onChange={e => setDesktopForm(p => ({ ...p, url: e.target.value }))}
+            />
+            <TextField
+              label="Release Notes (optional)"
+              size="small"
+              fullWidth
+              multiline
+              rows={3}
+              placeholder="• JWT refresh tokens&#10;• Offline sync queue&#10;• 15s sync interval"
+              value={desktopForm.releaseNotes}
+              onChange={e => setDesktopForm(p => ({ ...p, releaseNotes: e.target.value }))}
+            />
+            <Alert severity="info" sx={{ fontSize: '0.78rem' }}>
+              Build the installer with <code>cd electron &amp;&amp; npm run dist:win</code>, upload the <code>.exe</code> to GitHub Releases, then paste the direct download URL above.
+            </Alert>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDesktopDialog(false)} disabled={desktopSaving}>Cancel</Button>
+          <Button
+            variant="contained"
+            onClick={saveDesktopApp}
+            disabled={desktopSaving}
+            sx={{ bgcolor: '#0369a1', '&:hover': { bgcolor: '#075985' } }}
+          >
+            {desktopSaving ? <CircularProgress size={18} color="inherit" /> : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Divider sx={{ mb: 3 }} />
 
