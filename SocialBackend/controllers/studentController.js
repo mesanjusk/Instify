@@ -1,4 +1,5 @@
 const Student = require('../models/Student');
+const Admission = require('../models/Admission');
 const { v4: uuidv4 } = require('uuid');
 
 // Create Student
@@ -27,9 +28,26 @@ exports.createStudent = async (req, res) => {
 // Get All Students
 exports.getStudents = async (req, res) => {
   try {
-    const { institute_uuid } = req.query;
-    const students = await Student.find(institute_uuid ? { institute_uuid } : {});
-    res.json({ success: true, data: students });
+    const { institute_uuid, batchTime } = req.query;
+    const filter = institute_uuid ? { institute_uuid } : {};
+
+    if (batchTime) {
+      // Find admissions matching this batch, then return enriched students
+      const admissions = await Admission.find({ institute_uuid, batchTime: { $regex: batchTime, $options: 'i' } }).lean();
+      const admMap = {};
+      admissions.forEach(a => { admMap[a.student_uuid] = a; });
+      const uuids = Object.keys(admMap);
+      const students = await Student.find({ ...filter, uuid: { $in: uuids } }).lean();
+      const enriched = students.map(s => ({
+        ...s,
+        course: admMap[s.uuid]?.course || '',
+        batch: admMap[s.uuid]?.batchTime || batchTime,
+      }));
+      return res.json({ success: true, data: enriched, result: enriched });
+    }
+
+    const students = await Student.find(filter).lean();
+    res.json({ success: true, data: students, result: students });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: 'Server Error' });

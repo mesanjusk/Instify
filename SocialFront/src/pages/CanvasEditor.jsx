@@ -2067,13 +2067,16 @@ export default function DocumentMaker() {
   useEffect(() => {
     const uuid = localStorage.getItem('institute_uuid'); if (!uuid) return;
     apiClient.get(`/api/batches?institute_uuid=${uuid}`)
-      .then(r => setBatches(Array.isArray(r.data?.result) ? r.data.result : []))
+      .then(r => {
+        const list = Array.isArray(r.data) ? r.data : (r.data?.result || r.data?.data || []);
+        setBatches(list);
+      })
       .catch(() => {});
     loadSavedDesigns();
     loadCustomTemplates();
     loadUserLayouts();
     apiClient.get(`/api/students?institute_uuid=${uuid}`)
-      .then(r => setStudents(Array.isArray(r.data?.result) ? r.data.result : []))
+      .then(r => setStudents(r.data?.data || r.data?.result || []))
       .catch(() => {});
   }, []);
 
@@ -2090,9 +2093,9 @@ export default function DocumentMaker() {
   useEffect(() => {
     if (!selBatch) { setBatchStudents([]); return; }
     setLoadingBatch(true);
-    apiClient.get(`/api/students?batch=${selBatch}&institute_uuid=${localStorage.getItem('institute_uuid')}`)
+    apiClient.get(`/api/students?batchTime=${encodeURIComponent(selBatch)}&institute_uuid=${localStorage.getItem('institute_uuid')}`)
       .then(r => {
-        const list = Array.isArray(r.data?.result) ? r.data.result : [];
+        const list = r.data?.data || r.data?.result || [];
         setBatchStudents(list);
         carouselStatesRef.current = {};
         setCarouselIdx(0);
@@ -2911,7 +2914,7 @@ export default function DocumentMaker() {
                   <Select value={modeDialogBatch} onChange={e => setModeDialogBatch(e.target.value)} size="small" displayEmpty fullWidth
                     sx={{ bgcolor: '#f8fafc', fontSize: '0.82rem' }}>
                     <MenuItem value=""><em style={{ color: '#94a3b8' }}>Choose batch…</em></MenuItem>
-                    {batches.map(b => <MenuItem key={b._id} value={b.batch_name || b._id}>{b.batch_name}</MenuItem>)}
+                    {batches.map(b => <MenuItem key={b._id || b.Batch_uuid} value={b.name}>{b.name}{b.timing ? ` (${b.timing})` : ''}</MenuItem>)}
                   </Select>
                   <Typography sx={{ fontSize: '0.65rem', color: '#94a3b8', mt: 0.5 }}>
                     You can also upload CSV/Excel from the Export tab inside the editor.

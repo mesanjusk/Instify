@@ -272,7 +272,7 @@ function CreateProjectDialog({ open, onSave, onClose }) {
 }
 
 // ── Add Single Student dialog ─────────────────────────────────────────────────
-function AddSingleStudentDialog({ open, onSave, onClose }) {
+function AddSingleStudentDialog({ open, onSave, onClose, batches = [] }) {
   const [form, setForm] = useState({ student_name: '', class_name: '', section: '', roll_number: '' });
 
   function handleClose() { setForm({ student_name: '', class_name: '', section: '', roll_number: '' }); onClose(); }
@@ -284,7 +284,22 @@ function AddSingleStudentDialog({ open, onSave, onClose }) {
         <Stack spacing={2} sx={{ pt: 1 }}>
           <TextField label="Student Name *" value={form.student_name} onChange={e => setForm(f => ({ ...f, student_name: e.target.value }))} size="small" fullWidth />
           <Stack direction="row" spacing={1.5}>
-            <TextField label="Class *" value={form.class_name} onChange={e => setForm(f => ({ ...f, class_name: e.target.value }))} size="small" fullWidth placeholder="e.g. 10A" />
+            {batches.length > 0 ? (
+              <Select
+                value={form.class_name}
+                onChange={e => setForm(f => ({ ...f, class_name: e.target.value }))}
+                size="small" fullWidth displayEmpty
+              >
+                <MenuItem value=""><em style={{ color: '#94a3b8' }}>Select Class / Batch *</em></MenuItem>
+                {batches.map(b => (
+                  <MenuItem key={b._id || b.Batch_uuid} value={b.name}>
+                    {b.name}{b.timing ? ` — ${b.timing}` : ''}
+                  </MenuItem>
+                ))}
+              </Select>
+            ) : (
+              <TextField label="Class *" value={form.class_name} onChange={e => setForm(f => ({ ...f, class_name: e.target.value }))} size="small" fullWidth placeholder="e.g. Class 2" />
+            )}
             <TextField label="Section" value={form.section} onChange={e => setForm(f => ({ ...f, section: e.target.value }))} size="small" fullWidth />
           </Stack>
           <TextField label="Roll Number" value={form.roll_number} onChange={e => setForm(f => ({ ...f, roll_number: e.target.value }))} size="small" fullWidth />
@@ -315,6 +330,7 @@ export default function IDCardManager() {
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [students, setStudents] = useState([]);
+  const [batches, setBatches] = useState([]);
   const [tab, setTab] = useState(0);
   const [classFilter, setClassFilter] = useState('');
   const [classes, setClasses] = useState([]);
@@ -363,7 +379,18 @@ export default function IDCardManager() {
     finally { setStudentsLoading(false); }
   }
 
-  useEffect(() => { loadProjects(); }, []);
+  useEffect(() => {
+    loadProjects();
+    const uuid = instituteUuid;
+    if (uuid) {
+      apiClient.get(`/api/batches?institute_uuid=${uuid}`)
+        .then(r => {
+          const list = Array.isArray(r.data) ? r.data : (r.data?.result || r.data?.data || []);
+          setBatches(list);
+        })
+        .catch(() => {});
+    }
+  }, []);
   useEffect(() => {
     if (selectedProject) loadStudents(selectedProject.project_uuid, classFilter);
   }, [selectedProject, classFilter, tab]);
@@ -789,7 +816,7 @@ export default function IDCardManager() {
       <WebcamDialog open={!!webcamTarget} onCapture={handleWebcamCapture} onClose={() => setWebcamTarget(null)} />
 
       {/* Add single student dialog */}
-      <AddSingleStudentDialog open={addSingleDialog} onSave={addSingleStudent} onClose={() => setAddSingleDialog(false)} />
+      <AddSingleStudentDialog open={addSingleDialog} onSave={addSingleStudent} onClose={() => setAddSingleDialog(false)} batches={batches} />
 
       {/* Bulk photo upload dialog */}
       <Dialog open={bulkDialog} onClose={() => setBulkDialog(false)} maxWidth="xs" fullWidth>
@@ -799,12 +826,14 @@ export default function IDCardManager() {
             <Alert severity="info" sx={{ fontSize: '0.78rem' }}>
               Photos are auto-matched by filename = roll number (e.g. <strong>01.jpg</strong>) or student name. Upload one class at a time for best results.
             </Alert>
-            {classes.length > 0 && (
+            {(classes.length > 0 || batches.length > 0) && (
               <Box>
                 <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Filter by Class / Batch (optional)</Typography>
                 <Select value={bulkClass} onChange={e => setBulkClass(e.target.value)} size="small" displayEmpty fullWidth>
                   <MenuItem value="">All Classes</MenuItem>
-                  {classes.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                  {(classes.length > 0 ? classes : batches.map(b => b.name)).map(c => (
+                    <MenuItem key={c} value={c}>{c}</MenuItem>
+                  ))}
                 </Select>
               </Box>
             )}
