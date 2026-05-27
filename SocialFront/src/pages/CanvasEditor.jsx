@@ -761,6 +761,8 @@ export default function DocumentMaker() {
   const historyRef     = useRef([]);
   const historyIdxRef  = useRef(-1);
   const skipHistoryRef = useRef(false);
+  const sessionLogoRef = useRef(null);   // persists logo DataURL across carousel navigation
+  const sessionSigRef  = useRef(null);   // persists signature DataURL across carousel navigation
   const [pageSetup,       setPageSetup]       = useState(null);
   const [tempSetup,       setTempSetup]       = useState(null);
   const [pageSetupDialog, setPageSetupDialog] = useState(false);
@@ -838,6 +840,34 @@ export default function DocumentMaker() {
   const [pendingCustomBgUrl,  setPendingCustomBgUrl]   = useState(null);
 
   function showAlert(type, text) { setAlert({ type, text }); setTimeout(() => setAlert(null), 4000); }
+
+  // Re-applies logo/sig from session refs onto canvas after each student render
+  async function applySessionAssets(fc) {
+    if (!fc) return;
+    const { fabric } = await getFabric();
+    const tasks = [];
+    if (sessionLogoRef.current) {
+      tasks.push(new Promise(res => {
+        fabric.Image.fromURL(sessionLogoRef.current, img => {
+          if (!fc) return res();
+          img.scaleToWidth(Math.min(80, fc.width / 5));
+          img.set({ left: 10, top: 10, __sessionAsset: 'logo' });
+          fc.add(img); fc.renderAll(); res();
+        }, { crossOrigin: 'anonymous' });
+      }));
+    }
+    if (sessionSigRef.current) {
+      tasks.push(new Promise(res => {
+        fabric.Image.fromURL(sessionSigRef.current, img => {
+          if (!fc) return res();
+          img.scaleToWidth(Math.min(100, fc.width / 4));
+          img.set({ left: fc.width - img.getScaledWidth() - 10, top: fc.height - img.getScaledHeight() - 10, __sessionAsset: 'sig' });
+          fc.add(img); fc.renderAll(); res();
+        }, { crossOrigin: 'anonymous' });
+      }));
+    }
+    await Promise.all(tasks);
+  }
 
   // ── Project management helpers ─────────────────────────────────
   async function loadProjects() {
@@ -1575,7 +1605,7 @@ export default function DocumentMaker() {
     if (!fc) return;
     suppressDirtyRef.current = true;
     if (carouselStatesRef.current[nxtKey]) {
-      // Load this student's individually saved/adjusted canvas
+      // Load this student's individually saved/adjusted canvas (already contains session assets)
       await new Promise(res => fc.loadFromJSON(JSON.parse(carouselStatesRef.current[nxtKey]), () => { fc.renderAll(); res(); }));
     } else {
       const baseTemplate = carouselBaseTemplateRef.current;
@@ -1586,6 +1616,7 @@ export default function DocumentMaker() {
         const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
         await seedCanvas(fc, docType, tpl, { name: row.name, rollNo: row.roll_number, course: row.course, batch: row.batch }, instituteName);
       }
+      await applySessionAssets(fc);
     }
     suppressDirtyRef.current = false;
     updateScale();
@@ -1642,50 +1673,29 @@ export default function DocumentMaker() {
       return; // logo/sig will be applied on next ready=true
     }
 
-    // Auto-render first student if data was loaded in setup dialog before entering editor
-    if ((editorMode === 'bulk' || editorMode === 'batch') && batchStudents.length > 0 && !carouselBaseTemplateRef.current) {
-      const templateJSON = fc.toJSON(CUSTOM_PROPS);
-      carouselBaseTemplateRef.current = templateJSON;
-      const s = batchStudents[0];
-      const row = studentToRow(s, selBatch);
-      setCarouselFields({ name: row.name, rollNo: row.roll_number, course: row.course, batch: row.batch });
-      const hasPlaceholders = (templateJSON.objects || []).some(o => o.__placeholder);
-      suppressDirtyRef.current = true;
-      const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
-      (hasPlaceholders
-        ? renderRowToCanvas(fc, templateJSON, row)
-        : tpl ? seedCanvas(fc, docType, tpl, { name: row.name, rollNo: row.roll_number, course: row.course, batch: row.batch }, instituteName) : Promise.resolve()
-      ).finally(() => { suppressDirtyRef.current = false; });
-    }
+    // Store + apply logo/sig into session refs (so they survive carousel navigation)
+    if (pendingLogoUrl) { sessionLogoRef.current = pendingLogoUrl; setPendingLogoUrl(null); }
+    if (pendingSignatureUrl) { sessionSigRef.current = pendingSignatureUrl; setPendingSignatureUrl(null); }
 
-    // Apply logo to top-left
-    if (pendingLogoUrl) {
-      const url = pendingLogoUrl;
-      setPendingLogoUrl(null);
-      getFabric().then(({ fabric }) => {
-        fabric.Image.fromURL(url, img => {
-          if (!fabricRef.current) return;
-          img.scaleToWidth(Math.min(80, fabricRef.current.width / 5));
-          img.set({ left: 10, top: 10 });
-          fabricRef.current.add(img); fabricRef.current.setActiveObject(img); fabricRef.current.renderAll();
-        }, { crossOrigin: 'anonymous' });
-      });
-    }
-
-    // Apply signature to bottom-right
-    if (pendingSignatureUrl) {
-      const url = pendingSignatureUrl;
-      setPendingSignatureUrl(null);
-      getFabric().then(({ fabric }) => {
-        fabric.Image.fromURL(url, img => {
-          if (!fabricRef.current) return;
-          const canvas = fabricRef.current;
-          img.scaleToWidth(Math.min(100, canvas.width / 4));
-          img.set({ left: canvas.width - img.getScaledWidth() - 10, top: canvas.height - img.getScaledHeight() - 10 });
-          canvas.add(img); canvas.setActiveObject(img); canvas.renderAll();
-        }, { crossOrigin: 'anonymous' });
-      });
-    }
+    // Apply logo/sig FIRST so they are included in the base template snapshot
+    applySessionAssets(fc).then(() => {
+      // Auto-render first student if data was loaded in setup dialog before entering editor
+      if ((editorMode === 'bulk' || editorMode === 'batch') && batchStudents.length > 0 && !carouselBaseTemplateRef.current) {
+        const templateJSON = fc.toJSON(CUSTOM_PROPS); // now includes logo/sig objects
+        carouselBaseTemplateRef.current = templateJSON;
+        const s = batchStudents[0];
+        const row = studentToRow(s, selBatch);
+        setCarouselFields({ name: row.name, rollNo: row.roll_number, course: row.course, batch: row.batch });
+        const hasPlaceholders = (templateJSON.objects || []).some(o => o.__placeholder);
+        suppressDirtyRef.current = true;
+        const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
+        (hasPlaceholders
+          ? renderRowToCanvas(fc, templateJSON, row)
+          : tpl ? seedCanvas(fc, docType, tpl, { name: row.name, rollNo: row.roll_number, course: row.course, batch: row.batch }, instituteName) : Promise.resolve()
+        ).then(() => applySessionAssets(fc))
+         .finally(() => { suppressDirtyRef.current = false; });
+      }
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
@@ -3274,38 +3284,32 @@ export default function DocumentMaker() {
         <IconButton onClick={handleBack} sx={{ color: '#64748b', p: 0.75 }}>
           <HomeIcon sx={{ fontSize: 24 }} />
         </IconButton>
-        <Tooltip title="Undo"><span>
-          <IconButton onClick={undo} disabled={!canUndo} sx={{ color: '#64748b', p: 0.75, '&.Mui-disabled': { opacity: 0.3 } }}>
-            <UndoIcon sx={{ fontSize: 22 }} />
-          </IconButton>
-        </span></Tooltip>
-        <Tooltip title="Redo"><span>
-          <IconButton onClick={redo} disabled={!canRedo} sx={{ color: '#64748b', p: 0.75, '&.Mui-disabled': { opacity: 0.3 } }}>
-            <RedoIcon sx={{ fontSize: 22 }} />
-          </IconButton>
-        </span></Tooltip>
         <Box sx={{ flex: 1, minWidth: 0, px: 0.75 }}>
           <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '0.9rem' }} noWrap>
             {currentDT?.label}
           </Typography>
-          {editorMode !== 'single' && (
-            <Typography sx={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 500 }}>
-              {editorMode === 'bulk' ? 'Bulk Carousel' : 'Batch Generate'}{batchStudents.length ? ` · ${batchStudents.length} students` : ''}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.1, mt: 0.1 }}>
+            <Typography sx={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 500, flex: 1 }} noWrap>
+              {editorMode !== 'single'
+                ? `${editorMode === 'bulk' ? 'Bulk' : 'Batch'}${batchStudents.length ? ` · ${batchStudents.length}` : ''}`
+                : ' '}
             </Typography>
-          )}
+            <Tooltip title="Undo"><span>
+              <IconButton size="small" onClick={undo} disabled={!canUndo} sx={{ color: '#94a3b8', p: 0.25, '&.Mui-disabled': { opacity: 0.3 } }}>
+                <UndoIcon sx={{ fontSize: 15 }} />
+              </IconButton>
+            </span></Tooltip>
+            <Tooltip title="Redo"><span>
+              <IconButton size="small" onClick={redo} disabled={!canRedo} sx={{ color: '#94a3b8', p: 0.25, '&.Mui-disabled': { opacity: 0.3 } }}>
+                <RedoIcon sx={{ fontSize: 15 }} />
+              </IconButton>
+            </span></Tooltip>
+          </Box>
         </Box>
         <Tooltip title="Page Setup">
           <IconButton onClick={() => { setTempSetup({ ...(pageSetup || DEFAULT_SETUPS[docType] || DEFAULT_SETUPS.result) }); setPageSetupDialog(true); }} sx={{ color: '#64748b', p: 0.75 }}>
             <TuneIcon sx={{ fontSize: 22 }} />
           </IconButton>
-        </Tooltip>
-        <Tooltip title="Print">
-          <IconButton onClick={printDocument} disabled={printing} sx={{ color: '#1a7a4a', p: 0.75 }}>
-            {printing ? <CircularProgress size={16} color="inherit" /> : <PrintIcon sx={{ fontSize: 22 }} />}
-          </IconButton>
-        </Tooltip>
-        <Tooltip title="Download PNG">
-          <IconButton onClick={exportPNG} sx={{ color: '#64748b', p: 0.75 }}><DownloadIcon sx={{ fontSize: 22 }} /></IconButton>
         </Tooltip>
         <Tooltip title="Save Design">
           <IconButton
@@ -3320,72 +3324,120 @@ export default function DocumentMaker() {
 
       {/* ── Bulk Carousel Bar ──────────────────────────────── */}
       {editorMode === 'bulk' && (
-        <Box sx={{
-          bgcolor: '#1e293b', px: 1.5, py: 0.6, display: 'flex', alignItems: 'center', gap: 1,
-          flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-        }}>
-          {batchStudents.length === 0 ? (
-            <Stack direction="row" alignItems="center" gap={1} sx={{ flex: 1 }}>
-              <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem', fontWeight: 600, flexShrink: 0 }}>Batch:</Typography>
-              <Select value={selBatch} onChange={e => setSelBatch(e.target.value)} displayEmpty size="small"
-                sx={{ flex: 1, bgcolor: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: '0.72rem', borderRadius: 1.5,
-                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
-                  '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.6)' },
-                  '& .MuiSelect-select': { py: 0.5, px: 1 } }}>
-                <MenuItem value=""><em style={{ color: '#94a3b8' }}>Select batch…</em></MenuItem>
-                {batches.map(b => <MenuItem key={b._id} value={b.batch_name || b.name || b._id}>{b.batch_name || b.name}</MenuItem>)}
-              </Select>
-              <Button size="small" component="label"
-                sx={{ color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 1.5,
-                  fontSize: '0.65rem', textTransform: 'none', px: 1, py: 0.4, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                CSV/Excel
-                <input hidden type="file" accept=".csv,.xlsx,.xls" ref={csvInputRef} onChange={e => handleCsvUpload(e.target.files[0])} />
-              </Button>
-            </Stack>
-          ) : (<>
-            <IconButton size="small" onClick={() => goCarousel(carouselIdx - 1)} disabled={carouselIdx === 0}
-              sx={{ color: '#fff', p: 0.4, '&.Mui-disabled': { opacity: 0.3 }, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 1 }}>
-              <ArrowBackIosNewIcon sx={{ fontSize: 13 }} />
-            </IconButton>
+        <>
+          {/* Section A: dark nav row */}
+          <Box sx={{
+            bgcolor: '#1e293b', px: 1.5, py: 0.6, display: 'flex', alignItems: 'center', gap: 1,
+            flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+          }}>
+            {batchStudents.length === 0 ? (
+              <Stack direction="row" alignItems="center" gap={1} sx={{ flex: 1 }}>
+                <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem', fontWeight: 600, flexShrink: 0 }}>Batch:</Typography>
+                <Select value={selBatch} onChange={e => setSelBatch(e.target.value)} displayEmpty size="small"
+                  sx={{ flex: 1, bgcolor: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: '0.72rem', borderRadius: 1.5,
+                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
+                    '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.6)' },
+                    '& .MuiSelect-select': { py: 0.5, px: 1 } }}>
+                  <MenuItem value=""><em style={{ color: '#94a3b8' }}>Select batch…</em></MenuItem>
+                  {batches.map(b => <MenuItem key={b._id} value={b.batch_name || b.name || b._id}>{b.batch_name || b.name}</MenuItem>)}
+                </Select>
+                <Button size="small" component="label"
+                  sx={{ color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 1.5,
+                    fontSize: '0.65rem', textTransform: 'none', px: 1, py: 0.4, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                  CSV/Excel
+                  <input hidden type="file" accept=".csv,.xlsx,.xls" ref={csvInputRef} onChange={e => handleCsvUpload(e.target.files[0])} />
+                </Button>
+              </Stack>
+            ) : (<>
+              {/* Photo thumbnail — click to open camera */}
+              {(() => {
+                const stu = batchStudents[carouselIdx];
+                const photoUrl = stu?.photo_url || stu?.bg_removed_url;
+                return (
+                  <Box onClick={() => setCarouselWebcam(true)}
+                    sx={{ width: 40, height: 50, borderRadius: 1, overflow: 'hidden', flexShrink: 0, cursor: 'pointer',
+                      border: photoUrl ? '1.5px solid #10b981' : '1.5px dashed rgba(255,255,255,0.3)',
+                      bgcolor: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {photoUrl
+                      ? <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <PeopleIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.3)' }} />}
+                  </Box>
+                );
+              })()}
 
-            <Box sx={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
-              <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.82rem' }} noWrap>
-                {carouselFields.name || batchStudents[carouselIdx]?.firstName || 'Student'}
-              </Typography>
-              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.4, mt: 0.3 }}>
-                {batchStudents.slice(Math.max(0, carouselIdx - 2), carouselIdx + 3).map((_, i) => {
-                  const absIdx = Math.max(0, carouselIdx - 2) + i;
-                  return (
-                    <Box key={absIdx} onClick={() => goCarousel(absIdx)}
-                      sx={{ width: absIdx === carouselIdx ? 16 : 5, height: 5, borderRadius: 3,
-                        bgcolor: absIdx === carouselIdx ? '#d4a017' : 'rgba(255,255,255,0.3)',
-                        cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }} />
-                  );
-                })}
+              <IconButton size="small" onClick={() => goCarousel(carouselIdx - 1)} disabled={carouselIdx === 0}
+                sx={{ color: '#fff', p: 0.4, '&.Mui-disabled': { opacity: 0.3 }, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 1 }}>
+                <ArrowBackIosNewIcon sx={{ fontSize: 13 }} />
+              </IconButton>
+
+              <Box sx={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
+                <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.82rem' }} noWrap>
+                  {carouselFields.name || batchStudents[carouselIdx]?.firstName || 'Student'}
+                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.4, mt: 0.3 }}>
+                  {batchStudents.slice(Math.max(0, carouselIdx - 2), carouselIdx + 3).map((_, i) => {
+                    const absIdx = Math.max(0, carouselIdx - 2) + i;
+                    return (
+                      <Box key={absIdx} onClick={() => goCarousel(absIdx)}
+                        sx={{ width: absIdx === carouselIdx ? 16 : 5, height: 5, borderRadius: 3,
+                          bgcolor: absIdx === carouselIdx ? '#d4a017' : 'rgba(255,255,255,0.3)',
+                          cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }} />
+                    );
+                  })}
+                </Box>
+                <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.6rem' }}>
+                  {carouselIdx + 1} / {batchStudents.length}
+                </Typography>
               </Box>
-              <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.6rem' }}>
-                {carouselIdx + 1} / {batchStudents.length}
-              </Typography>
+
+              <IconButton size="small" onClick={() => goCarousel(carouselIdx + 1)} disabled={carouselIdx === batchStudents.length - 1}
+                sx={{ color: '#fff', p: 0.4, '&.Mui-disabled': { opacity: 0.3 }, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 1 }}>
+                <ArrowForwardIosIcon sx={{ fontSize: 13 }} />
+              </IconButton>
+            </>)}
+          </Box>
+
+          {/* Section B: editable fields + photo actions + save (only when students loaded) */}
+          {batchStudents.length > 0 && (
+            <Box sx={{ bgcolor: '#fff', borderBottom: '1px solid #e2e8f0', px: 1.5, py: 0.75, flexShrink: 0 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.75, mb: 0.75 }}>
+                {[['name', 'Name'], ['rollNo', 'Roll No'], ['course', 'Course'], ['batch', 'Batch']].map(([key, lbl]) => (
+                  <TextField key={key} label={lbl} value={carouselFields[key] || ''} size="small"
+                    onChange={e => setCarouselFields(prev => ({ ...prev, [key]: e.target.value }))}
+                    sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#f8fafc', fontSize: '0.75rem' }, '& label': { fontSize: '0.7rem' } }}
+                  />
+                ))}
+              </Box>
+              <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
+                {(() => {
+                  const stu = batchStudents[carouselIdx];
+                  const photoUrl = stu?.photo_url || stu?.bg_removed_url;
+                  return (<>
+                    <Button size="small" startIcon={<PhotoCameraIcon sx={{ fontSize: 12 }} />}
+                      onClick={() => setCarouselWebcam(true)}
+                      sx={{ fontSize: '0.65rem', textTransform: 'none', py: 0.3, px: 0.75, minWidth: 0,
+                        bgcolor: photoUrl ? '#f1f5f9' : '#059669', color: photoUrl ? '#475569' : '#fff',
+                        border: photoUrl ? '1px solid #e2e8f0' : 'none', '&:hover': { bgcolor: photoUrl ? '#e2e8f0' : '#047857' } }}>
+                      {photoUrl ? 'Retake' : 'Camera'}
+                    </Button>
+                    <Button size="small" component="label" startIcon={<ImageIcon sx={{ fontSize: 12 }} />}
+                      sx={{ fontSize: '0.65rem', textTransform: 'none', py: 0.3, px: 0.75, minWidth: 0,
+                        bgcolor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>
+                      {photoUrl ? 'Replace' : 'Upload'}
+                      <input hidden type="file" accept="image/*" onChange={e => { if (e.target.files?.[0]) handleCarouselPhotoFile(e.target.files[0]); e.target.value = ''; }} />
+                    </Button>
+                  </>);
+                })()}
+                <Box sx={{ flex: 1 }} />
+                <Button size="small" onClick={saveBulkCanvas}
+                  sx={{ bgcolor: '#059669', color: '#fff', fontSize: '0.65rem', textTransform: 'none', px: 1.25, py: 0.35,
+                    minWidth: 0, '&:hover': { bgcolor: '#047857' }, borderRadius: 1.5 }}>
+                  Save
+                </Button>
+              </Box>
             </Box>
-
-            <IconButton size="small" onClick={() => goCarousel(carouselIdx + 1)} disabled={carouselIdx === batchStudents.length - 1}
-              sx={{ color: '#fff', p: 0.4, '&.Mui-disabled': { opacity: 0.3 }, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 1 }}>
-              <ArrowForwardIosIcon sx={{ fontSize: 13 }} />
-            </IconButton>
-
-            <Button size="small" onClick={saveBulkCanvas}
-              sx={{ bgcolor: '#d4a017', color: '#fff', fontSize: '0.68rem', textTransform: 'none', px: 1, py: 0.35, minWidth: 0,
-                flexShrink: 0, '&:hover': { bgcolor: '#b8860b' }, borderRadius: 1.5 }}>
-              Save
-            </Button>
-
-            <Button size="small" onClick={exportBulkPDF} disabled={generating}
-              sx={{ bgcolor: '#059669', color: '#fff', fontSize: '0.68rem', textTransform: 'none', px: 1, py: 0.35, minWidth: 0,
-                flexShrink: 0, '&:hover': { bgcolor: '#047857' }, borderRadius: 1.5 }}>
-              {generating ? '…' : 'Export All'}
-            </Button>
-          </>)}
-        </Box>
+          )}
+        </>
       )}
 
       {/* ── Alert ──────────────────────────────────────────── */}
@@ -3393,6 +3445,27 @@ export default function DocumentMaker() {
         <Alert severity={alert.type} sx={{ mx: 1, mt: 0.5, flexShrink: 0 }} onClose={() => setAlert(null)} size="small">
           {alert.text}
         </Alert>
+      )}
+
+      {/* ── Zoom bar ── */}
+      {ready && (
+        <Box sx={{ bgcolor: '#f8fafc', borderBottom: '1px solid #e2e8f0', px: 1.5, py: 0.3,
+          display: 'flex', alignItems: 'center', gap: 0.25, flexShrink: 0, justifyContent: 'flex-end' }}>
+          <IconButton size="small" onClick={zoomOut} sx={{ color: '#64748b', p: 0.35 }}>
+            <ZoomOutIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+          <Typography onClick={zoomFit} sx={{ fontSize: '0.72rem', minWidth: 38, textAlign: 'center', cursor: 'pointer', color: '#64748b', userSelect: 'none' }}>
+            {Math.round(scale * userZoom * 100)}%
+          </Typography>
+          <IconButton size="small" onClick={zoomIn} sx={{ color: '#64748b', p: 0.35 }}>
+            <ZoomInIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+          <Tooltip title="Fit to screen">
+            <IconButton size="small" onClick={zoomFit} sx={{ color: '#64748b', p: 0.35 }}>
+              <FitScreenIcon sx={{ fontSize: 16 }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
       )}
 
       {/* ── Main body: canvas + sidebar (row on desktop, column on mobile) ── */}
@@ -3499,25 +3572,6 @@ export default function DocumentMaker() {
           </Box>
         )}
 
-        {/* Zoom pill — bottom right of canvas area */}
-        {ready && (
-          <Box sx={{
-            position: 'absolute', bottom: 8, right: 8, zIndex: 5,
-            display: 'flex', alignItems: 'center', gap: 0.25,
-            bgcolor: 'rgba(15,23,42,0.72)', borderRadius: 2, px: 0.75, py: 0.25,
-            backdropFilter: 'blur(6px)',
-          }}>
-            <IconButton size="small" onClick={zoomOut} sx={{ color: '#fff', p: 0.3 }}>
-              <ZoomOutIcon sx={{ fontSize: 14 }} />
-            </IconButton>
-            <Typography onClick={zoomFit} sx={{ color: '#fff', fontSize: '0.62rem', minWidth: 30, textAlign: 'center', cursor: 'pointer', userSelect: 'none' }}>
-              {Math.round(scale * userZoom * 100)}%
-            </Typography>
-            <IconButton size="small" onClick={zoomIn} sx={{ color: '#fff', p: 0.3 }}>
-              <ZoomInIcon sx={{ fontSize: 14 }} />
-            </IconButton>
-          </Box>
-        )}
       </Box>
 
       {/* ── Contextual quick bar — mobile: between canvas and toolbar; hidden on desktop (shown in sidebar) ── */}
@@ -4063,105 +4117,6 @@ export default function DocumentMaker() {
             {toolTab === 5 && (
               <Stack spacing={1.75}>
 
-                {/* ── Carousel — preview & edit each student ── */}
-                {batchStudents.length > 0 ? (
-                  <Box sx={{ bgcolor: '#f8fafc', borderRadius: 2.5, border: '1.5px solid #e2e8f0', p: 1.5 }}>
-                    {/* Navigation header */}
-                    <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.25}>
-                      <IconButton size="small" onClick={() => goCarousel(carouselIdx - 1)} disabled={carouselIdx === 0}
-                        sx={{ color: '#d4a017', p: 0.5, border: '1px solid #e2e8f0', borderRadius: 1.5, '&.Mui-disabled': { opacity: 0.3 } }}>
-                        <ChevronLeftIcon sx={{ fontSize: 22 }} />
-                      </IconButton>
-                      <Box sx={{ textAlign: 'center', flex: 1, mx: 0.5 }}>
-                        <Typography sx={{ fontSize: '0.82rem', color: '#1e293b', fontWeight: 700 }} noWrap>
-                          {carouselFields.name || batchStudents[carouselIdx]?.firstName || 'Student'}
-                        </Typography>
-                        <Typography sx={{ fontSize: '0.68rem', color: '#94a3b8' }}>
-                          {carouselIdx + 1} / {batchStudents.length}
-                        </Typography>
-                        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.4, mt: 0.4 }}>
-                          {batchStudents.slice(Math.max(0, carouselIdx - 2), carouselIdx + 3).map((_, i) => {
-                            const absIdx = Math.max(0, carouselIdx - 2) + i;
-                            return (
-                              <Box key={absIdx} onClick={() => goCarousel(absIdx)} sx={{
-                                width: absIdx === carouselIdx ? 20 : 7, height: 7, borderRadius: 4,
-                                bgcolor: absIdx === carouselIdx ? '#d4a017' : '#cbd5e1',
-                                cursor: 'pointer', transition: 'all 0.2s',
-                              }} />
-                            );
-                          })}
-                        </Box>
-                      </Box>
-                      <IconButton size="small" onClick={() => goCarousel(carouselIdx + 1)} disabled={carouselIdx === batchStudents.length - 1}
-                        sx={{ color: '#d4a017', p: 0.5, border: '1px solid #e2e8f0', borderRadius: 1.5, '&.Mui-disabled': { opacity: 0.3 } }}>
-                        <ChevronRightIcon sx={{ fontSize: 22 }} />
-                      </IconButton>
-                    </Stack>
-
-                    {/* Photo thumbnail + add/replace */}
-                    {(() => {
-                      const stu = batchStudents[carouselIdx];
-                      const photoUrl = stu?.photo_url || stu?.bg_removed_url;
-                      return (
-                        <Stack direction="row" gap={1.5} alignItems="flex-start" mb={1.25}>
-                          <Box sx={{ width: 64, height: 80, borderRadius: 2, overflow: 'hidden', border: photoUrl ? '2px solid #10b981' : '2px dashed #cbd5e1', flexShrink: 0, bgcolor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {photoUrl
-                              ? <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                              : <PeopleIcon sx={{ fontSize: 28, color: '#cbd5e1' }} />}
-                          </Box>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#1e293b', mb: 0.75 }} noWrap>
-                              {stu?.firstName || carouselFields.name || 'Student'}
-                            </Typography>
-                            <Stack direction="row" gap={0.5} flexWrap="wrap">
-                              <Button size="small" startIcon={<PhotoCameraIcon sx={{ fontSize: 13 }} />}
-                                onClick={() => setCarouselWebcam(true)}
-                                sx={{ fontSize: '0.68rem', textTransform: 'none', bgcolor: photoUrl ? '#f1f5f9' : '#059669', color: photoUrl ? '#475569' : '#fff', border: photoUrl ? '1px solid #e2e8f0' : 'none', py: 0.4, px: 0.75, '&:hover': { bgcolor: photoUrl ? '#e2e8f0' : '#047857' } }}>
-                                {photoUrl ? 'Retake' : 'Camera'}
-                              </Button>
-                              <Button size="small" component="label" startIcon={<ImageIcon sx={{ fontSize: 13 }} />}
-                                sx={{ fontSize: '0.68rem', textTransform: 'none', bgcolor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', py: 0.4, px: 0.75 }}>
-                                {photoUrl ? 'Replace' : 'Upload'}
-                                <input hidden type="file" accept="image/*" onChange={e => { if (e.target.files?.[0]) handleCarouselPhotoFile(e.target.files[0]); e.target.value = ''; }} />
-                              </Button>
-                            </Stack>
-                            {!photoUrl && (
-                              <Typography sx={{ fontSize: '0.62rem', color: '#f87171', mt: 0.5, fontWeight: 600 }}>
-                                No photo — frame stays blank on card
-                              </Typography>
-                            )}
-                          </Box>
-                        </Stack>
-                      );
-                    })()}
-
-                    {/* Editable fields */}
-                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 1.25 }}>
-                      {[['name', 'Name'], ['rollNo', 'Roll No'], ['course', 'Course'], ['batch', 'Batch']].map(([key, lbl]) => (
-                        <TextField key={key} label={lbl} value={carouselFields[key] || ''} size="small"
-                          onChange={e => setCarouselFields(prev => ({ ...prev, [key]: e.target.value }))}
-                          sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#fff', fontSize: '0.8rem' }, '& label': { fontSize: '0.75rem' } }}
-                        />
-                      ))}
-                    </Box>
-                    <Stack direction="row" gap={0.75}>
-                      <Button size="small" fullWidth onClick={applyCarouselToCanvas}
-                        sx={{ bgcolor: '#d4a01722', color: '#d4a017', border: '1.5px solid #d4a01744', textTransform: 'none', fontSize: '0.8rem', py: 0.75, '&:hover': { bgcolor: '#d4a01733' }, borderRadius: 1.5 }}>
-                        Apply to Canvas
-                      </Button>
-                      <Button size="small" onClick={saveBulkCanvas}
-                        sx={{ flexShrink: 0, bgcolor: '#059669', color: '#fff', textTransform: 'none', fontSize: '0.8rem', py: 0.75, px: 1.5, '&:hover': { bgcolor: '#047857' }, borderRadius: 1.5 }}>
-                        Save
-                      </Button>
-                    </Stack>
-                  </Box>
-                ) : (
-                  <Box sx={{ textAlign: 'center', py: 2, color: '#94a3b8' }}>
-                    <GroupsIcon sx={{ fontSize: 36, mb: 0.5 }} />
-                    <Typography sx={{ fontSize: '0.78rem' }}>Select a batch or upload CSV/Excel above to start bulk export</Typography>
-                  </Box>
-                )}
-
                 {/* ── Bulk export buttons ── */}
                 {batchStudents.length > 0 && (
                   <Stack direction="row" spacing={1}>
@@ -4467,6 +4422,42 @@ export default function DocumentMaker() {
 
       {/* ── Close main body row ────────────────────────────── */}
       </Box>
+
+      {/* ── Canvas bottom export bar ── */}
+      {ready && (
+        <Box sx={{ bgcolor: '#fff', borderTop: '1px solid #e2e8f0', px: 1.5, py: 0.65,
+          display: 'flex', gap: 0.75, flexShrink: 0, alignItems: 'center' }}>
+          <Button size="small" startIcon={<DownloadIcon sx={{ fontSize: 15 }} />} onClick={exportPNG}
+            sx={{ fontSize: '0.73rem', textTransform: 'none', color: '#1e293b', border: '1px solid #e2e8f0', bgcolor: '#f8fafc', py: 0.4, px: 1 }}>
+            PNG
+          </Button>
+          <Button size="small" startIcon={<PictureAsPdfIcon sx={{ fontSize: 15 }} />} onClick={exportPDF} disabled={exporting}
+            sx={{ fontSize: '0.73rem', textTransform: 'none', color: '#d4a017', border: '1.5px solid #d4a01744', bgcolor: '#d4a01711', py: 0.4, px: 1 }}>
+            PDF
+          </Button>
+          {(editorMode === 'bulk' || editorMode === 'batch') && batchStudents.length > 0 && (<>
+            <Button size="small"
+              startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <FolderZipIcon sx={{ fontSize: 15 }} />}
+              onClick={generateBatchZip} disabled={generating}
+              sx={{ fontSize: '0.73rem', textTransform: 'none', color: '#1e293b', border: '1px solid #e2e8f0', bgcolor: '#f8fafc', py: 0.4, px: 1 }}>
+              {generating ? '...' : `ZIP (${batchStudents.length})`}
+            </Button>
+            <Button size="small"
+              startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <PictureAsPdfIcon sx={{ fontSize: 15 }} />}
+              onClick={generateBatchPDF} disabled={generating}
+              sx={{ fontSize: '0.73rem', textTransform: 'none', color: '#d4a017', border: '1.5px solid #d4a01744', bgcolor: '#d4a01711', py: 0.4, px: 1 }}>
+              {generating ? '...' : 'All PDF'}
+            </Button>
+          </>)}
+          <Box sx={{ flex: 1 }} />
+          <Button size="small"
+            startIcon={printing ? <CircularProgress size={12} color="inherit" /> : <PrintIcon sx={{ fontSize: 15 }} />}
+            onClick={printDocument} disabled={printing}
+            sx={{ fontSize: '0.73rem', textTransform: 'none', color: '#1a7a4a', border: '1.5px solid #1a7a4a44', bgcolor: '#1a7a4a11', py: 0.4, px: 1 }}>
+            {printing ? 'Printing...' : 'Print'}
+          </Button>
+        </Box>
+      )}
 
       {/* ── Print Layout Dialog ────────────────────────────── */}
       {layoutDialog && editingLayout && (
