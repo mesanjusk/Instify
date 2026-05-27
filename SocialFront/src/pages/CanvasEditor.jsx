@@ -831,8 +831,11 @@ export default function DocumentMaker() {
   const [presetsOpen,    setPresetsOpen]    = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [explorePage,    setExplorePage]    = useState(0);
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const [carouselWebcam,   setCarouselWebcam]   = useState(false);
+  const [mobileDrawerOpen,    setMobileDrawerOpen]    = useState(false);
+  const [carouselWebcam,      setCarouselWebcam]      = useState(false);
+  const [pendingLogoUrl,      setPendingLogoUrl]      = useState(null);
+  const [pendingSignatureUrl, setPendingSignatureUrl]  = useState(null);
+  const [pendingCustomBgUrl,  setPendingCustomBgUrl]   = useState(null);
 
   function showAlert(type, text) { setAlert({ type, text }); setTimeout(() => setAlert(null), 4000); }
 
@@ -1443,7 +1446,7 @@ export default function DocumentMaker() {
     setEditorMode(mode);
     const setup = { ...(DEFAULT_SETUPS[type] || DEFAULT_SETUPS.result) };
     pageSetupRef.current = setup;
-    initParamsRef.current = { type, tplIdx: null };   // null = blank canvas on first open
+    initParamsRef.current = { type, tplIdx: tplIdx };   // seed canvas with chosen template
     setPageSetup(setup);
     setTempSetup(setup);
     setDocType(type);
@@ -1460,6 +1463,12 @@ export default function DocumentMaker() {
   }
 
   function pickMode(type, tplIdx = 0) {
+    // Clear stale data from any previous session
+    setCsvRows([]); setCsvFile(''); setDataSource('batch');
+    setBatchStudents([]); setCarouselIdx(0); setSelBatch('');
+    // Reset pending assets
+    setPendingLogoUrl(null); setPendingSignatureUrl(null); setPendingCustomBgUrl(null);
+    // Dialog state
     setPendingDocType(type);
     setPendingTplIdx(tplIdx);
     setModeDialogMode('single');
@@ -1469,9 +1478,8 @@ export default function DocumentMaker() {
 
   function confirmModeAndOpen() {
     const mode = modeDialogMode;
-    if ((mode === 'bulk' || mode === 'batch') && modeDialogBatch) {
-      setSelBatch(modeDialogBatch);
-    }
+    // Always set selBatch explicitly (clears old value if nothing selected)
+    setSelBatch(modeDialogBatch || '');
     setModeSelectDlg(false);
     openEditor(pendingDocType, pendingTplIdx, mode);
   }
@@ -1620,6 +1628,66 @@ export default function DocumentMaker() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view]);
+
+  // Apply pending assets (logo, signature, custom bg) + pre-loaded students after canvas init
+  useEffect(() => {
+    if (!ready || !fabricRef.current || view !== 'editor') return;
+    const fc = fabricRef.current;
+
+    // Custom background from device upload — reinitializes canvas with that image
+    if (pendingCustomBgUrl) {
+      const url = pendingCustomBgUrl;
+      setPendingCustomBgUrl(null); // clear first to avoid loop
+      handleUseTemplate(url);
+      return; // logo/sig will be applied on next ready=true
+    }
+
+    // Auto-render first student if data was loaded in setup dialog before entering editor
+    if ((editorMode === 'bulk' || editorMode === 'batch') && batchStudents.length > 0 && !carouselBaseTemplateRef.current) {
+      const templateJSON = fc.toJSON(CUSTOM_PROPS);
+      carouselBaseTemplateRef.current = templateJSON;
+      const s = batchStudents[0];
+      const row = studentToRow(s, selBatch);
+      setCarouselFields({ name: row.name, rollNo: row.roll_number, course: row.course, batch: row.batch });
+      const hasPlaceholders = (templateJSON.objects || []).some(o => o.__placeholder);
+      suppressDirtyRef.current = true;
+      const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
+      (hasPlaceholders
+        ? renderRowToCanvas(fc, templateJSON, row)
+        : tpl ? seedCanvas(fc, docType, tpl, { name: row.name, rollNo: row.roll_number, course: row.course, batch: row.batch }, instituteName) : Promise.resolve()
+      ).finally(() => { suppressDirtyRef.current = false; });
+    }
+
+    // Apply logo to top-left
+    if (pendingLogoUrl) {
+      const url = pendingLogoUrl;
+      setPendingLogoUrl(null);
+      getFabric().then(({ fabric }) => {
+        fabric.Image.fromURL(url, img => {
+          if (!fabricRef.current) return;
+          img.scaleToWidth(Math.min(80, fabricRef.current.width / 5));
+          img.set({ left: 10, top: 10 });
+          fabricRef.current.add(img); fabricRef.current.setActiveObject(img); fabricRef.current.renderAll();
+        }, { crossOrigin: 'anonymous' });
+      });
+    }
+
+    // Apply signature to bottom-right
+    if (pendingSignatureUrl) {
+      const url = pendingSignatureUrl;
+      setPendingSignatureUrl(null);
+      getFabric().then(({ fabric }) => {
+        fabric.Image.fromURL(url, img => {
+          if (!fabricRef.current) return;
+          const canvas = fabricRef.current;
+          img.scaleToWidth(Math.min(100, canvas.width / 4));
+          img.set({ left: canvas.width - img.getScaledWidth() - 10, top: canvas.height - img.getScaledHeight() - 10 });
+          canvas.add(img); canvas.setActiveObject(img); canvas.renderAll();
+        }, { crossOrigin: 'anonymous' });
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
 
   useEffect(() => {
     const ro = new ResizeObserver(updateScale);
@@ -3036,46 +3104,133 @@ export default function DocumentMaker() {
           </DialogActions>
         </Dialog>
 
-        {/* ── Mode Selection Dialog ── */}
-        <Dialog open={modeSelectDlg} onClose={() => setModeSelectDlg(false)} maxWidth="xs" fullWidth>
-          <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem', pb: 1 }}>How would you like to create?</DialogTitle>
-          <DialogContent sx={{ pb: 1 }}>
-            <Stack spacing={1.25}>
-              {[
-                { mode: 'single', label: 'Single Document', desc: 'Design one document — for one person', icon: <BadgeIcon sx={{ fontSize: 22 }} />, color: '#1a7a4a' },
-                { mode: 'bulk', label: 'Bulk (Carousel)', desc: 'Go through each student, adjust photo & text, save individually', icon: <PeopleIcon sx={{ fontSize: 22 }} />, color: '#d97706' },
-                { mode: 'batch', label: 'Batch Generate', desc: 'Generate all documents at once from student data', icon: <FolderZipIcon sx={{ fontSize: 22 }} />, color: '#7c3aed' },
-              ].map(item => (
-                <Box key={item.mode} onClick={() => setModeDialogMode(item.mode)}
-                  sx={{
-                    p: 1.5, borderRadius: 2, border: `2px solid ${modeDialogMode === item.mode ? item.color : '#e2e8f0'}`,
-                    cursor: 'pointer', bgcolor: modeDialogMode === item.mode ? `${item.color}0d` : '#fff',
-                    display: 'flex', alignItems: 'center', gap: 1.5, transition: 'all 0.15s',
-                  }}>
-                  <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: `${item.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: item.color }}>
-                    {item.icon}
-                  </Box>
-                  <Box sx={{ flex: 1 }}>
-                    <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#1e293b' }}>{item.label}</Typography>
-                    <Typography sx={{ fontSize: '0.7rem', color: '#64748b', mt: 0.15 }}>{item.desc}</Typography>
-                  </Box>
-                  {modeDialogMode === item.mode && <CheckIcon sx={{ fontSize: 18, color: item.color, flexShrink: 0 }} />}
-                </Box>
-              ))}
+        {/* ── Project Setup Dialog ── */}
+        <Dialog open={modeSelectDlg} onClose={() => setModeSelectDlg(false)} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ fontWeight: 700, fontSize: '1.05rem', pb: 0.5 }}>Set up your document</DialogTitle>
+          <DialogContent dividers sx={{ p: 0, maxHeight: '78vh', overflowY: 'auto' }}>
+            <Stack divider={<Divider />}>
 
+              {/* ── Section 1: Mode ── */}
+              <Box sx={{ p: 2 }}>
+                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1.25 }}>How would you like to create?</Typography>
+                <Stack spacing={0.9}>
+                  {[
+                    { mode: 'single', label: 'Single Document',  desc: 'Design one document for one person',                               icon: <BadgeIcon sx={{ fontSize: 20 }} />,    color: '#1a7a4a' },
+                    { mode: 'bulk',   label: 'Bulk (Carousel)',   desc: 'Go through each student, adjust & save individually',              icon: <PeopleIcon sx={{ fontSize: 20 }} />,   color: '#d97706' },
+                    { mode: 'batch',  label: 'Batch Generate',    desc: 'Generate all cards at once from student data',                     icon: <FolderZipIcon sx={{ fontSize: 20 }} />, color: '#7c3aed' },
+                  ].map(item => (
+                    <Box key={item.mode} onClick={() => setModeDialogMode(item.mode)}
+                      sx={{ p: 1.25, borderRadius: 2, border: `2px solid ${modeDialogMode === item.mode ? item.color : '#e2e8f0'}`, cursor: 'pointer', bgcolor: modeDialogMode === item.mode ? `${item.color}0d` : '#fff', display: 'flex', alignItems: 'center', gap: 1.25, transition: 'all 0.15s' }}>
+                      <Box sx={{ width: 36, height: 36, borderRadius: 1.5, bgcolor: `${item.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: item.color }}>{item.icon}</Box>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: '#1e293b' }}>{item.label}</Typography>
+                        <Typography sx={{ fontSize: '0.67rem', color: '#64748b' }}>{item.desc}</Typography>
+                      </Box>
+                      {modeDialogMode === item.mode && <CheckIcon sx={{ fontSize: 16, color: item.color, flexShrink: 0 }} />}
+                    </Box>
+                  ))}
+                </Stack>
+              </Box>
+
+              {/* ── Section 2: Template ── */}
+              <Box sx={{ p: 2 }}>
+                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1.25 }}>Choose Template</Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(74px, 1fr))', gap: 1 }}>
+                  {(TEMPLATES[pendingDocType] || []).map((tpl, idx) => {
+                    const active = pendingTplIdx === idx && !pendingCustomBgUrl;
+                    return (
+                      <Box key={tpl.id} onClick={() => { setPendingTplIdx(idx); setPendingCustomBgUrl(null); }}
+                        sx={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                        <Box sx={{ width: '100%', aspectRatio: '1.57', borderRadius: 1.5, overflow: 'hidden', border: active ? '2.5px solid #d4a017' : '1.5px solid #e2e8f0', bgcolor: tpl.bg, boxShadow: active ? '0 0 0 2px #d4a01733' : 'none', transition: 'all 0.15s' }}>
+                          <Box sx={{ height: '36%', bgcolor: tpl.thumb }} />
+                          <Box sx={{ p: 0.5, display: 'flex', flexDirection: 'column', gap: 0.35 }}>
+                            <Box sx={{ height: 3, bgcolor: 'rgba(0,0,0,0.18)', borderRadius: 1 }} />
+                            <Box sx={{ height: 2.5, bgcolor: 'rgba(0,0,0,0.1)', borderRadius: 1, width: '70%' }} />
+                          </Box>
+                        </Box>
+                        <Typography sx={{ fontSize: '0.62rem', color: active ? '#d4a017' : '#94a3b8', fontWeight: active ? 700 : 400 }}>{tpl.label}</Typography>
+                      </Box>
+                    );
+                  })}
+                  {/* Upload from device */}
+                  <Box component="label" sx={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                    <Box sx={{ width: '100%', aspectRatio: '1.57', borderRadius: 1.5, border: pendingCustomBgUrl ? '2.5px solid #059669' : '1.5px dashed #94a3b8', bgcolor: pendingCustomBgUrl ? '#f0fdf4' : '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', transition: 'all 0.15s' }}>
+                      {pendingCustomBgUrl
+                        ? <img src={pendingCustomBgUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : <AddPhotoAlternateIcon sx={{ fontSize: 20, color: '#94a3b8' }} />}
+                    </Box>
+                    <Typography sx={{ fontSize: '0.62rem', color: pendingCustomBgUrl ? '#059669' : '#94a3b8', fontWeight: pendingCustomBgUrl ? 700 : 400 }}>
+                      {pendingCustomBgUrl ? 'Custom ✓' : 'From device'}
+                    </Typography>
+                    <input hidden type="file" accept="image/*" onChange={e => {
+                      if (!e.target.files?.[0]) return;
+                      const reader = new FileReader();
+                      reader.onload = ev => setPendingCustomBgUrl(ev.target.result);
+                      reader.readAsDataURL(e.target.files[0]);
+                      e.target.value = '';
+                    }} />
+                  </Box>
+                </Box>
+              </Box>
+
+              {/* ── Section 3: Student Data (bulk/batch only) ── */}
               {(modeDialogMode === 'bulk' || modeDialogMode === 'batch') && (
-                <Box sx={{ pt: 0.5 }}>
-                  <Typography sx={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, mb: 0.75 }}>Select student batch (optional)</Typography>
-                  <Select value={modeDialogBatch} onChange={e => setModeDialogBatch(e.target.value)} size="small" displayEmpty fullWidth
-                    sx={{ bgcolor: '#f8fafc', fontSize: '0.82rem' }}>
-                    <MenuItem value=""><em style={{ color: '#94a3b8' }}>Choose batch…</em></MenuItem>
-                    {batches.map(b => <MenuItem key={b._id || b.Batch_uuid} value={b.name}>{b.name}{b.timing ? ` (${b.timing})` : ''}</MenuItem>)}
-                  </Select>
-                  <Typography sx={{ fontSize: '0.65rem', color: '#94a3b8', mt: 0.5 }}>
-                    You can also upload CSV/Excel from the Export tab inside the editor.
-                  </Typography>
+                <Box sx={{ p: 2 }}>
+                  <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1.25 }}>Student Data</Typography>
+                  <Stack spacing={1.25}>
+                    <Select value={modeDialogBatch} onChange={e => setModeDialogBatch(e.target.value)} size="small" displayEmpty fullWidth
+                      sx={{ bgcolor: '#f8fafc', fontSize: '0.82rem' }}>
+                      <MenuItem value=""><em style={{ color: '#94a3b8' }}>Select batch from database (optional)…</em></MenuItem>
+                      {batches.map(b => <MenuItem key={b._id || b.Batch_uuid} value={b.name}>{b.name}{b.timing ? ` (${b.timing})` : ''}</MenuItem>)}
+                    </Select>
+                    <Button size="small" component="label" fullWidth variant="outlined"
+                      startIcon={<TableChartIcon sx={{ fontSize: 15 }} />}
+                      sx={{ textTransform: 'none', fontSize: '0.78rem', borderColor: '#10b981', color: '#059669', py: 0.65, '&:hover': { bgcolor: '#f0fdf4', borderColor: '#059669' } }}>
+                      {csvFile ? `Re-upload  (${batchStudents.length} from ${csvFile})` : 'Upload CSV / Excel file'}
+                      <input hidden type="file" accept=".csv,.xlsx,.xls" onChange={e => { if (e.target.files?.[0]) handleCsvUpload(e.target.files[0]); e.target.value = ''; }} />
+                    </Button>
+                    {batchStudents.length > 0 && (
+                      <Typography sx={{ fontSize: '0.72rem', color: '#10b981', fontWeight: 600 }}>
+                        ✓ {batchStudents.length} students ready — canvas will preview on open
+                      </Typography>
+                    )}
+                  </Stack>
                 </Box>
               )}
+
+              {/* ── Section 4: Assets ── */}
+              <Box sx={{ p: 2 }}>
+                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1.25 }}>Assets (Optional)</Typography>
+                <Stack spacing={1.25}>
+                  {[
+                    { label: 'Logo / Stamp', hint: 'Placed at top-left', icon: <AutoFixHighIcon sx={{ fontSize: 18, color: '#cbd5e1' }} />, url: pendingLogoUrl, setter: setPendingLogoUrl },
+                    { label: 'Signature',    hint: 'Placed at bottom-right', icon: <DrawIcon sx={{ fontSize: 18, color: '#cbd5e1' }} />,  url: pendingSignatureUrl, setter: setPendingSignatureUrl },
+                  ].map(({ label, hint, icon, url, setter }) => (
+                    <Stack key={label} direction="row" alignItems="center" gap={1.5}>
+                      <Box sx={{ width: 44, height: 44, borderRadius: 1.5, border: '1.5px dashed #e2e8f0', bgcolor: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                        {url ? <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} /> : icon}
+                      </Box>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#1e293b' }}>{label}</Typography>
+                        <Typography sx={{ fontSize: '0.65rem', color: '#94a3b8' }}>{hint}</Typography>
+                      </Box>
+                      <Button size="small" component="label"
+                        sx={{ textTransform: 'none', fontSize: '0.72rem', color: '#475569', border: '1px solid #e2e8f0', px: 1, flexShrink: 0 }}>
+                        {url ? 'Change' : 'Upload'}
+                        <input hidden type="file" accept="image/*" onChange={e => {
+                          if (!e.target.files?.[0]) return;
+                          const reader = new FileReader();
+                          reader.onload = ev => setter(ev.target.result);
+                          reader.readAsDataURL(e.target.files[0]);
+                          e.target.value = '';
+                        }} />
+                      </Button>
+                      {url && <IconButton size="small" onClick={() => setter(null)} sx={{ color: '#f87171', p: 0.25 }}><CancelIcon sx={{ fontSize: 16 }} /></IconButton>}
+                    </Stack>
+                  ))}
+                </Stack>
+              </Box>
+
             </Stack>
           </DialogContent>
           <DialogActions sx={{ px: 2.5, pb: 2 }}>
@@ -3110,79 +3265,57 @@ export default function DocumentMaker() {
       <input ref={frameInputRef}  type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) fillFrameWithPhoto(e.target.files[0]); e.target.value = ''; }} />
       <input ref={svgInputRef}    type="file" accept=".svg,image/svg+xml" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) importSVG(e.target.files[0]); e.target.value = ''; }} />
 
-      {/* Top bar — compact, no dead-weight buttons */}
+      {/* Top bar */}
       <Box sx={{
         bgcolor: '#ffffff', borderBottom: '1px solid #e2e8f0',
-        px: 1, py: 0.75, display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0,
-        boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+        px: 1.5, py: 1.25, display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.07)', minHeight: 56,
       }}>
-        <IconButton onClick={handleBack} size="small" sx={{ color: '#64748b' }}>
-          <HomeIcon sx={{ fontSize: 20 }} />
+        <IconButton onClick={handleBack} sx={{ color: '#64748b', p: 0.75 }}>
+          <HomeIcon sx={{ fontSize: 24 }} />
         </IconButton>
         <Tooltip title="Undo"><span>
-          <IconButton size="small" onClick={undo} disabled={!canUndo} sx={{ color: '#64748b', '&.Mui-disabled': { opacity: 0.3 } }}>
-            <UndoIcon sx={{ fontSize: 18 }} />
+          <IconButton onClick={undo} disabled={!canUndo} sx={{ color: '#64748b', p: 0.75, '&.Mui-disabled': { opacity: 0.3 } }}>
+            <UndoIcon sx={{ fontSize: 22 }} />
           </IconButton>
         </span></Tooltip>
         <Tooltip title="Redo"><span>
-          <IconButton size="small" onClick={redo} disabled={!canRedo} sx={{ color: '#64748b', '&.Mui-disabled': { opacity: 0.3 } }}>
-            <RedoIcon sx={{ fontSize: 18 }} />
+          <IconButton onClick={redo} disabled={!canRedo} sx={{ color: '#64748b', p: 0.75, '&.Mui-disabled': { opacity: 0.3 } }}>
+            <RedoIcon sx={{ fontSize: 22 }} />
           </IconButton>
         </span></Tooltip>
-        <Box sx={{ flex: 1, minWidth: 0, px: 0.5 }}>
-          <Typography sx={{ color: '#1e293b', fontWeight: 600, fontSize: '0.8rem' }} noWrap>
+        <Box sx={{ flex: 1, minWidth: 0, px: 0.75 }}>
+          <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '0.9rem' }} noWrap>
             {currentDT?.label}
           </Typography>
+          {editorMode !== 'single' && (
+            <Typography sx={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 500 }}>
+              {editorMode === 'bulk' ? 'Bulk Carousel' : 'Batch Generate'}{batchStudents.length ? ` · ${batchStudents.length} students` : ''}
+            </Typography>
+          )}
         </Box>
         <Tooltip title="Page Setup">
-          <IconButton size="small" onClick={() => { setTempSetup({ ...(pageSetup || DEFAULT_SETUPS[docType] || DEFAULT_SETUPS.result) }); setPageSetupDialog(true); }} sx={{ color: '#64748b' }}>
-            <TuneIcon sx={{ fontSize: 18 }} />
+          <IconButton onClick={() => { setTempSetup({ ...(pageSetup || DEFAULT_SETUPS[docType] || DEFAULT_SETUPS.result) }); setPageSetupDialog(true); }} sx={{ color: '#64748b', p: 0.75 }}>
+            <TuneIcon sx={{ fontSize: 22 }} />
           </IconButton>
         </Tooltip>
         <Tooltip title="Print">
-          <IconButton size="small" onClick={printDocument} disabled={printing} sx={{ color: '#1a7a4a' }}>
-            {printing ? <CircularProgress size={14} color="inherit" /> : <PrintIcon sx={{ fontSize: 18 }} />}
+          <IconButton onClick={printDocument} disabled={printing} sx={{ color: '#1a7a4a', p: 0.75 }}>
+            {printing ? <CircularProgress size={16} color="inherit" /> : <PrintIcon sx={{ fontSize: 22 }} />}
           </IconButton>
         </Tooltip>
         <Tooltip title="Download PNG">
-          <IconButton size="small" onClick={exportPNG} sx={{ color: '#64748b' }}><DownloadIcon sx={{ fontSize: 18 }} /></IconButton>
+          <IconButton onClick={exportPNG} sx={{ color: '#64748b', p: 0.75 }}><DownloadIcon sx={{ fontSize: 22 }} /></IconButton>
         </Tooltip>
         <Tooltip title="Save Design">
           <IconButton
-            size="small"
             onClick={saveDesign}
             disabled={savingDesign}
-            sx={{ bgcolor: '#d4a017', color: '#fff', borderRadius: 1.5, p: 0.75, '&:hover': { bgcolor: '#b8860b' } }}
+            sx={{ bgcolor: '#d4a017', color: '#fff', borderRadius: 2, p: 1, '&:hover': { bgcolor: '#b8860b' } }}
           >
-            {savingDesign ? <CircularProgress size={14} color="inherit" /> : <CheckIcon fontSize="small" />}
+            {savingDesign ? <CircularProgress size={16} color="inherit" /> : <CheckIcon sx={{ fontSize: 20 }} />}
           </IconButton>
         </Tooltip>
-      </Box>
-
-      {/* ── Template strip — Instagram-story style ─────────── */}
-      <Box sx={{ bgcolor: '#fff', borderBottom: '1px solid #e2e8f0', flexShrink: 0, px: 1.25, py: 0.75 }}>
-        <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
-          {templates.map((tpl, idx) => (
-            <Box key={tpl.id} onClick={() => switchTemplate(idx)} sx={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4, cursor: 'pointer' }}>
-              {/* Mini document preview */}
-              <Box sx={{
-                width: 40, height: 50, borderRadius: 1.5, overflow: 'hidden', position: 'relative',
-                bgcolor: tpl.bg, border: selectedTpl === idx ? '2px solid #d4a017' : '1.5px solid #e2e8f0',
-                boxShadow: selectedTpl === idx ? '0 0 0 2px #d4a01733' : 'none',
-              }}>
-                <Box sx={{ height: 11, bgcolor: tpl.thumb }} />
-                <Box sx={{ px: 0.5, pt: 0.5, display: 'flex', flexDirection: 'column', gap: 0.4 }}>
-                  <Box sx={{ height: 2, bgcolor: 'rgba(0,0,0,0.15)', borderRadius: 1 }} />
-                  <Box sx={{ height: 2, bgcolor: 'rgba(0,0,0,0.1)', borderRadius: 1, width: '70%' }} />
-                  <Box sx={{ height: 2, bgcolor: 'rgba(0,0,0,0.08)', borderRadius: 1, width: '55%' }} />
-                </Box>
-              </Box>
-              <Typography sx={{ fontSize: '0.58rem', color: selectedTpl === idx ? '#d4a017' : '#94a3b8', fontWeight: selectedTpl === idx ? 700 : 400 }}>
-                {tpl.label}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
       </Box>
 
       {/* ── Bulk Carousel Bar ──────────────────────────────── */}
@@ -3929,28 +4062,6 @@ export default function DocumentMaker() {
             {/* ── Tab 5: Export ── */}
             {toolTab === 5 && (
               <Stack spacing={1.75}>
-
-                {/* ── Data Source — always at top ── */}
-                <Box sx={{ p: 1.5, bgcolor: '#f8fafc', borderRadius: 2.5, border: '1.5px solid #e2e8f0' }}>
-                  <Typography sx={{ fontSize: '0.75rem', color: '#475569', mb: 1, fontWeight: 700 }}>Load Students</Typography>
-                  <Select value={selBatch} onChange={e => setSelBatch(e.target.value)} displayEmpty size="small" fullWidth
-                    sx={{ bgcolor: '#fff', fontSize: '0.8rem', mb: 1, '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}>
-                    <MenuItem value=""><em style={{ color: '#94a3b8' }}>Select batch from database…</em></MenuItem>
-                    {batches.map(b => <MenuItem key={b._id || b.Batch_uuid} value={b.name}>{b.name}{b.timing ? ` (${b.timing})` : ''}</MenuItem>)}
-                  </Select>
-                  <Button size="small" component="label" fullWidth variant="outlined"
-                    startIcon={<TableChartIcon sx={{ fontSize: 16 }} />}
-                    sx={{ textTransform: 'none', fontSize: '0.8rem', borderColor: '#10b981', color: '#059669', '&:hover': { bgcolor: '#f0fdf4', borderColor: '#059669' } }}>
-                    {csvFile ? `Re-upload (${csvRows.length} loaded)` : 'Upload CSV / Excel file'}
-                    <input hidden type="file" ref={csvInputRef} accept=".csv,.xlsx,.xls" onChange={e => handleCsvUpload(e.target.files[0])} />
-                  </Button>
-                  {loadingBatch && <CircularProgress size={16} sx={{ mt: 1, color: '#d4a017', display: 'block', mx: 'auto' }} />}
-                  {batchStudents.length > 0 && (
-                    <Typography sx={{ fontSize: '0.72rem', color: '#10b981', mt: 0.75, fontWeight: 600, textAlign: 'center' }}>
-                      {batchStudents.length} students loaded {dataSource === 'csv' ? `from ${csvFile}` : `from batch`}
-                    </Typography>
-                  )}
-                </Box>
 
                 {/* ── Carousel — preview & edit each student ── */}
                 {batchStudents.length > 0 ? (
