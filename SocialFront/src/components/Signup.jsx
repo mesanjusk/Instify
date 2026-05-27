@@ -409,7 +409,7 @@ const Signup = () => {
           <div style={{ textAlign: 'center', marginTop: 28, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
               Already have an account?{' '}
-              <button onClick={() => navigate('/')}
+              <button onClick={() => navigate('/login')}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   fontWeight: 700, color: themeColor, fontFamily: 'inherit',
