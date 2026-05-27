@@ -7,11 +7,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Alert, Box, Button, Card, CardContent, CardMedia, Chip, CircularProgress,
-  Dialog, DialogActions, DialogContent, DialogTitle, IconButton,
-  MenuItem, Select, Slider, Stack, Tab, Tabs, TextField,
-  Tooltip, Typography, InputAdornment, useMediaQuery,
+  Alert, Avatar, Box, Button, Card, CardContent, CardMedia, Chip, CircularProgress,
+  Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel,
+  IconButton, LinearProgress, MenuItem, Paper, Select, Slider, Stack, Switch,
+  Tab, Tabs, TextField, Tooltip, Typography, InputAdornment, useMediaQuery,
 } from '@mui/material';
+import * as XLSX from 'xlsx';
 import BadgeIcon from '@mui/icons-material/Badge';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
 import AssignmentIcon from '@mui/icons-material/Assignment';
@@ -71,6 +72,18 @@ import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import SchoolIcon from '@mui/icons-material/School';
 import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import CancelIcon from '@mui/icons-material/Cancel';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PeopleIcon from '@mui/icons-material/People';
+import BlockIcon from '@mui/icons-material/Block';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import TableChartIcon from '@mui/icons-material/TableChart';
+import GroupsIcon from '@mui/icons-material/Groups';
+import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
 import jsPDF from 'jspdf';
 import JSZip from 'jszip';
 import apiClient from '../apiClient';
@@ -451,6 +464,192 @@ function LayoutPreview({ layout, size = 56 }) {
   );
 }
 
+/* ─── ID Card / Projects constants ────────────────────────────── */
+const ID_STATUS_COLOR = {
+  pending: 'default', not_available: 'error', student_submitted: 'warning', approved: 'success',
+};
+const ID_STATUS_LABEL = {
+  pending: 'Pending', not_available: 'Not Available', student_submitted: 'Submitted', approved: 'Approved',
+};
+
+/* ─── Webcam capture dialog ────────────────────────────────────── */
+function WebcamCapture({ open, onCapture, onClose }) {
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+      .then(stream => { streamRef.current = stream; if (videoRef.current) videoRef.current.srcObject = stream; })
+      .catch(() => {});
+    return () => { streamRef.current?.getTracks().forEach(t => t.stop()); };
+  }, [open]);
+  function capture() {
+    const canvas = canvasRef.current; const video = videoRef.current;
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    canvas.toBlob(blob => { onCapture(blob); onClose(); }, 'image/jpeg', 0.92);
+    streamRef.current?.getTracks().forEach(t => t.stop());
+  }
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>Capture Photo</DialogTitle>
+      <DialogContent sx={{ textAlign: 'center' }}>
+        <video ref={videoRef} autoPlay playsInline style={{ width: '100%', borderRadius: 8, maxHeight: 340, background: '#000' }} />
+        <canvas ref={canvasRef} style={{ display: 'none' }} />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button variant="contained" startIcon={<PhotoCameraIcon />} onClick={capture}>Capture</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+/* ─── Student card in project grid ────────────────────────────── */
+function ProjectStudentCard({ student, onPhotoUpload, onWebcam, onRemoveBg, onStatusChange, onShare, onApprove, onReject, tab }) {
+  const photo = student.use_bg_removed ? student.bg_removed_url : student.photo_url;
+  const displayName = student.student_name_override || student.student_name;
+  const [bgLoading, setBgLoading] = useState(false);
+  async function handleRemoveBg() { setBgLoading(true); await onRemoveBg(student.idcard_uuid); setBgLoading(false); }
+  return (
+    <Box sx={{ border: '1px solid #e2e8f0', borderRadius: 2, p: 1.5, bgcolor: '#fff', display: 'flex', flexDirection: 'column', gap: 1, transition: 'box-shadow 0.15s', '&:hover': { boxShadow: 3 } }}>
+      <Box sx={{ position: 'relative', width: '100%', paddingTop: '100%', borderRadius: 1.5, overflow: 'hidden', bgcolor: '#f1f5f9' }}>
+        {photo ? (
+          <img src={photo} alt={displayName} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <PeopleIcon sx={{ fontSize: 40, color: '#cbd5e1' }} />
+          </Box>
+        )}
+        <Chip label={ID_STATUS_LABEL[student.card_status]} color={ID_STATUS_COLOR[student.card_status]} size="small"
+          sx={{ position: 'absolute', top: 6, right: 6, height: 18, fontSize: '0.6rem' }} />
+      </Box>
+      <Box>
+        <Typography fontWeight={600} fontSize="0.8rem" noWrap>{displayName}</Typography>
+        <Typography variant="caption" color="text.secondary">
+          {student.class_name}{student.section ? ` - ${student.section}` : ''} · Roll {student.roll_number || '—'}
+        </Typography>
+      </Box>
+      {tab === 0 && (
+        <Stack direction="row" flexWrap="wrap" gap={0.5}>
+          <Tooltip title="Upload photo">
+            <IconButton size="small" component="label">
+              <UploadFileIcon fontSize="small" />
+              <input hidden type="file" accept="image/*" onChange={e => onPhotoUpload(student.idcard_uuid, e.target.files[0], 'teacher')} />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Webcam capture">
+            <IconButton size="small" onClick={() => onWebcam(student.idcard_uuid)}><PhotoCameraIcon fontSize="small" /></IconButton>
+          </Tooltip>
+          {photo && (
+            <Tooltip title="Remove background">
+              <IconButton size="small" onClick={handleRemoveBg} disabled={bgLoading}>
+                {bgLoading ? <CircularProgress size={14} /> : <AutoFixHighIcon fontSize="small" />}
+              </IconButton>
+            </Tooltip>
+          )}
+          {photo && student.bg_removed_url && (
+            <Tooltip title={student.use_bg_removed ? 'Using BG removed' : 'Using original'}>
+              <Switch size="small" checked={student.use_bg_removed}
+                onChange={e => onStatusChange(student.idcard_uuid, { use_bg_removed: e.target.checked })} />
+            </Tooltip>
+          )}
+          <Tooltip title="Share link with student">
+            <IconButton size="small" onClick={() => onShare(student.idcard_uuid)} disabled={!photo}><ShareIcon fontSize="small" /></IconButton>
+          </Tooltip>
+          <Tooltip title={student.card_status === 'not_available' ? 'Mark available' : 'Mark not available'}>
+            <IconButton size="small"
+              onClick={() => onStatusChange(student.idcard_uuid, { card_status: student.card_status === 'not_available' ? 'pending' : 'not_available' })}
+              color={student.card_status === 'not_available' ? 'error' : 'default'}>
+              <BlockIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Stack>
+      )}
+      {tab === 1 && student.card_status === 'student_submitted' && (
+        <Stack direction="row" spacing={0.5}>
+          <Button size="small" variant="contained" color="success" startIcon={<CheckCircleIcon />} onClick={() => onApprove(student.idcard_uuid)}>Approve</Button>
+          <Button size="small" variant="outlined" color="error" startIcon={<CancelIcon />} onClick={() => onReject(student.idcard_uuid)}>Reject</Button>
+        </Stack>
+      )}
+    </Box>
+  );
+}
+
+/* ─── Create project dialog ────────────────────────────────────── */
+function CreateProjectDlg({ open, onSave, onClose }) {
+  const [title, setTitle] = useState('');
+  const [year, setYear] = useState(`${new Date().getFullYear()}-${new Date().getFullYear() + 1}`);
+  const [sigUrl, setSigUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
+  async function uploadSig(file) {
+    setUploading(true);
+    const fd = new FormData(); fd.append('image', file);
+    try { const res = await apiClient.post('/api/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } }); setSigUrl(res.data.url || ''); } catch {}
+    setUploading(false);
+  }
+  function handleClose() { setTitle(''); setYear(`${new Date().getFullYear()}-${new Date().getFullYear() + 1}`); setSigUrl(''); onClose(); }
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ fontWeight: 700 }}>Create New Project</DialogTitle>
+      <DialogContent>
+        <Stack spacing={2} sx={{ pt: 1 }}>
+          <TextField label="Project Title *" value={title} onChange={e => setTitle(e.target.value)} size="small" fullWidth placeholder="e.g. 2025-26 Student ID Cards" />
+          <TextField label="Academic Year" value={year} onChange={e => setYear(e.target.value)} size="small" fullWidth />
+          <Box>
+            <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Principal Signature (optional)</Typography>
+            <Button variant="outlined" size="small" component="label" startIcon={uploading ? <CircularProgress size={14} /> : <UploadFileIcon />} disabled={uploading}>
+              {sigUrl ? 'Change Signature' : 'Upload Signature'}
+              <input hidden type="file" accept="image/*" onChange={e => uploadSig(e.target.files[0])} />
+            </Button>
+            {sigUrl && <img src={sigUrl} alt="sig" style={{ height: 40, marginLeft: 12, verticalAlign: 'middle', objectFit: 'contain' }} />}
+          </Box>
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose}>Cancel</Button>
+        <Button variant="contained" disabled={!title} onClick={() => onSave({ title, academic_year: year, principal_signature_url: sigUrl })}>Create</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+/* ─── Add single student dialog ────────────────────────────────── */
+function AddStudentDlg({ open, onSave, onClose }) {
+  const [form, setForm] = useState({ student_name: '', class_name: '', section: '', roll_number: '' });
+  function handleClose() { setForm({ student_name: '', class_name: '', section: '', roll_number: '' }); onClose(); }
+  return (
+    <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ fontWeight: 700 }}>Add Student</DialogTitle>
+      <DialogContent>
+        <Stack spacing={2} sx={{ pt: 1 }}>
+          <TextField label="Student Name *" value={form.student_name} onChange={e => setForm(f => ({ ...f, student_name: e.target.value }))} size="small" fullWidth />
+          <Stack direction="row" spacing={1.5}>
+            <TextField label="Class *" value={form.class_name} onChange={e => setForm(f => ({ ...f, class_name: e.target.value }))} size="small" fullWidth />
+            <TextField label="Section" value={form.section} onChange={e => setForm(f => ({ ...f, section: e.target.value }))} size="small" fullWidth />
+          </Stack>
+          <TextField label="Roll Number" value={form.roll_number} onChange={e => setForm(f => ({ ...f, roll_number: e.target.value }))} size="small" fullWidth />
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose}>Cancel</Button>
+        <Button variant="contained" disabled={!form.student_name || !form.class_name} onClick={() => onSave(form)}>Add</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+/* ─── Stat pill ─────────────────────────────────────────────────── */
+function StatPill({ label, value, color = 'text.primary', bg = '#f8fafc' }) {
+  return (
+    <Box sx={{ bgcolor: bg, borderRadius: 2, px: 2, py: 1, minWidth: 72, textAlign: 'center', border: '1px solid #e2e8f0' }}>
+      <Typography fontWeight={700} color={color} fontSize="1rem">{value}</Typography>
+      <Typography variant="caption" color="text.secondary">{label}</Typography>
+    </Box>
+  );
+}
+
 /* ─── Main component ──────────────────────────────────────────── */
 export default function DocumentMaker() {
   const navigate = useNavigate();
@@ -543,6 +742,27 @@ export default function DocumentMaker() {
   const csvInputRef = useRef(null);
   const [customPh,      setCustomPh]      = useState('');
 
+  // ── Projects / student management state ───────────────────────
+  const [projects,          setProjects]          = useState([]);
+  const [selectedProject,   setSelectedProject]   = useState(null);
+  const [projectStudents,   setProjectStudents]   = useState([]);
+  const [projectTab,        setProjectTab]        = useState(0);
+  const [classFilter,       setClassFilter]       = useState('');
+  const [projectClasses,    setProjectClasses]    = useState([]);
+  const [projectsLoading,   setProjectsLoading]   = useState(false);
+  const [projStudLoading,   setProjStudLoading]   = useState(false);
+  const [createProjDlg,     setCreateProjDlg]     = useState(false);
+  const [addStudentDlg,     setAddStudentDlg]     = useState(false);
+  const [bulkPhotoDlg,      setBulkPhotoDlg]      = useState(false);
+  const [excelImportDlg,    setExcelImportDlg]    = useState(false);
+  const [webcamTarget,      setWebcamTarget]      = useState(null);
+  const [magicLinkDlg,      setMagicLinkDlg]      = useState(null);
+  const [bulkClass,         setBulkClass]         = useState('');
+  const [bulkUploading,     setBulkUploading]     = useState(false);
+  const [excelImportRows,   setExcelImportRows]   = useState([]);
+  const [excelPreview,      setExcelPreview]      = useState([]);
+  const [importing,         setImporting]         = useState(false);
+
   // Layout management
   const [layoutDialog,   setLayoutDialog]   = useState(false);
   const [editingLayout,  setEditingLayout]  = useState(null);
@@ -552,6 +772,146 @@ export default function DocumentMaker() {
   const [explorePage,    setExplorePage]    = useState(0);
 
   function showAlert(type, text) { setAlert({ type, text }); setTimeout(() => setAlert(null), 4000); }
+
+  // ── Project management helpers ─────────────────────────────────
+  async function loadProjects() {
+    setProjectsLoading(true);
+    try {
+      const res = await apiClient.get(`/api/idcard/projects?institute_uuid=${instituteId}`);
+      setProjects(res.data.result || []);
+    } catch { showAlert('error', 'Failed to load projects'); }
+    finally { setProjectsLoading(false); }
+  }
+
+  async function loadProjectStudents(projectUuid, cls = classFilter) {
+    setProjStudLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (cls) params.set('class_name', cls);
+      const tabStatus = projectTab === 1 ? 'student_submitted' : projectTab === 2 ? 'approved' : '';
+      if (tabStatus) params.set('card_status', tabStatus);
+      const res = await apiClient.get(`/api/idcard/projects/${projectUuid}/students?${params}`);
+      const list = res.data.result || [];
+      setProjectStudents(list);
+      const unique = [...new Set(list.map(s => s.class_name).filter(Boolean))].sort();
+      if (!cls) setProjectClasses(unique);
+    } catch { showAlert('error', 'Failed to load students'); }
+    finally { setProjStudLoading(false); }
+  }
+
+  async function createNewProject(data) {
+    try {
+      const loginUsername = localStorage.getItem('login_username') || 'admin';
+      const res = await apiClient.post('/api/idcard/projects', { ...data, institute_uuid: instituteId, createdBy: loginUsername });
+      setCreateProjDlg(false);
+      showAlert('success', 'Project created!');
+      setProjects(p => [res.data.result, ...p]);
+    } catch (err) { showAlert('error', err.response?.data?.message || 'Failed to create project'); }
+  }
+
+  async function addStudentToProject(data) {
+    try {
+      await apiClient.post(`/api/idcard/projects/${selectedProject.project_uuid}/students`, { students: [data] });
+      setAddStudentDlg(false);
+      showAlert('success', 'Student added!');
+      loadProjectStudents(selectedProject.project_uuid);
+    } catch (err) { showAlert('error', err.response?.data?.message || 'Failed'); }
+  }
+
+  function parseExcelForImport(file) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      setExcelImportRows(rows);
+      setExcelPreview(rows.slice(0, 5));
+      setExcelImportDlg(true);
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  async function importStudentsFromExcel() {
+    setImporting(true);
+    try {
+      const res = await apiClient.post(`/api/idcard/projects/${selectedProject.project_uuid}/students`, { students: excelImportRows });
+      setExcelImportDlg(false);
+      setExcelImportRows([]);
+      showAlert('success', `Imported ${res.data.count} students!`);
+      loadProjectStudents(selectedProject.project_uuid);
+    } catch (err) { showAlert('error', err.response?.data?.message || 'Import failed'); }
+    finally { setImporting(false); }
+  }
+
+  async function uploadStudentPhoto(idcardUuid, file, source = 'teacher') {
+    if (!file) return;
+    const fd = new FormData(); fd.append('photo', file); fd.append('source', source);
+    try {
+      await apiClient.post(`/api/idcard/students/${idcardUuid}/photo`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      showAlert('success', 'Photo updated');
+      loadProjectStudents(selectedProject.project_uuid);
+    } catch { showAlert('error', 'Photo upload failed'); }
+  }
+
+  async function handleWebcamCapture(blob) {
+    if (!webcamTarget) return;
+    const file = new File([blob], 'webcam.jpg', { type: 'image/jpeg' });
+    await uploadStudentPhoto(webcamTarget, file, 'webcam');
+    setWebcamTarget(null);
+  }
+
+  async function bulkUploadPhotos(files) {
+    setBulkUploading(true);
+    const fd = new FormData();
+    Array.from(files).forEach(f => fd.append('photos', f));
+    if (bulkClass) fd.append('class_name', bulkClass);
+    try {
+      const res = await apiClient.post(`/api/idcard/projects/${selectedProject.project_uuid}/photos`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setBulkPhotoDlg(false);
+      showAlert('success', `Matched ${res.data.matched} / ${res.data.matched + res.data.unmatched} photos`);
+      loadProjectStudents(selectedProject.project_uuid);
+    } catch { showAlert('error', 'Bulk upload failed'); }
+    finally { setBulkUploading(false); }
+  }
+
+  async function removeStudentBg(idcardUuid) {
+    try {
+      const res = await apiClient.post(`/api/idcard/students/${idcardUuid}/remove-bg`);
+      showAlert('success', 'Background removed!');
+      setProjectStudents(p => p.map(s => s.idcard_uuid === idcardUuid ? { ...s, bg_removed_url: res.data.bg_removed_url, use_bg_removed: true } : s));
+    } catch (err) { showAlert('error', err.response?.data?.message || 'BG removal failed'); }
+  }
+
+  async function updateStudentStatus(idcardUuid, update) {
+    try {
+      await apiClient.put(`/api/idcard/students/${idcardUuid}/status`, update);
+      setProjectStudents(p => p.map(s => s.idcard_uuid === idcardUuid ? { ...s, ...update } : s));
+    } catch { showAlert('error', 'Update failed'); }
+  }
+
+  async function generateMagicLink(idcardUuid) {
+    try {
+      const res = await apiClient.post(`/api/idcard/students/${idcardUuid}/magic-link`);
+      setMagicLinkDlg({ link: res.data.link });
+    } catch { showAlert('error', 'Failed to generate link'); }
+  }
+
+  async function approveStudentCard(idcardUuid) {
+    try {
+      const loginUsername = localStorage.getItem('login_username') || 'admin';
+      await apiClient.put(`/api/idcard/students/${idcardUuid}/approve`, { approved_by: loginUsername });
+      showAlert('success', 'Approved!');
+      loadProjectStudents(selectedProject.project_uuid);
+    } catch { showAlert('error', 'Approve failed'); }
+  }
+
+  async function rejectStudentCard(idcardUuid) {
+    try {
+      await apiClient.put(`/api/idcard/students/${idcardUuid}/reject`);
+      showAlert('success', 'Sent back for revision');
+      loadProjectStudents(selectedProject.project_uuid);
+    } catch { showAlert('error', 'Reject failed'); }
+  }
 
   function zoomIn()  { setUserZoom(prev => Math.min(4, +(prev + 0.25).toFixed(2))); }
   function zoomOut() { setUserZoom(prev => Math.max(0.25, +(prev - 0.25).toFixed(2))); }
@@ -1490,6 +1850,16 @@ export default function DocumentMaker() {
   }, []);
 
   useEffect(() => {
+    if (view === 'projects' && projects.length === 0) loadProjects();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
+
+  useEffect(() => {
+    if (selectedProject) loadProjectStudents(selectedProject.project_uuid, classFilter);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedProject, classFilter, projectTab]);
+
+  useEffect(() => {
     if (!selBatch) { setBatchStudents([]); return; }
     setLoadingBatch(true);
     apiClient.get(`/api/students?batch=${selBatch}&institute_uuid=${localStorage.getItem('institute_uuid')}`)
@@ -1520,6 +1890,343 @@ export default function DocumentMaker() {
   const recentDesigns = DOC_TYPES.flatMap(dt =>
     (TEMPLATES[dt.key] || []).slice(0, 2).map((tpl, i) => ({ dt, tpl, key: `${dt.key}-${i}` }))
   );
+
+  /* ════════════════════════════════════════════════════════════
+     PROJECTS VIEW
+  ════════════════════════════════════════════════════════════ */
+  if (view === 'projects') {
+    const photoReady    = projectStudents.filter(s => s.photo_url).length;
+    const missing       = projectStudents.filter(s => !s.photo_url && s.card_status !== 'not_available').length;
+    const approved      = projectStudents.filter(s => s.card_status === 'approved').length;
+    const submitted     = projectStudents.filter(s => s.card_status === 'student_submitted').length;
+    const notAvailable  = projectStudents.filter(s => s.card_status === 'not_available').length;
+    const filteredStudents = projectTab === 1
+      ? projectStudents.filter(s => s.card_status === 'student_submitted')
+      : projectTab === 2 ? projectStudents.filter(s => s.card_status === 'approved')
+      : projectStudents;
+
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#f5f7fa', overflow: 'hidden' }}>
+        {/* Header */}
+        <Box sx={{ px: 2, py: 1.5, bgcolor: '#fff', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 1.5, flexShrink: 0 }}>
+          <IconButton size="small" onClick={() => { setSelectedProject(null); setProjectStudents([]); setProjectClasses([]); setClassFilter(''); setProjectTab(0); setView('home'); }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Box flex={1}>
+            <Typography fontWeight={700} fontSize="1rem" color="#1e293b">
+              {selectedProject ? selectedProject.title : 'Projects'}
+            </Typography>
+            {selectedProject && (
+              <Typography variant="caption" color="text.secondary">{selectedProject.academic_year} · {projectStudents.length} students</Typography>
+            )}
+          </Box>
+          {!selectedProject && (
+            <Button variant="contained" size="small" startIcon={<AddCircleOutlineIcon />} onClick={() => setCreateProjDlg(true)}
+              sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' }, textTransform: 'none' }}>
+              New Project
+            </Button>
+          )}
+          {selectedProject && (
+            <Button variant="outlined" size="small" startIcon={<PrintIcon />}
+              onClick={() => navigate(`/${username}/idcard/${selectedProject.project_uuid}/print`)}
+              sx={{ textTransform: 'none' }}>
+              Print
+            </Button>
+          )}
+        </Box>
+
+        {/* Alert */}
+        {alert && <Alert severity={alert.type} sx={{ mx: 2, mt: 1, flexShrink: 0 }} onClose={() => setAlert(null)}>{alert.text}</Alert>}
+
+        <Box sx={{ flex: 1, overflowY: 'auto', p: 2 }}>
+          {/* ── Project list ── */}
+          {!selectedProject && (
+            <>
+              {/* Description */}
+              <Box sx={{ mb: 2.5, p: 2, borderRadius: 2, background: 'linear-gradient(135deg, #064e3b 0%, #059669 100%)', color: '#fff' }}>
+                <Typography fontWeight={700} fontSize="0.97rem" mb={0.5}>Student Data Manager</Typography>
+                <Typography fontSize="0.78rem" sx={{ opacity: 0.85 }}>
+                  Create projects to manage student photos, import data, collect self-submitted photos, and generate ID cards, certificates, results &amp; admit cards.
+                </Typography>
+              </Box>
+
+              {/* Quick action cards */}
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5, mb: 3 }}>
+                {[
+                  { key: 'single', icon: <PersonAddIcon sx={{ fontSize: 26 }} />, title: 'Single Entry', desc: 'Add one student manually', color: '#0ea5e9', bg: '#e0f2fe' },
+                  { key: 'bulk',   icon: <PhotoLibraryIcon sx={{ fontSize: 26 }} />, title: 'Bulk Photos', desc: 'Upload multiple photos at once', color: '#8b5cf6', bg: '#ede9fe' },
+                  { key: 'excel',  icon: <TableChartIcon sx={{ fontSize: 26 }} />, title: 'Excel / CSV', desc: 'Import from a spreadsheet', color: '#10b981', bg: '#d1fae5' },
+                  { key: 'batch',  icon: <GroupsIcon sx={{ fontSize: 26 }} />, title: 'Class / Batch', desc: 'Filter and manage by class', color: '#f59e0b', bg: '#fef3c7' },
+                ].map(m => (
+                  <Paper key={m.key} variant="outlined" onClick={() => {
+                    if (!selectedProject) { showAlert('info', 'Open or create a project first.'); return; }
+                    if (m.key === 'single') setAddStudentDlg(true);
+                    else if (m.key === 'bulk') setBulkPhotoDlg(true);
+                    else if (m.key === 'excel') document.getElementById('excel-proj-input')?.click();
+                  }}
+                    sx={{ borderRadius: 2, overflow: 'hidden', cursor: 'pointer', border: '1.5px solid #e2e8f0', '&:hover': { boxShadow: `0 4px 12px ${m.color}33`, borderColor: m.color, transform: 'translateY(-1px)' }, transition: 'all 0.15s' }}>
+                    <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 1.25, bgcolor: m.bg }}>
+                      <Avatar sx={{ bgcolor: m.color, width: 38, height: 38, color: '#fff' }}>{m.icon}</Avatar>
+                      <Box>
+                        <Typography fontWeight={700} fontSize="0.82rem" color={m.color}>{m.title}</Typography>
+                        <Typography variant="caption" color="text.secondary">{m.desc}</Typography>
+                      </Box>
+                    </Box>
+                  </Paper>
+                ))}
+              </Box>
+              <input id="excel-proj-input" hidden type="file" accept=".xlsx,.xls,.csv" onChange={e => { if (!selectedProject) return; parseExcelForImport(e.target.files[0]); }} />
+
+              {/* Projects list */}
+              <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1.5}>
+                <Typography fontWeight={700} fontSize="0.95rem">My Projects</Typography>
+                <Chip label={`${projects.length} project${projects.length !== 1 ? 's' : ''}`} size="small" variant="outlined" />
+              </Stack>
+              {projectsLoading ? (
+                <Box textAlign="center" py={5}><CircularProgress /></Box>
+              ) : projects.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 6, border: '2px dashed #e2e8f0', borderRadius: 3 }}>
+                  <BadgeIcon sx={{ fontSize: 44, color: '#cbd5e1', mb: 1 }} />
+                  <Typography color="text.secondary" mb={2} fontSize="0.875rem">No projects yet. Create your first project to get started.</Typography>
+                  <Button variant="contained" size="small" startIcon={<AddCircleOutlineIcon />} onClick={() => setCreateProjDlg(true)}
+                    sx={{ bgcolor: '#059669', '&:hover': { bgcolor: '#047857' }, textTransform: 'none' }}>
+                    Create Project
+                  </Button>
+                </Box>
+              ) : (
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)' }, gap: 1.5 }}>
+                  {projects.map(p => (
+                    <Paper key={p.project_uuid} variant="outlined"
+                      sx={{ borderRadius: 2, overflow: 'hidden', cursor: 'pointer', transition: 'all 0.15s', '&:hover': { boxShadow: 3, borderColor: '#059669' } }}
+                      onClick={() => { setSelectedProject(p); setProjectTab(0); setClassFilter(''); }}>
+                      <Box sx={{ height: 4, background: p.status === 'active' ? 'linear-gradient(90deg,#059669,#34d399)' : '#e2e8f0' }} />
+                      <Box sx={{ p: 2 }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={0.75}>
+                          <Box flex={1} mr={1}>
+                            <Typography fontWeight={700} fontSize="0.9rem">{p.title}</Typography>
+                            <Typography variant="caption" color="text.secondary">{p.academic_year}</Typography>
+                          </Box>
+                          <Chip size="small" label={p.status === 'active' ? 'Active' : 'Done'} color={p.status === 'active' ? 'success' : 'default'} />
+                        </Stack>
+                        <Stack direction="row" justifyContent="flex-end" alignItems="center" spacing={0.5} color="primary.main">
+                          <Typography variant="caption" fontWeight={600}>Open</Typography>
+                          <ChevronRightIcon sx={{ fontSize: 13 }} />
+                        </Stack>
+                      </Box>
+                    </Paper>
+                  ))}
+                </Box>
+              )}
+            </>
+          )}
+
+          {/* ── Project detail ── */}
+          {selectedProject && (
+            <>
+              {/* Back to list */}
+              <Button size="small" startIcon={<ArrowBackIcon />} onClick={() => { setSelectedProject(null); setProjectStudents([]); setProjectClasses([]); setClassFilter(''); setProjectTab(0); }}
+                sx={{ textTransform: 'none', color: '#64748b', mb: 2 }}>
+                All Projects
+              </Button>
+
+              {/* Action cards */}
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.25, mb: 2.5 }}>
+                <Paper variant="outlined" onClick={() => setAddStudentDlg(true)}
+                  sx={{ borderRadius: 2, p: 1.5, cursor: 'pointer', bgcolor: '#f0f9ff', border: '1.5px solid #e0f2fe', '&:hover': { boxShadow: 2, borderColor: '#0ea5e9' } }}>
+                  <Stack direction="row" alignItems="center" spacing={1.25}>
+                    <Avatar sx={{ bgcolor: '#0ea5e9', width: 32, height: 32 }}><PersonAddIcon sx={{ fontSize: 16 }} /></Avatar>
+                    <Box><Typography fontWeight={700} fontSize="0.78rem" color="#0369a1">Single Card</Typography><Typography variant="caption" color="text.secondary">Add one student</Typography></Box>
+                  </Stack>
+                </Paper>
+                <Paper variant="outlined" onClick={() => setBulkPhotoDlg(true)}
+                  sx={{ borderRadius: 2, p: 1.5, cursor: 'pointer', bgcolor: '#faf5ff', border: '1.5px solid #ede9fe', '&:hover': { boxShadow: 2, borderColor: '#8b5cf6' } }}>
+                  <Stack direction="row" alignItems="center" spacing={1.25}>
+                    <Avatar sx={{ bgcolor: '#8b5cf6', width: 32, height: 32 }}><PhotoLibraryIcon sx={{ fontSize: 16 }} /></Avatar>
+                    <Box><Typography fontWeight={700} fontSize="0.78rem" color="#6d28d9">Bulk Photos</Typography><Typography variant="caption" color="text.secondary">Upload all at once</Typography></Box>
+                  </Stack>
+                </Paper>
+                <Paper variant="outlined" component="label"
+                  sx={{ borderRadius: 2, p: 1.5, cursor: 'pointer', bgcolor: '#f0fdf4', border: '1.5px solid #d1fae5', '&:hover': { boxShadow: 2, borderColor: '#10b981' } }}>
+                  <input hidden type="file" accept=".xlsx,.xls,.csv" onChange={e => parseExcelForImport(e.target.files[0])} />
+                  <Stack direction="row" alignItems="center" spacing={1.25}>
+                    <Avatar sx={{ bgcolor: '#10b981', width: 32, height: 32 }}><TableChartIcon sx={{ fontSize: 16 }} /></Avatar>
+                    <Box><Typography fontWeight={700} fontSize="0.78rem" color="#065f46">Excel / CSV</Typography><Typography variant="caption" color="text.secondary">Import from file</Typography></Box>
+                  </Stack>
+                </Paper>
+                <Paper variant="outlined" onClick={() => navigate(`/${username}/idcard/${selectedProject.project_uuid}/print`)}
+                  sx={{ borderRadius: 2, p: 1.5, cursor: 'pointer', bgcolor: '#fffbeb', border: '1.5px solid #fef3c7', '&:hover': { boxShadow: 2, borderColor: '#f59e0b' } }}>
+                  <Stack direction="row" alignItems="center" spacing={1.25}>
+                    <Avatar sx={{ bgcolor: '#f59e0b', width: 32, height: 32 }}><PrintIcon sx={{ fontSize: 16 }} /></Avatar>
+                    <Box><Typography fontWeight={700} fontSize="0.78rem" color="#92400e">Print Cards</Typography><Typography variant="caption" color="text.secondary">Print / export PDF</Typography></Box>
+                  </Stack>
+                </Paper>
+              </Box>
+
+              {/* Stats */}
+              <Stack direction="row" spacing={1} mb={2} flexWrap="wrap" useFlexGap>
+                <StatPill label="Total" value={projectStudents.length} />
+                <StatPill label="Photo" value={photoReady} color="success.main" bg="#f0fdf4" />
+                <StatPill label="Missing" value={missing} color="error.main" bg="#fef2f2" />
+                <StatPill label="Submitted" value={submitted} color="warning.main" bg="#fffbeb" />
+                <StatPill label="Approved" value={approved} color="primary.main" bg="#eff6ff" />
+              </Stack>
+
+              {/* Photo progress */}
+              {projectStudents.length > 0 && (
+                <Box mb={2}>
+                  <Stack direction="row" justifyContent="space-between" mb={0.5}>
+                    <Typography variant="caption" color="text.secondary">Photo completion</Typography>
+                    <Typography variant="caption" fontWeight={600} color="success.main">{Math.round((photoReady / projectStudents.length) * 100)}%</Typography>
+                  </Stack>
+                  <LinearProgress variant="determinate" value={(photoReady / projectStudents.length) * 100} sx={{ height: 5, borderRadius: 3, bgcolor: '#e2e8f0' }} color="success" />
+                </Box>
+              )}
+
+              {/* Tabs */}
+              <Tabs value={projectTab} onChange={(_, v) => setProjectTab(v)} sx={{ mb: 1.5, borderBottom: '1px solid #e2e8f0' }}>
+                <Tab label={`All (${projectStudents.length})`} sx={{ fontSize: '0.78rem', textTransform: 'none' }} />
+                <Tab label={submitted > 0 ? `Approvals (${submitted})` : 'Approvals'} sx={{ fontSize: '0.78rem', textTransform: 'none' }} />
+                <Tab label={approved > 0 ? `Print Ready (${approved})` : 'Print Ready'} sx={{ fontSize: '0.78rem', textTransform: 'none' }} />
+              </Tabs>
+
+              {/* Class filter */}
+              {projectClasses.length > 0 && (
+                <Box mb={1.5}>
+                  <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap alignItems="center">
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                      <FilterListIcon sx={{ fontSize: 12, mr: 0.25, verticalAlign: 'middle' }} />Class:
+                    </Typography>
+                    <Chip label="All" onClick={() => setClassFilter('')} color={!classFilter ? 'primary' : 'default'} variant={!classFilter ? 'filled' : 'outlined'} size="small" />
+                    {projectClasses.map(c => (
+                      <Chip key={c} label={c} onClick={() => setClassFilter(c === classFilter ? '' : c)} color={classFilter === c ? 'primary' : 'default'} variant={classFilter === c ? 'filled' : 'outlined'} size="small" />
+                    ))}
+                  </Stack>
+                </Box>
+              )}
+
+              {/* Student grid */}
+              {projStudLoading ? (
+                <Box textAlign="center" py={5}><CircularProgress /></Box>
+              ) : filteredStudents.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 6, border: '2px dashed #e2e8f0', borderRadius: 3 }}>
+                  <PeopleIcon sx={{ fontSize: 44, color: '#cbd5e1', mb: 1 }} />
+                  <Typography color="text.secondary" fontSize="0.875rem" mb={1.5}>
+                    {projectTab === 1 ? 'No pending approvals.' : projectTab === 2 ? 'No approved cards yet.' : 'No students yet. Use the options above to add students.'}
+                  </Typography>
+                  {projectTab === 0 && (
+                    <Stack direction="row" spacing={1.5} justifyContent="center">
+                      <Button size="small" variant="outlined" startIcon={<PersonAddIcon />} onClick={() => setAddStudentDlg(true)} sx={{ textTransform: 'none' }}>Add Single</Button>
+                      <Button size="small" variant="outlined" component="label" startIcon={<TableChartIcon />} sx={{ textTransform: 'none' }}>
+                        Import Excel<input hidden type="file" accept=".xlsx,.xls,.csv" onChange={e => parseExcelForImport(e.target.files[0])} />
+                      </Button>
+                    </Stack>
+                  )}
+                </Box>
+              ) : (
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.25 }}>
+                  {filteredStudents.map(s => (
+                    <ProjectStudentCard key={s.idcard_uuid} student={s} tab={projectTab}
+                      onPhotoUpload={uploadStudentPhoto} onWebcam={uuid => setWebcamTarget(uuid)}
+                      onRemoveBg={removeStudentBg} onStatusChange={updateStudentStatus}
+                      onShare={generateMagicLink} onApprove={approveStudentCard} onReject={rejectStudentCard} />
+                  ))}
+                </Box>
+              )}
+            </>
+          )}
+        </Box>
+
+        {/* Dialogs */}
+        <CreateProjectDlg open={createProjDlg} onSave={createNewProject} onClose={() => setCreateProjDlg(false)} />
+        <AddStudentDlg open={addStudentDlg} onSave={addStudentToProject} onClose={() => setAddStudentDlg(false)} />
+        <WebcamCapture open={!!webcamTarget} onCapture={handleWebcamCapture} onClose={() => setWebcamTarget(null)} />
+
+        {/* Bulk photo dialog */}
+        <Dialog open={bulkPhotoDlg} onClose={() => setBulkPhotoDlg(false)} maxWidth="xs" fullWidth>
+          <DialogTitle sx={{ fontWeight: 700 }}>Bulk Photo Upload</DialogTitle>
+          <DialogContent>
+            <Stack spacing={2} sx={{ pt: 1 }}>
+              <Alert severity="info" sx={{ fontSize: '0.78rem' }}>
+                Photos are auto-matched by filename = roll number (e.g. <strong>01.jpg</strong>). Upload one class at a time for best results.
+              </Alert>
+              {projectClasses.length > 0 && (
+                <Box>
+                  <Typography variant="caption" color="text.secondary" display="block" mb={0.5}>Filter by Class (optional)</Typography>
+                  <Select value={bulkClass} onChange={e => setBulkClass(e.target.value)} size="small" displayEmpty fullWidth>
+                    <MenuItem value="">All Classes</MenuItem>
+                    {projectClasses.map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                  </Select>
+                </Box>
+              )}
+              <Button variant="outlined" component="label" startIcon={bulkUploading ? <CircularProgress size={16} /> : <UploadFileIcon />} disabled={bulkUploading} size="large" sx={{ textTransform: 'none' }}>
+                {bulkUploading ? 'Uploading…' : 'Select Photos'}
+                <input hidden type="file" accept="image/*" multiple onChange={e => bulkUploadPhotos(e.target.files)} />
+              </Button>
+            </Stack>
+          </DialogContent>
+          <DialogActions><Button onClick={() => setBulkPhotoDlg(false)}>Close</Button></DialogActions>
+        </Dialog>
+
+        {/* Excel import preview dialog */}
+        <Dialog open={excelImportDlg} onClose={() => setExcelImportDlg(false)} maxWidth="md" fullWidth>
+          <DialogTitle sx={{ fontWeight: 700 }}>
+            Import Students — Preview
+            <Chip label={`${excelImportRows.length} rows`} size="small" sx={{ ml: 1.5 }} color="primary" />
+          </DialogTitle>
+          <DialogContent>
+            <Alert severity="info" sx={{ mb: 2, fontSize: '0.78rem' }}>
+              Columns auto-detected: <strong>student_name, roll_number, class, section</strong>. All other columns are stored as extra fields.
+            </Alert>
+            {excelPreview.length > 0 && (
+              <Box sx={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: 1 }}>
+                <table style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
+                  <thead>
+                    <tr style={{ background: '#f1f5f9' }}>
+                      {Object.keys(excelPreview[0]).map(k => <th key={k} style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid #e2e8f0', fontWeight: 600 }}>{k}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {excelPreview.map((row, i) => (
+                      <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                        {Object.values(row).map((v, j) => <td key={j} style={{ padding: '6px 12px', borderBottom: '1px solid #f1f5f9' }}>{String(v)}</td>)}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {excelImportRows.length > 5 && (
+                  <Box sx={{ px: 2, py: 1, bgcolor: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+                    <Typography variant="caption" color="text.secondary">…and {excelImportRows.length - 5} more rows</Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setExcelImportDlg(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
+            <Button variant="contained" onClick={importStudentsFromExcel} disabled={importing}
+              startIcon={importing ? <CircularProgress size={16} /> : <DownloadIcon />} sx={{ textTransform: 'none' }}>
+              {importing ? 'Importing…' : `Import ${excelImportRows.length} Students`}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Magic link dialog */}
+        <Dialog open={!!magicLinkDlg} onClose={() => setMagicLinkDlg(null)} maxWidth="xs" fullWidth>
+          <DialogTitle sx={{ fontWeight: 700 }}>Student Self-Edit Link</DialogTitle>
+          <DialogContent>
+            <Alert severity="success" sx={{ mb: 2 }}>Share this with the student so they can upload their own photo.</Alert>
+            <Box sx={{ bgcolor: '#f8fafc', borderRadius: 1, p: 1.5, wordBreak: 'break-all', fontSize: '0.8rem', border: '1px solid #e2e8f0' }}>
+              {magicLinkDlg?.link}
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button startIcon={<ContentCopyIcon />} onClick={() => { navigator.clipboard.writeText(magicLinkDlg?.link); showAlert('success', 'Copied!'); }} sx={{ textTransform: 'none' }}>Copy</Button>
+            <Button onClick={() => setMagicLinkDlg(null)} sx={{ textTransform: 'none' }}>Close</Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
+    );
+  }
 
   /* ════════════════════════════════════════════════════════════
      HOME VIEW
@@ -1710,11 +2417,11 @@ export default function DocumentMaker() {
             </Box>
           )}
 
-          {/* ID Photo Manager entry point */}
+          {/* Student Data Manager entry point */}
           {homeNav === 0 && (
             <Box sx={{ px: 2, pb: 2 }}>
               <Box
-                onClick={() => navigate(`/${username}/idcard`)}
+                onClick={() => { setSelectedProject(null); setProjectStudents([]); setProjectClasses([]); setClassFilter(''); setProjectTab(0); setView('projects'); }}
                 sx={{
                   borderRadius: 2.5, p: 1.75, cursor: 'pointer',
                   border: '1.5px solid #ede9fe',
@@ -1728,8 +2435,8 @@ export default function DocumentMaker() {
                   <BadgeOutlinedIcon sx={{ color: '#7c3aed', fontSize: 22 }} />
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>ID Photo Manager</Typography>
-                  <Typography sx={{ fontSize: '0.7rem', color: '#64748b', mt: 0.2 }}>Collect & approve student photos · print</Typography>
+                  <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>Student Data Manager</Typography>
+                  <Typography sx={{ fontSize: '0.7rem', color: '#64748b', mt: 0.2 }}>Import students · collect photos · approve · print</Typography>
                 </Box>
                 <ArrowForwardIosIcon sx={{ fontSize: 13, color: '#94a3b8', flexShrink: 0 }} />
               </Box>
@@ -1929,7 +2636,7 @@ export default function DocumentMaker() {
           <HomeNavItem icon={<AddCircleOutlineIcon fontSize="small" />} label="Create"       active={homeNav === 0} onClick={() => setHomeNav(0)} />
           <HomeNavItem icon={<FolderOpenIcon fontSize="small" />}       label="Your Designs" active={homeNav === 1} onClick={() => setHomeNav(1)} />
           <HomeNavItem icon={<ViewModuleIcon fontSize="small" />}       label="Templates"    active={homeNav === 2} onClick={() => setHomeNav(2)} />
-          <HomeNavItem icon={<AppsIcon fontSize="small" />}             label="More"         active={homeNav === 3} onClick={() => setHomeNav(3)} />
+          <HomeNavItem icon={<PeopleIcon fontSize="small" />}           label="Projects"     active={false}        onClick={() => { setSelectedProject(null); setProjectStudents([]); setProjectClasses([]); setClassFilter(''); setProjectTab(0); setView('projects'); }} />
         </Box>
       </Box>
     );

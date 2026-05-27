@@ -66,7 +66,6 @@ const ProfitLoss = lazy(() => import('./pages/ProfitLoss'));
 const FunnelReport = lazy(() => import('./pages/FunnelReport'));
 const Forms = lazy(() => import('./pages/Forms'));
 const FormResponses = lazy(() => import('./pages/FormResponses'));
-const IDCardManager = lazy(() => import('./pages/IDCardManager'));
 const IDCardStudentSelfEdit = lazy(() => import('./pages/IDCardStudentSelfEdit'));
 const IDCardPrint = lazy(() => import('./pages/IDCardPrint'));
 
@@ -199,7 +198,7 @@ export default function App() {
         <Route path="funnel-report" element={<FeatureGate module="funnel"><FunnelReport /></FeatureGate>} />
         <Route path="forms" element={<FeatureGate module="forms"><Forms /></FeatureGate>} />
         <Route path="forms/:formId/responses" element={<FeatureGate module="forms"><FormResponses /></FeatureGate>} />
-        <Route path="idcard" element={<FeatureGate module="idcard"><IDCardManager /></FeatureGate>} />
+        <Route path="idcard" element={<RedirectToSection section="canvas" />} />
         <Route path="idcard/:projectUuid/print" element={<IDCardPrint />} />
         {/* Legacy redirects → section routes */}
         <Route path="whatsapp-personal" element={<RedirectToSection section="whatsapp" />} />
