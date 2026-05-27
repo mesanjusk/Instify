@@ -729,6 +729,7 @@ export default function DocumentMaker() {
   const pageSetupRef     = useRef(null);
   const suppressDirtyRef = useRef(false);
   const carouselStatesRef = useRef({});
+  const baseTemplateRef  = useRef(null);  // original canvas JSON before any student data is filled
   const initParamsRef    = useRef(null);   // { type, tplIdx } set by openEditor/switchTemplate
   const frameInputRef    = useRef(null);
   const svgInputRef      = useRef(null);
@@ -1388,6 +1389,7 @@ export default function DocumentMaker() {
     setReady(false);
     setIsDirty(false);
     carouselStatesRef.current = {};
+    baseTemplateRef.current = null;
     setCarouselIdx(0);
     setView('editor');
     // initCanvas is triggered by the useEffect([view]) — never call it here directly
@@ -1466,23 +1468,27 @@ export default function DocumentMaker() {
     }
     const nxt = batchStudents[newIdx];
     const nxtKey = nxt?.uuid || nxt?._id || String(newIdx);
-    const fields = {
-      name:   `${nxt.firstName || ''} ${nxt.lastName || ''}`.trim() || nxt.name || 'Student',
-      rollNo: nxt.rollNo || '—',
-      course: nxt.course || '—',
-      batch:  nxt.batch  || selBatch,
-    };
+    const row = studentToRow(nxt, selBatch);
     setCarouselIdx(newIdx);
-    setCarouselFields(fields);
+    setCarouselFields({ name: row.name, rollNo: row.roll_number, course: row.course, batch: row.batch });
     if (!fc) return;
     suppressDirtyRef.current = true;
     if (carouselStatesRef.current[nxtKey]) {
+      // Load this student's individually saved/adjusted canvas
       await new Promise(res => fc.loadFromJSON(JSON.parse(carouselStatesRef.current[nxtKey]), () => { fc.renderAll(); res(); }));
     } else {
-      const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
-      await seedCanvas(fc, docType, tpl, fields, instituteName);
+      // Use the base template (original canvas with {{placeholders}}) and fill in this student's data
+      const baseJSON = baseTemplateRef.current ? JSON.parse(baseTemplateRef.current) : fc.toJSON(CUSTOM_PROPS);
+      const hasPlaceholders = (baseJSON.objects || []).some(o => o.__placeholder);
+      if (hasPlaceholders) {
+        await renderRowToCanvas(fc, baseJSON, row);
+      } else {
+        const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
+        await seedCanvas(fc, docType, tpl, { name: row.name, rollNo: row.roll_number, course: row.course, batch: row.batch }, instituteName);
+      }
     }
     suppressDirtyRef.current = false;
+    updateScale();
   }
 
   async function applyCarouselToCanvas() {
@@ -2120,6 +2126,7 @@ export default function DocumentMaker() {
         const list = r.data?.data || r.data?.result || [];
         setBatchStudents(list);
         carouselStatesRef.current = {};
+        baseTemplateRef.current = null; // reset so new base is captured on first navigation
         setCarouselIdx(0);
         if (list.length > 0) {
           const s = list[0];
@@ -2134,6 +2141,24 @@ export default function DocumentMaker() {
       .catch(() => setBatchStudents([]))
       .finally(() => setLoadingBatch(false));
   }, [selBatch]);
+
+  // Auto-fill canvas with first student when a batch loads in bulk mode
+  useEffect(() => {
+    if (editorMode !== 'bulk' || batchStudents.length === 0 || !fabricRef.current || view !== 'editor') return;
+    const fc = fabricRef.current;
+    const templateJSON = fc.toJSON(CUSTOM_PROPS);
+    baseTemplateRef.current = JSON.stringify(templateJSON);
+    const s = batchStudents[0];
+    const row = studentToRow(s, selBatch);
+    const hasPlaceholders = (templateJSON.objects || []).some(o => o.__placeholder);
+    suppressDirtyRef.current = true;
+    const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
+    (hasPlaceholders
+      ? renderRowToCanvas(fc, templateJSON, row)
+      : tpl ? seedCanvas(fc, docType, tpl, { name: row.name, rollNo: row.roll_number, course: row.course, batch: row.batch }, instituteName) : Promise.resolve()
+    ).finally(() => { suppressDirtyRef.current = false; updateScale(); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [batchStudents]);
 
   const currentDT  = DOC_TYPES.find(d => d.key === docType);
   const templates   = TEMPLATES[docType] || [];
@@ -3059,9 +3084,23 @@ export default function DocumentMaker() {
           flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
         }}>
           {batchStudents.length === 0 ? (
-            <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.72rem', flex: 1, textAlign: 'center' }}>
-              No students loaded — select a batch in the Export tab or upload CSV
-            </Typography>
+            <Stack direction="row" alignItems="center" gap={1} sx={{ flex: 1 }}>
+              <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem', fontWeight: 600, flexShrink: 0 }}>Batch:</Typography>
+              <Select value={selBatch} onChange={e => setSelBatch(e.target.value)} displayEmpty size="small"
+                sx={{ flex: 1, bgcolor: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: '0.72rem', borderRadius: 1.5,
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
+                  '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.6)' },
+                  '& .MuiSelect-select': { py: 0.5, px: 1 } }}>
+                <MenuItem value=""><em style={{ color: '#94a3b8' }}>Select batch…</em></MenuItem>
+                {batches.map(b => <MenuItem key={b._id} value={b.batch_name || b.name || b._id}>{b.batch_name || b.name}</MenuItem>)}
+              </Select>
+              <Button size="small" component="label"
+                sx={{ color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 1.5,
+                  fontSize: '0.65rem', textTransform: 'none', px: 1, py: 0.4, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                CSV/Excel
+                <input hidden type="file" accept=".csv,.xlsx,.xls" ref={csvInputRef} onChange={e => handleCsvUpload(e.target.files[0])} />
+              </Button>
+            </Stack>
           ) : (<>
             <IconButton size="small" onClick={() => goCarousel(carouselIdx - 1)} disabled={carouselIdx === 0}
               sx={{ color: '#fff', p: 0.4, '&.Mui-disabled': { opacity: 0.3 }, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 1 }}>
@@ -3099,13 +3138,11 @@ export default function DocumentMaker() {
               Save
             </Button>
 
-            {carouselIdx === batchStudents.length - 1 && (
-              <Button size="small" onClick={exportBulkPDF} disabled={generating}
-                sx={{ bgcolor: '#059669', color: '#fff', fontSize: '0.68rem', textTransform: 'none', px: 1, py: 0.35, minWidth: 0,
-                  flexShrink: 0, '&:hover': { bgcolor: '#047857' }, borderRadius: 1.5 }}>
-                {generating ? '…' : 'Export All'}
-              </Button>
-            )}
+            <Button size="small" onClick={exportBulkPDF} disabled={generating}
+              sx={{ bgcolor: '#059669', color: '#fff', fontSize: '0.68rem', textTransform: 'none', px: 1, py: 0.35, minWidth: 0,
+                flexShrink: 0, '&:hover': { bgcolor: '#047857' }, borderRadius: 1.5 }}>
+              {generating ? '…' : 'Export All'}
+            </Button>
           </>)}
         </Box>
       )}
