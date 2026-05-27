@@ -79,6 +79,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import OpenWithIcon from '@mui/icons-material/OpenWith';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CloseIcon from '@mui/icons-material/Close';
 import PeopleIcon from '@mui/icons-material/People';
 import BlockIcon from '@mui/icons-material/Block';
 import FilterListIcon from '@mui/icons-material/FilterList';
@@ -766,6 +767,7 @@ export default function DocumentMaker() {
   const [pageSetup,       setPageSetup]       = useState(null);
   const [tempSetup,       setTempSetup]       = useState(null);
   const [pageSetupDialog, setPageSetupDialog] = useState(false);
+  const [pageSetupTab,    setPageSetupTab]    = useState(0);
   const [printCopies,     setPrintCopies]     = useState(1);
   const [printing,        setPrinting]        = useState(false);
   const [isDirty,         setIsDirty]         = useState(false);
@@ -1795,6 +1797,43 @@ export default function DocumentMaker() {
         img.set({ left: centerLeft, top: centerTop, originX: 'center', originY: 'center' });
         if (obj) fc.remove(obj);
         img.__frameType = shapeType;
+        fc.add(img); fc.setActiveObject(img); fc.renderAll();
+        setSelectedObj(img); setToolTab(2);
+        pushHistory(); setIsDirty(true);
+      }, { crossOrigin: 'anonymous' });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function fillShapeWithPhoto(file) {
+    const fc = fabricRef.current;
+    const obj = fc?.getActiveObject();
+    if (!fc || !file || !obj) return;
+    const { fabric } = await getFabric();
+    const shapeType = obj.type;
+    const tLeft  = obj.left || 0;
+    const tTop   = obj.top  || 0;
+    const tW     = obj.getScaledWidth();
+    const tH     = obj.getScaledHeight();
+    const reader = new FileReader();
+    reader.onload = ev => {
+      fabric.Image.fromURL(ev.target.result, img => {
+        const scale = Math.max(tW / img.width, tH / img.height);
+        img.scale(scale);
+        const centerLeft = tLeft + tW / 2;
+        const centerTop  = tTop  + tH / 2;
+        let clip;
+        if (shapeType === 'circle') {
+          clip = new fabric.Circle({ radius: Math.min(tW, tH) / 2, left: centerLeft, top: centerTop, originX: 'center', originY: 'center', absolutePositioned: true });
+        } else {
+          const rx = obj.rx || 0;
+          clip = new fabric.Rect({ width: tW, height: tH, rx, ry: rx, left: centerLeft, top: centerTop, originX: 'center', originY: 'center', absolutePositioned: true });
+        }
+        img.clipPath = clip;
+        img.__frameBounds = { left: tLeft, top: tTop, width: tW, height: tH };
+        img.set({ left: centerLeft, top: centerTop, originX: 'center', originY: 'center' });
+        img.__frameType = shapeType;
+        fc.remove(obj);
         fc.add(img); fc.setActiveObject(img); fc.renderAll();
         setSelectedObj(img); setToolTab(2);
         pushHistory(); setIsDirty(true);
@@ -3322,124 +3361,6 @@ export default function DocumentMaker() {
         </Tooltip>
       </Box>
 
-      {/* ── Bulk Carousel Bar ──────────────────────────────── */}
-      {editorMode === 'bulk' && (
-        <>
-          {/* Section A: dark nav row */}
-          <Box sx={{
-            bgcolor: '#1e293b', px: 1.5, py: 0.6, display: 'flex', alignItems: 'center', gap: 1,
-            flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-          }}>
-            {batchStudents.length === 0 ? (
-              <Stack direction="row" alignItems="center" gap={1} sx={{ flex: 1 }}>
-                <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem', fontWeight: 600, flexShrink: 0 }}>Batch:</Typography>
-                <Select value={selBatch} onChange={e => setSelBatch(e.target.value)} displayEmpty size="small"
-                  sx={{ flex: 1, bgcolor: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: '0.72rem', borderRadius: 1.5,
-                    '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
-                    '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.6)' },
-                    '& .MuiSelect-select': { py: 0.5, px: 1 } }}>
-                  <MenuItem value=""><em style={{ color: '#94a3b8' }}>Select batch…</em></MenuItem>
-                  {batches.map(b => <MenuItem key={b._id} value={b.batch_name || b.name || b._id}>{b.batch_name || b.name}</MenuItem>)}
-                </Select>
-                <Button size="small" component="label"
-                  sx={{ color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 1.5,
-                    fontSize: '0.65rem', textTransform: 'none', px: 1, py: 0.4, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                  CSV/Excel
-                  <input hidden type="file" accept=".csv,.xlsx,.xls" ref={csvInputRef} onChange={e => handleCsvUpload(e.target.files[0])} />
-                </Button>
-              </Stack>
-            ) : (<>
-              {/* Photo thumbnail — click to open camera */}
-              {(() => {
-                const stu = batchStudents[carouselIdx];
-                const photoUrl = stu?.photo_url || stu?.bg_removed_url;
-                return (
-                  <Box onClick={() => setCarouselWebcam(true)}
-                    sx={{ width: 40, height: 50, borderRadius: 1, overflow: 'hidden', flexShrink: 0, cursor: 'pointer',
-                      border: photoUrl ? '1.5px solid #10b981' : '1.5px dashed rgba(255,255,255,0.3)',
-                      bgcolor: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {photoUrl
-                      ? <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      : <PeopleIcon sx={{ fontSize: 18, color: 'rgba(255,255,255,0.3)' }} />}
-                  </Box>
-                );
-              })()}
-
-              <IconButton size="small" onClick={() => goCarousel(carouselIdx - 1)} disabled={carouselIdx === 0}
-                sx={{ color: '#fff', p: 0.4, '&.Mui-disabled': { opacity: 0.3 }, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 1 }}>
-                <ArrowBackIosNewIcon sx={{ fontSize: 13 }} />
-              </IconButton>
-
-              <Box sx={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
-                <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.82rem' }} noWrap>
-                  {carouselFields.name || batchStudents[carouselIdx]?.firstName || 'Student'}
-                </Typography>
-                <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.4, mt: 0.3 }}>
-                  {batchStudents.slice(Math.max(0, carouselIdx - 2), carouselIdx + 3).map((_, i) => {
-                    const absIdx = Math.max(0, carouselIdx - 2) + i;
-                    return (
-                      <Box key={absIdx} onClick={() => goCarousel(absIdx)}
-                        sx={{ width: absIdx === carouselIdx ? 16 : 5, height: 5, borderRadius: 3,
-                          bgcolor: absIdx === carouselIdx ? '#d4a017' : 'rgba(255,255,255,0.3)',
-                          cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }} />
-                    );
-                  })}
-                </Box>
-                <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.6rem' }}>
-                  {carouselIdx + 1} / {batchStudents.length}
-                </Typography>
-              </Box>
-
-              <IconButton size="small" onClick={() => goCarousel(carouselIdx + 1)} disabled={carouselIdx === batchStudents.length - 1}
-                sx={{ color: '#fff', p: 0.4, '&.Mui-disabled': { opacity: 0.3 }, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 1 }}>
-                <ArrowForwardIosIcon sx={{ fontSize: 13 }} />
-              </IconButton>
-            </>)}
-          </Box>
-
-          {/* Section B: editable fields + photo actions + save (only when students loaded) */}
-          {batchStudents.length > 0 && (
-            <Box sx={{ bgcolor: '#fff', borderBottom: '1px solid #e2e8f0', px: 1.5, py: 0.75, flexShrink: 0 }}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.75, mb: 0.75 }}>
-                {[['name', 'Name'], ['rollNo', 'Roll No'], ['course', 'Course'], ['batch', 'Batch']].map(([key, lbl]) => (
-                  <TextField key={key} label={lbl} value={carouselFields[key] || ''} size="small"
-                    onChange={e => setCarouselFields(prev => ({ ...prev, [key]: e.target.value }))}
-                    sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#f8fafc', fontSize: '0.75rem' }, '& label': { fontSize: '0.7rem' } }}
-                  />
-                ))}
-              </Box>
-              <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
-                {(() => {
-                  const stu = batchStudents[carouselIdx];
-                  const photoUrl = stu?.photo_url || stu?.bg_removed_url;
-                  return (<>
-                    <Button size="small" startIcon={<PhotoCameraIcon sx={{ fontSize: 12 }} />}
-                      onClick={() => setCarouselWebcam(true)}
-                      sx={{ fontSize: '0.65rem', textTransform: 'none', py: 0.3, px: 0.75, minWidth: 0,
-                        bgcolor: photoUrl ? '#f1f5f9' : '#059669', color: photoUrl ? '#475569' : '#fff',
-                        border: photoUrl ? '1px solid #e2e8f0' : 'none', '&:hover': { bgcolor: photoUrl ? '#e2e8f0' : '#047857' } }}>
-                      {photoUrl ? 'Retake' : 'Camera'}
-                    </Button>
-                    <Button size="small" component="label" startIcon={<ImageIcon sx={{ fontSize: 12 }} />}
-                      sx={{ fontSize: '0.65rem', textTransform: 'none', py: 0.3, px: 0.75, minWidth: 0,
-                        bgcolor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0' }}>
-                      {photoUrl ? 'Replace' : 'Upload'}
-                      <input hidden type="file" accept="image/*" onChange={e => { if (e.target.files?.[0]) handleCarouselPhotoFile(e.target.files[0]); e.target.value = ''; }} />
-                    </Button>
-                  </>);
-                })()}
-                <Box sx={{ flex: 1 }} />
-                <Button size="small" onClick={saveBulkCanvas}
-                  sx={{ bgcolor: '#059669', color: '#fff', fontSize: '0.65rem', textTransform: 'none', px: 1.25, py: 0.35,
-                    minWidth: 0, '&:hover': { bgcolor: '#047857' }, borderRadius: 1.5 }}>
-                  Save
-                </Button>
-              </Box>
-            </Box>
-          )}
-        </>
-      )}
-
       {/* ── Alert ──────────────────────────────────────────── */}
       {alert && (
         <Alert severity={alert.type} sx={{ mx: 1, mt: 0.5, flexShrink: 0 }} onClose={() => setAlert(null)} size="small">
@@ -3640,6 +3561,51 @@ export default function DocumentMaker() {
               {photoAdjustMode ? 'Adjusting…' : 'Adjust'}
             </Button>
           )}
+
+          {/* PLAIN SHAPE (rect/circle) — photo fill via Camera or Upload */}
+          {(selectedObj.type === 'rect' || selectedObj.type === 'circle') && !selectedObj.__frameType && (<>
+            <Button size="small" startIcon={<PhotoCameraIcon sx={{ fontSize: 16 }} />}
+              onClick={() => setCarouselWebcam(true)}
+              sx={{ color: '#34d399', border: '1px solid rgba(52,211,153,0.4)', borderRadius: 1.5, textTransform: 'none', fontSize: '0.72rem', px: 1.25, py: 0.4, '&:hover': { bgcolor: 'rgba(52,211,153,0.1)' } }}>
+              Camera
+            </Button>
+            <Button size="small" component="label" startIcon={<ImageIcon sx={{ fontSize: 16 }} />}
+              sx={{ color: '#f0c040', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 1.5, textTransform: 'none', fontSize: '0.72rem', px: 1.25, py: 0.4, '&:hover': { bgcolor: 'rgba(167,139,250,0.1)' } }}>
+              Upload
+              <input hidden type="file" accept="image/*" onChange={e => { if (e.target.files?.[0]) fillShapeWithPhoto(e.target.files[0]); e.target.value = ''; }} />
+            </Button>
+          </>)}
+
+          {/* PLACEHOLDER TEXT — editable field in bulk mode */}
+          {selectedObj.__placeholder && selectedObj.__placeholder !== 'photo' && (editorMode === 'bulk' || editorMode === 'batch') && batchStudents.length > 0 && (() => {
+            const phMap = { name: 'name', roll_number: 'rollNo', course: 'course', batch: 'batch' };
+            const key = phMap[selectedObj.__placeholder];
+            if (!key) return null;
+            const label = key === 'rollNo' ? 'Roll No' : key[0].toUpperCase() + key.slice(1);
+            return (
+              <TextField size="small" label={label} value={carouselFields[key] || ''}
+                onChange={e => setCarouselFields(prev => ({ ...prev, [key]: e.target.value }))}
+                sx={{ width: 120, '& .MuiOutlinedInput-root': { bgcolor: 'rgba(255,255,255,0.1)', fontSize: '0.78rem', color: '#fff', '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' } }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.6)', fontSize: '0.72rem' } }} />
+            );
+          })()}
+
+          {/* PLACEHOLDER PHOTO — Camera/Upload in bulk mode */}
+          {selectedObj.__placeholder === 'photo' && (editorMode === 'bulk' || editorMode === 'batch') && batchStudents.length > 0 && (() => {
+            const stu = batchStudents[carouselIdx];
+            const photoUrl = stu?.photo_url || stu?.bg_removed_url;
+            return (<>
+              <Button size="small" startIcon={<PhotoCameraIcon sx={{ fontSize: 16 }} />}
+                onClick={() => setCarouselWebcam(true)}
+                sx={{ color: photoUrl ? 'rgba(255,255,255,0.7)' : '#34d399', border: `1px solid ${photoUrl ? 'rgba(255,255,255,0.2)' : 'rgba(52,211,153,0.4)'}`, borderRadius: 1.5, textTransform: 'none', fontSize: '0.72rem', px: 1.25, py: 0.4 }}>
+                {photoUrl ? 'Retake' : 'Camera'}
+              </Button>
+              <Button size="small" component="label" startIcon={<ImageIcon sx={{ fontSize: 16 }} />}
+                sx={{ color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 1.5, textTransform: 'none', fontSize: '0.72rem', px: 1.25, py: 0.4 }}>
+                {photoUrl ? 'Replace' : 'Upload'}
+                <input hidden type="file" accept="image/*" onChange={e => { if (e.target.files?.[0]) handleCarouselPhotoFile(e.target.files[0]); e.target.value = ''; }} />
+              </Button>
+            </>);
+          })()}
 
           {/* SHAPE quick tool — fill color */}
           {(selectedObj.type === 'rect' || selectedObj.type === 'circle' || selectedObj.type === 'triangle' || selectedObj.type === 'polygon') && (
@@ -4167,83 +4133,6 @@ export default function DocumentMaker() {
                   </Button>
                 </Stack>
 
-                <Box>
-                  <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.25}>
-                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>Print Layouts</Typography>
-                    <Button size="small" onClick={() => { setEditingLayout({ id: null, name: '', pageW: 210, pageH: 297, marginT: 8, marginR: 8, marginB: 8, marginL: 8, cols: 2, rows: 4, gapH: 5, gapV: 5 }); setLayoutDialog(true); }}
-                      sx={{ fontSize: '0.75rem', textTransform: 'none', color: '#d4a017', minWidth: 0, fontWeight: 700 }}>+ New</Button>
-                  </Stack>
-
-                  {userLayouts.length > 0 && (
-                    <Stack spacing={0.75} mb={1.25}>
-                      <Typography sx={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Saved ({userLayouts.length})</Typography>
-                      {userLayouts.map(layout => {
-                        const { cellW, cellH } = layoutCellDims(layout);
-                        return (
-                          <Box key={layout.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: 1.25, borderRadius: 2, border: '1.5px solid #e2e8f0', bgcolor: '#f8fafc' }}>
-                            <LayoutPreview layout={layout} size={50} />
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                              <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b' }} noWrap>{layout.name}</Typography>
-                              <Typography sx={{ fontSize: '0.68rem', color: '#94a3b8' }}>{layout.cols}x{layout.rows} · {cellW.toFixed(0)}x{cellH.toFixed(0)}mm</Typography>
-                            </Box>
-                            <Stack direction="row" gap={0.5}>
-                              <Tooltip title="Export current card">
-                                <IconButton size="small" onClick={() => exportWithLayout(layout)} disabled={exporting || generating} sx={{ color: '#1a7a4a', p: 0.5 }}><DownloadIcon sx={{ fontSize: 18 }} /></IconButton>
-                              </Tooltip>
-                              {batchStudents.length > 0 && (
-                                <Tooltip title={`Batch (${batchStudents.length})`}>
-                                  <IconButton size="small" onClick={() => exportWithLayout(layout, true)} disabled={exporting || generating} sx={{ color: '#d4a017', p: 0.5 }}><PictureAsPdfIcon sx={{ fontSize: 18 }} /></IconButton>
-                                </Tooltip>
-                              )}
-                              <Tooltip title="Edit">
-                                <IconButton size="small" onClick={() => { setEditingLayout({ ...layout }); setLayoutDialog(true); }} sx={{ color: '#64748b', p: 0.5 }}><TuneIcon sx={{ fontSize: 18 }} /></IconButton>
-                              </Tooltip>
-                              <Tooltip title="Delete">
-                                <IconButton size="small" onClick={() => deleteUserLayout(layout.id)} sx={{ color: '#f87171', p: 0.5 }}><DeleteOutlineIcon sx={{ fontSize: 18 }} /></IconButton>
-                              </Tooltip>
-                            </Stack>
-                          </Box>
-                        );
-                      })}
-                    </Stack>
-                  )}
-
-                  <Box>
-                    <Box onClick={() => setPresetsOpen(v => !v)} sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', mb: 0.75 }}>
-                      <Typography sx={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1 }}>Presets (18)</Typography>
-                      <Typography sx={{ fontSize: '0.75rem', color: '#94a3b8' }}>{presetsOpen ? '▲' : '▼'}</Typography>
-                    </Box>
-                    {presetsOpen && (
-                      <Stack spacing={0.75}>
-                        {PRESET_LAYOUTS.map(layout => {
-                          const { cellW, cellH } = layoutCellDims(layout);
-                          return (
-                            <Box key={layout.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: 1, borderRadius: 2, border: '1.5px solid #e2e8f0', bgcolor: '#fff' }}>
-                              <LayoutPreview layout={layout} size={44} />
-                              <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151' }} noWrap>{layout.name}</Typography>
-                                <Typography sx={{ fontSize: '0.65rem', color: '#94a3b8' }}>{cellW.toFixed(0)}x{cellH.toFixed(0)}mm · {layout.cols * layout.rows}/pg</Typography>
-                              </Box>
-                              <Stack direction="row" gap={0.5}>
-                                <Tooltip title="Export current card">
-                                  <IconButton size="small" onClick={() => exportWithLayout(layout)} disabled={exporting || generating} sx={{ color: '#1a7a4a', p: 0.5 }}><DownloadIcon sx={{ fontSize: 18 }} /></IconButton>
-                                </Tooltip>
-                                {batchStudents.length > 0 && (
-                                  <Tooltip title="Batch export">
-                                    <IconButton size="small" onClick={() => exportWithLayout(layout, true)} disabled={exporting || generating} sx={{ color: '#d4a017', p: 0.5 }}><PictureAsPdfIcon sx={{ fontSize: 18 }} /></IconButton>
-                                  </Tooltip>
-                                )}
-                                <Tooltip title="Save as custom">
-                                  <IconButton size="small" onClick={() => { setEditingLayout({ ...layout, id: null, name: layout.name + ' (copy)' }); setLayoutDialog(true); }} sx={{ color: '#64748b', p: 0.5 }}><CheckIcon sx={{ fontSize: 16 }} /></IconButton>
-                                </Tooltip>
-                              </Stack>
-                            </Box>
-                          );
-                        })}
-                      </Stack>
-                    )}
-                  </Box>
-                </Box>
               </Stack>
             )}
           </>
@@ -4306,6 +4195,48 @@ export default function DocumentMaker() {
                       {photoAdjustMode ? 'Adjusting' : 'Adjust'}
                     </Button>
                   )}
+                  {/* Plain shape — Camera/Upload for photo fill */}
+                  {(selectedObj.type === 'rect' || selectedObj.type === 'circle') && !selectedObj.__frameType && (<>
+                    <Button size="small" startIcon={<PhotoCameraIcon sx={{ fontSize: 16 }} />}
+                      onClick={() => setCarouselWebcam(true)}
+                      sx={{ color: '#34d399', border: '1px solid rgba(52,211,153,0.4)', borderRadius: 1.5, textTransform: 'none', fontSize: '0.72rem', px: 1, py: 0.4 }}>
+                      Camera
+                    </Button>
+                    <Button size="small" component="label" startIcon={<ImageIcon sx={{ fontSize: 16 }} />}
+                      sx={{ color: '#f0c040', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 1.5, textTransform: 'none', fontSize: '0.72rem', px: 1, py: 0.4 }}>
+                      Upload
+                      <input hidden type="file" accept="image/*" onChange={e => { if (e.target.files?.[0]) fillShapeWithPhoto(e.target.files[0]); e.target.value = ''; }} />
+                    </Button>
+                  </>)}
+                  {/* Placeholder text — editable field in bulk mode */}
+                  {selectedObj.__placeholder && selectedObj.__placeholder !== 'photo' && (editorMode === 'bulk' || editorMode === 'batch') && batchStudents.length > 0 && (() => {
+                    const phMap = { name: 'name', roll_number: 'rollNo', course: 'course', batch: 'batch' };
+                    const key = phMap[selectedObj.__placeholder];
+                    if (!key) return null;
+                    const label = key === 'rollNo' ? 'Roll No' : key[0].toUpperCase() + key.slice(1);
+                    return (
+                      <TextField size="small" label={label} value={carouselFields[key] || ''}
+                        onChange={e => setCarouselFields(prev => ({ ...prev, [key]: e.target.value }))}
+                        sx={{ width: 130, '& .MuiOutlinedInput-root': { bgcolor: 'rgba(255,255,255,0.1)', fontSize: '0.78rem', color: '#fff', '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' } }, '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.6)', fontSize: '0.72rem' } }} />
+                    );
+                  })()}
+                  {/* Placeholder photo — Camera/Upload in bulk mode */}
+                  {selectedObj.__placeholder === 'photo' && (editorMode === 'bulk' || editorMode === 'batch') && batchStudents.length > 0 && (() => {
+                    const stu = batchStudents[carouselIdx];
+                    const photoUrl = stu?.photo_url || stu?.bg_removed_url;
+                    return (<>
+                      <Button size="small" startIcon={<PhotoCameraIcon sx={{ fontSize: 16 }} />}
+                        onClick={() => setCarouselWebcam(true)}
+                        sx={{ color: photoUrl ? 'rgba(255,255,255,0.7)' : '#34d399', border: `1px solid ${photoUrl ? 'rgba(255,255,255,0.2)' : 'rgba(52,211,153,0.4)'}`, borderRadius: 1.5, textTransform: 'none', fontSize: '0.72rem', px: 1, py: 0.4 }}>
+                        {photoUrl ? 'Retake' : 'Camera'}
+                      </Button>
+                      <Button size="small" component="label" startIcon={<ImageIcon sx={{ fontSize: 16 }} />}
+                        sx={{ color: 'rgba(255,255,255,0.7)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 1.5, textTransform: 'none', fontSize: '0.72rem', px: 1, py: 0.4 }}>
+                        {photoUrl ? 'Replace' : 'Upload'}
+                        <input hidden type="file" accept="image/*" onChange={e => { if (e.target.files?.[0]) handleCarouselPhotoFile(e.target.files[0]); e.target.value = ''; }} />
+                      </Button>
+                    </>);
+                  })()}
                   <Box sx={{ flex: 1 }} />
                   <IconButton size="small" onClick={duplicateObj} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.75 }}><ContentCopyIcon sx={{ fontSize: 20 }} /></IconButton>
                   <IconButton size="small" onClick={deleteSelected} sx={{ color: '#f87171', p: 0.75 }}><DeleteOutlineIcon sx={{ fontSize: 20 }} /></IconButton>
@@ -4423,39 +4354,85 @@ export default function DocumentMaker() {
       {/* ── Close main body row ────────────────────────────── */}
       </Box>
 
-      {/* ── Canvas bottom export bar ── */}
-      {ready && (
-        <Box sx={{ bgcolor: '#fff', borderTop: '1px solid #e2e8f0', px: 1.5, py: 0.65,
-          display: 'flex', gap: 0.75, flexShrink: 0, alignItems: 'center' }}>
-          <Button size="small" startIcon={<DownloadIcon sx={{ fontSize: 15 }} />} onClick={exportPNG}
-            sx={{ fontSize: '0.73rem', textTransform: 'none', color: '#1e293b', border: '1px solid #e2e8f0', bgcolor: '#f8fafc', py: 0.4, px: 1 }}>
-            PNG
-          </Button>
-          <Button size="small" startIcon={<PictureAsPdfIcon sx={{ fontSize: 15 }} />} onClick={exportPDF} disabled={exporting}
-            sx={{ fontSize: '0.73rem', textTransform: 'none', color: '#d4a017', border: '1.5px solid #d4a01744', bgcolor: '#d4a01711', py: 0.4, px: 1 }}>
-            PDF
-          </Button>
-          {(editorMode === 'bulk' || editorMode === 'batch') && batchStudents.length > 0 && (<>
-            <Button size="small"
-              startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <FolderZipIcon sx={{ fontSize: 15 }} />}
-              onClick={generateBatchZip} disabled={generating}
-              sx={{ fontSize: '0.73rem', textTransform: 'none', color: '#1e293b', border: '1px solid #e2e8f0', bgcolor: '#f8fafc', py: 0.4, px: 1 }}>
-              {generating ? '...' : `ZIP (${batchStudents.length})`}
+      {/* ── Bulk Carousel Nav — below canvas ──────────────── */}
+      {editorMode === 'bulk' && (
+        <Box sx={{ bgcolor: '#1e293b', px: 1.5, py: 0.55, display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0, boxShadow: '0 -2px 8px rgba(0,0,0,0.2)' }}>
+          {batchStudents.length === 0 ? (
+            <Stack direction="row" alignItems="center" gap={1} sx={{ flex: 1 }}>
+              <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem', fontWeight: 600, flexShrink: 0 }}>Batch:</Typography>
+              <Select value={selBatch} onChange={e => setSelBatch(e.target.value)} displayEmpty size="small"
+                sx={{ flex: 1, bgcolor: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: '0.72rem', borderRadius: 1.5,
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(255,255,255,0.2)' },
+                  '& .MuiSvgIcon-root': { color: 'rgba(255,255,255,0.6)' },
+                  '& .MuiSelect-select': { py: 0.5, px: 1 } }}>
+                <MenuItem value=""><em style={{ color: '#94a3b8' }}>Select batch…</em></MenuItem>
+                {batches.map(b => <MenuItem key={b._id} value={b.batch_name || b.name || b._id}>{b.batch_name || b.name}</MenuItem>)}
+              </Select>
+              <Button size="small" component="label"
+                sx={{ color: 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 1.5,
+                  fontSize: '0.65rem', textTransform: 'none', px: 1, py: 0.4, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                CSV/Excel
+                <input hidden type="file" accept=".csv,.xlsx,.xls" ref={csvInputRef} onChange={e => handleCsvUpload(e.target.files[0])} />
+              </Button>
+            </Stack>
+          ) : (<>
+            {/* Photo thumbnail */}
+            {(() => {
+              const stu = batchStudents[carouselIdx];
+              const photoUrl = stu?.photo_url || stu?.bg_removed_url;
+              return (
+                <Box onClick={() => setCarouselWebcam(true)}
+                  sx={{ width: 36, height: 46, borderRadius: 1, overflow: 'hidden', flexShrink: 0, cursor: 'pointer',
+                    border: photoUrl ? '1.5px solid #10b981' : '1.5px dashed rgba(255,255,255,0.3)',
+                    bgcolor: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {photoUrl
+                    ? <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <PeopleIcon sx={{ fontSize: 16, color: 'rgba(255,255,255,0.3)' }} />}
+                </Box>
+              );
+            })()}
+
+            <IconButton size="small" onClick={() => goCarousel(carouselIdx - 1)} disabled={carouselIdx === 0}
+              sx={{ color: '#fff', p: 0.4, '&.Mui-disabled': { opacity: 0.3 }, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 1 }}>
+              <ArrowBackIosNewIcon sx={{ fontSize: 13 }} />
+            </IconButton>
+
+            <Box sx={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
+              <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.8rem' }} noWrap>
+                {carouselFields.name || batchStudents[carouselIdx]?.firstName || 'Student'}
+              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.4, mt: 0.25 }}>
+                {batchStudents.slice(Math.max(0, carouselIdx - 2), carouselIdx + 3).map((_, i) => {
+                  const absIdx = Math.max(0, carouselIdx - 2) + i;
+                  return (
+                    <Box key={absIdx} onClick={() => goCarousel(absIdx)}
+                      sx={{ width: absIdx === carouselIdx ? 14 : 4, height: 4, borderRadius: 3,
+                        bgcolor: absIdx === carouselIdx ? '#d4a017' : 'rgba(255,255,255,0.3)',
+                        cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }} />
+                  );
+                })}
+              </Box>
+              <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.58rem' }}>
+                {carouselIdx + 1} / {batchStudents.length}
+              </Typography>
+            </Box>
+
+            <IconButton size="small" onClick={() => goCarousel(carouselIdx + 1)} disabled={carouselIdx === batchStudents.length - 1}
+              sx={{ color: '#fff', p: 0.4, '&.Mui-disabled': { opacity: 0.3 }, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 1 }}>
+              <ArrowForwardIosIcon sx={{ fontSize: 13 }} />
+            </IconButton>
+
+            <Button size="small" onClick={saveBulkCanvas}
+              sx={{ bgcolor: '#059669', color: '#fff', fontSize: '0.65rem', textTransform: 'none', px: 1.25, py: 0.35,
+                minWidth: 0, flexShrink: 0, '&:hover': { bgcolor: '#047857' }, borderRadius: 1.5 }}>
+              Save
             </Button>
-            <Button size="small"
-              startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <PictureAsPdfIcon sx={{ fontSize: 15 }} />}
-              onClick={generateBatchPDF} disabled={generating}
-              sx={{ fontSize: '0.73rem', textTransform: 'none', color: '#d4a017', border: '1.5px solid #d4a01744', bgcolor: '#d4a01711', py: 0.4, px: 1 }}>
-              {generating ? '...' : 'All PDF'}
+            <Button size="small" onClick={generateBatchPDF} disabled={generating}
+              sx={{ bgcolor: '#d4a017', color: '#fff', fontSize: '0.65rem', textTransform: 'none', px: 1.25, py: 0.35,
+                minWidth: 0, flexShrink: 0, '&:hover': { bgcolor: '#b8860b' }, borderRadius: 1.5 }}>
+              {generating ? '…' : 'Export All'}
             </Button>
           </>)}
-          <Box sx={{ flex: 1 }} />
-          <Button size="small"
-            startIcon={printing ? <CircularProgress size={12} color="inherit" /> : <PrintIcon sx={{ fontSize: 15 }} />}
-            onClick={printDocument} disabled={printing}
-            sx={{ fontSize: '0.73rem', textTransform: 'none', color: '#1a7a4a', border: '1.5px solid #1a7a4a44', bgcolor: '#1a7a4a11', py: 0.4, px: 1 }}>
-            {printing ? 'Printing...' : 'Print'}
-          </Button>
         </Box>
       )}
 
@@ -4636,110 +4613,192 @@ export default function DocumentMaker() {
         </DialogActions>
       </Dialog>
 
-      {/* ── Page Setup Dialog ──────────────────────────────── */}
-      <Dialog open={pageSetupDialog} onClose={() => setPageSetupDialog(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem', pb: 0 }}>Page Setup</DialogTitle>
-        <DialogContent sx={{ pt: 1.5 }}>
-          <Stack spacing={2}>
-            <Box>
-              <Typography sx={{ fontSize: '0.75rem', color: '#64748b', mb: 1 }}>Paper Size</Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                {PAGE_SIZES.map(ps => (
-                  <Chip key={ps.key} label={ps.label} size="small"
-                    onClick={() => setTempSetup(prev => ({
-                      ...prev,
-                      pageKey: ps.key,
-                      ...(ps.w && ps.h ? { w: ps.w, h: ps.h } : {}),
-                    }))}
-                    sx={{
-                      bgcolor: tempSetup?.pageKey === ps.key ? '#d4a017' : '#f1f5f9',
-                      color: tempSetup?.pageKey === ps.key ? '#fff' : '#1e293b',
-                      borderRadius: 1, cursor: 'pointer', fontSize: '0.7rem', height: 26,
-                      '&:hover': { bgcolor: tempSetup?.pageKey === ps.key ? '#b8860b' : '#e2e8f0' },
-                    }}
-                  />
-                ))}
-              </Box>
-            </Box>
-            {tempSetup?.pageKey === 'custom' && (
-              <Stack direction="row" spacing={1}>
-                <TextField label="Width (mm)" type="number" size="small" value={tempSetup?.w || ''}
-                  onChange={e => setTempSetup(prev => ({ ...prev, w: Number(e.target.value) }))}
-                  inputProps={{ min: 10, max: 2000 }} sx={{ flex: 1 }} />
-                <TextField label="Height (mm)" type="number" size="small" value={tempSetup?.h || ''}
-                  onChange={e => setTempSetup(prev => ({ ...prev, h: Number(e.target.value) }))}
-                  inputProps={{ min: 10, max: 2000 }} sx={{ flex: 1 }} />
+      {/* ── Page Setup Dialog (fullscreen) ─────────────────── */}
+      <Dialog fullScreen open={pageSetupDialog} onClose={() => setPageSetupDialog(false)}
+        TransitionProps={{ onEnter: () => setPageSetupTab(0) }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {/* Header */}
+          <Box sx={{ display: 'flex', alignItems: 'center', px: 2.5, py: 1.5, borderBottom: '1px solid #e2e8f0', bgcolor: '#fff', flexShrink: 0 }}>
+            <Typography sx={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b', flex: 1 }}>Page Setup</Typography>
+            <IconButton onClick={() => setPageSetupDialog(false)} sx={{ color: '#64748b' }}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+          {/* Tabs */}
+          <Tabs value={pageSetupTab} onChange={(_, v) => setPageSetupTab(v)}
+            sx={{ px: 2, borderBottom: '1px solid #e2e8f0', flexShrink: 0, bgcolor: '#fff',
+              '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, fontSize: '0.9rem' },
+              '& .Mui-selected': { color: '#d4a017 !important' },
+              '& .MuiTabs-indicator': { bgcolor: '#d4a017', height: 3 } }}>
+            <Tab label="Page Setup" />
+            <Tab label="Print Layouts" />
+          </Tabs>
+          {/* Content */}
+          <Box sx={{ flex: 1, overflowY: 'auto', p: 2.5, bgcolor: '#f8fafc' }}>
+            {pageSetupTab === 0 && (
+              <Stack spacing={2.5} sx={{ maxWidth: 480 }}>
+                <Box>
+                  <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', mb: 1.25 }}>Paper Size</Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {PAGE_SIZES.map(ps => (
+                      <Chip key={ps.key} label={ps.label}
+                        onClick={() => setTempSetup(prev => ({ ...prev, pageKey: ps.key, ...(ps.w && ps.h ? { w: ps.w, h: ps.h } : {}) }))}
+                        sx={{ bgcolor: tempSetup?.pageKey === ps.key ? '#d4a017' : '#fff', color: tempSetup?.pageKey === ps.key ? '#fff' : '#1e293b',
+                          border: `1px solid ${tempSetup?.pageKey === ps.key ? '#d4a017' : '#e2e8f0'}`, borderRadius: 1.5, cursor: 'pointer',
+                          fontSize: '0.82rem', height: 32, '&:hover': { bgcolor: tempSetup?.pageKey === ps.key ? '#b8860b' : '#f1f5f9' } }} />
+                    ))}
+                  </Box>
+                </Box>
+                {tempSetup?.pageKey === 'custom' && (
+                  <Stack direction="row" spacing={1.5}>
+                    <TextField label="Width (mm)" type="number" value={tempSetup?.w || ''} onChange={e => setTempSetup(prev => ({ ...prev, w: Number(e.target.value) }))} inputProps={{ min: 10, max: 2000 }} sx={{ flex: 1 }} />
+                    <TextField label="Height (mm)" type="number" value={tempSetup?.h || ''} onChange={e => setTempSetup(prev => ({ ...prev, h: Number(e.target.value) }))} inputProps={{ min: 10, max: 2000 }} sx={{ flex: 1 }} />
+                  </Stack>
+                )}
+                <Box>
+                  <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', mb: 1.25 }}>Orientation</Typography>
+                  <Stack direction="row" spacing={1.5}>
+                    {[['portrait', '↕ Portrait'], ['landscape', '↔ Landscape']].map(([val, lbl]) => (
+                      <Button key={val} onClick={() => setTempSetup(prev => ({ ...prev, orientation: val }))}
+                        sx={{ flex: 1, textTransform: 'none', fontSize: '0.9rem', py: 1,
+                          bgcolor: tempSetup?.orientation === val ? '#d4a017' : '#fff',
+                          color: tempSetup?.orientation === val ? '#fff' : '#64748b',
+                          border: `1.5px solid ${tempSetup?.orientation === val ? '#d4a017' : '#e2e8f0'}`,
+                          '&:hover': { bgcolor: tempSetup?.orientation === val ? '#b8860b' : '#f1f5f9' } }}>{lbl}</Button>
+                    ))}
+                  </Stack>
+                </Box>
+                <Box>
+                  <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', mb: 1.25 }}>Margins (mm)</Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+                    {[['marginT', 'Top'], ['marginR', 'Right'], ['marginB', 'Bottom'], ['marginL', 'Left']].map(([key, lbl]) => (
+                      <TextField key={key} label={lbl} type="number" value={tempSetup?.[key] ?? 0}
+                        onChange={e => setTempSetup(prev => ({ ...prev, [key]: Math.max(0, Number(e.target.value)) }))}
+                        inputProps={{ min: 0, max: 100 }} />
+                    ))}
+                  </Box>
+                </Box>
+                <Box>
+                  <Typography sx={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', mb: 1.25 }}>Quick Margin Presets</Typography>
+                  <Stack direction="row" spacing={1} flexWrap="wrap">
+                    {[['None', 0], ['5mm', 5], ['10mm', 10], ['15mm', 15], ['20mm', 20]].map(([lbl, val]) => (
+                      <Chip key={lbl} label={lbl}
+                        onClick={() => setTempSetup(prev => ({ ...prev, marginT: val, marginR: val, marginB: val, marginL: val }))}
+                        sx={{ bgcolor: '#fff', border: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.82rem', height: 32, cursor: 'pointer', borderRadius: 1.5, '&:hover': { bgcolor: '#f1f5f9' } }} />
+                    ))}
+                  </Stack>
+                </Box>
+                <Stack direction="row" spacing={1.5} pt={1}>
+                  <Button fullWidth onClick={() => setPageSetupDialog(false)}
+                    sx={{ textTransform: 'none', fontSize: '0.95rem', py: 1, border: '1px solid #e2e8f0', color: '#64748b' }}>
+                    Cancel
+                  </Button>
+                  <Button fullWidth variant="contained" onClick={async () => {
+                    const s = { ...tempSetup };
+                    if (s.w && s.h) {
+                      const needsLandscape = s.orientation === 'landscape';
+                      const isCurrentlyLandscape = s.w >= s.h;
+                      if (needsLandscape !== isCurrentlyLandscape) { const tmp = s.w; s.w = s.h; s.h = tmp; }
+                    }
+                    pageSetupRef.current = s;
+                    setPageSetup(s);
+                    setPageSetupDialog(false);
+                    const fc = fabricRef.current;
+                    if (fc && s.w && s.h) {
+                      const newW = Math.round(s.w * MM_TO_PX);
+                      const newH = Math.round(s.h * MM_TO_PX);
+                      fc.setWidth(newW); fc.setHeight(newH); fc.renderAll();
+                      await drawMGuides(fc, s);
+                      setTimeout(updateScale, 50);
+                    }
+                  }} sx={{ bgcolor: '#d4a017', '&:hover': { bgcolor: '#b8860b' }, textTransform: 'none', fontSize: '0.95rem', py: 1 }}>
+                    Apply
+                  </Button>
+                </Stack>
               </Stack>
             )}
-            <Box>
-              <Typography sx={{ fontSize: '0.75rem', color: '#64748b', mb: 1 }}>Orientation</Typography>
-              <Stack direction="row" spacing={1}>
-                {[['portrait', '↕ Portrait'], ['landscape', '↔ Landscape']].map(([val, lbl]) => (
-                  <Button key={val} size="small" onClick={() => setTempSetup(prev => ({ ...prev, orientation: val }))}
-                    sx={{
-                      flex: 1, textTransform: 'none',
-                      bgcolor: tempSetup?.orientation === val ? '#d4a017' : '#f1f5f9',
-                      color: tempSetup?.orientation === val ? '#fff' : '#64748b',
-                      border: `1px solid ${tempSetup?.orientation === val ? '#d4a017' : '#e2e8f0'}`,
-                      '&:hover': { bgcolor: tempSetup?.orientation === val ? '#b8860b' : '#e2e8f0' },
-                    }}>{lbl}</Button>
-                ))}
+
+            {pageSetupTab === 1 && (
+              <Stack spacing={1.5} sx={{ maxWidth: 600 }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between">
+                  <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>Print Layouts</Typography>
+                  <Button onClick={() => { setEditingLayout({ id: null, name: '', pageW: 210, pageH: 297, marginT: 8, marginR: 8, marginB: 8, marginL: 8, cols: 2, rows: 4, gapH: 5, gapV: 5 }); setLayoutDialog(true); }}
+                    sx={{ fontSize: '0.85rem', textTransform: 'none', color: '#d4a017', fontWeight: 700 }}>+ New Layout</Button>
+                </Stack>
+
+                {userLayouts.length > 0 && (
+                  <Stack spacing={1}>
+                    <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Saved ({userLayouts.length})</Typography>
+                    {userLayouts.map(layout => {
+                      const { cellW, cellH } = layoutCellDims(layout);
+                      return (
+                        <Box key={layout.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.5, borderRadius: 2, border: '1.5px solid #e2e8f0', bgcolor: '#fff' }}>
+                          <LayoutPreview layout={layout} size={56} />
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: '#1e293b' }} noWrap>{layout.name}</Typography>
+                            <Typography sx={{ fontSize: '0.75rem', color: '#94a3b8' }}>{layout.cols}×{layout.rows} · {cellW.toFixed(0)}×{cellH.toFixed(0)}mm</Typography>
+                          </Box>
+                          <Stack direction="row" gap={0.75}>
+                            <Tooltip title="Export current card">
+                              <IconButton onClick={() => exportWithLayout(layout)} disabled={exporting || generating} sx={{ color: '#1a7a4a' }}><DownloadIcon sx={{ fontSize: 22 }} /></IconButton>
+                            </Tooltip>
+                            {batchStudents.length > 0 && (
+                              <Tooltip title={`Batch (${batchStudents.length})`}>
+                                <IconButton onClick={() => exportWithLayout(layout, true)} disabled={exporting || generating} sx={{ color: '#d4a017' }}><PictureAsPdfIcon sx={{ fontSize: 22 }} /></IconButton>
+                              </Tooltip>
+                            )}
+                            <Tooltip title="Edit">
+                              <IconButton onClick={() => { setEditingLayout({ ...layout }); setLayoutDialog(true); }} sx={{ color: '#64748b' }}><TuneIcon sx={{ fontSize: 22 }} /></IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete">
+                              <IconButton onClick={() => deleteUserLayout(layout.id)} sx={{ color: '#f87171' }}><DeleteOutlineIcon sx={{ fontSize: 22 }} /></IconButton>
+                            </Tooltip>
+                          </Stack>
+                        </Box>
+                      );
+                    })}
+                  </Stack>
+                )}
+
+                <Box>
+                  <Box onClick={() => setPresetsOpen(v => !v)} sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', py: 0.75 }}>
+                    <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1 }}>Presets (18)</Typography>
+                    <Typography sx={{ fontSize: '0.85rem', color: '#94a3b8' }}>{presetsOpen ? '▲' : '▼'}</Typography>
+                  </Box>
+                  {presetsOpen && (
+                    <Stack spacing={1}>
+                      {PRESET_LAYOUTS.map(layout => {
+                        const { cellW, cellH } = layoutCellDims(layout);
+                        return (
+                          <Box key={layout.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1.25, borderRadius: 2, border: '1.5px solid #e2e8f0', bgcolor: '#fff' }}>
+                            <LayoutPreview layout={layout} size={50} />
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#374151' }} noWrap>{layout.name}</Typography>
+                              <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8' }}>{cellW.toFixed(0)}×{cellH.toFixed(0)}mm · {layout.cols * layout.rows}/pg</Typography>
+                            </Box>
+                            <Stack direction="row" gap={0.75}>
+                              <Tooltip title="Export current card">
+                                <IconButton onClick={() => exportWithLayout(layout)} disabled={exporting || generating} sx={{ color: '#1a7a4a' }}><DownloadIcon sx={{ fontSize: 22 }} /></IconButton>
+                              </Tooltip>
+                              {batchStudents.length > 0 && (
+                                <Tooltip title="Batch export">
+                                  <IconButton onClick={() => exportWithLayout(layout, true)} disabled={exporting || generating} sx={{ color: '#d4a017' }}><PictureAsPdfIcon sx={{ fontSize: 22 }} /></IconButton>
+                                </Tooltip>
+                              )}
+                              <Tooltip title="Save as custom">
+                                <IconButton onClick={() => { setEditingLayout({ ...layout, id: null, name: layout.name + ' (copy)' }); setLayoutDialog(true); }} sx={{ color: '#64748b' }}><CheckIcon sx={{ fontSize: 20 }} /></IconButton>
+                              </Tooltip>
+                            </Stack>
+                          </Box>
+                        );
+                      })}
+                    </Stack>
+                  )}
+                </Box>
               </Stack>
-            </Box>
-            <Box>
-              <Typography sx={{ fontSize: '0.75rem', color: '#64748b', mb: 1 }}>Margins (mm)</Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
-                {[['marginT', 'Top'], ['marginR', 'Right'], ['marginB', 'Bottom'], ['marginL', 'Left']].map(([key, lbl]) => (
-                  <TextField key={key} label={lbl} type="number" size="small"
-                    value={tempSetup?.[key] ?? 0}
-                    onChange={e => setTempSetup(prev => ({ ...prev, [key]: Math.max(0, Number(e.target.value)) }))}
-                    inputProps={{ min: 0, max: 100 }} />
-                ))}
-              </Box>
-            </Box>
-            <Box>
-              <Typography sx={{ fontSize: '0.75rem', color: '#64748b', mb: 1 }}>Quick Margin Presets</Typography>
-              <Stack direction="row" spacing={0.75} flexWrap="wrap">
-                {[['None', 0], ['5mm', 5], ['10mm', 10], ['15mm', 15], ['20mm', 20]].map(([lbl, val]) => (
-                  <Chip key={lbl} label={lbl} size="small"
-                    onClick={() => setTempSetup(prev => ({ ...prev, marginT: val, marginR: val, marginB: val, marginL: val }))}
-                    sx={{ bgcolor: '#f1f5f9', color: '#64748b', fontSize: '0.7rem', height: 26, cursor: 'pointer', borderRadius: 1, '&:hover': { bgcolor: '#e2e8f0' } }}
-                  />
-                ))}
-              </Stack>
-            </Box>
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setPageSetupDialog(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
-          <Button variant="contained" onClick={async () => {
-            const s = { ...tempSetup };
-            // Swap w/h if orientation doesn't match the stored dimensions
-            if (s.w && s.h) {
-              const needsLandscape = s.orientation === 'landscape';
-              const isCurrentlyLandscape = s.w >= s.h;
-              if (needsLandscape !== isCurrentlyLandscape) {
-                const tmp = s.w; s.w = s.h; s.h = tmp;
-              }
-            }
-            pageSetupRef.current = s;
-            setPageSetup(s);
-            setPageSetupDialog(false);
-            const fc = fabricRef.current;
-            if (fc && s.w && s.h) {
-              // Resize canvas to match page dimensions (mm → px at 96 DPI)
-              const newW = Math.round(s.w * MM_TO_PX);
-              const newH = Math.round(s.h * MM_TO_PX);
-              fc.setWidth(newW);
-              fc.setHeight(newH);
-              fc.renderAll();
-              await drawMGuides(fc, s);
-              setTimeout(updateScale, 50);
-            }
-          }} sx={{ bgcolor: '#d4a017', '&:hover': { bgcolor: '#b8860b' }, textTransform: 'none' }}>
-            Apply
-          </Button>
-        </DialogActions>
+            )}
+          </Box>
+        </Box>
       </Dialog>
     </Box>
   );
