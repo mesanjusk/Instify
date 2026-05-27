@@ -9,7 +9,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   Alert, Avatar, Box, Button, Card, CardContent, CardMedia, Chip, CircularProgress,
   Dialog, DialogActions, DialogContent, DialogTitle, Divider, FormControlLabel,
-  IconButton, LinearProgress, MenuItem, Paper, Select, Slider, Stack, Switch,
+  IconButton, LinearProgress, MenuItem, Paper, Select, Slider, Stack, SwipeableDrawer, Switch,
   Tab, Tabs, TextField, Tooltip, Typography, InputAdornment, useMediaQuery,
 } from '@mui/material';
 import * as XLSX from 'xlsx';
@@ -807,6 +807,7 @@ export default function DocumentMaker() {
   const [presetsOpen,    setPresetsOpen]    = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [explorePage,    setExplorePage]    = useState(0);
+  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   function showAlert(type, text) { setAlert({ type, text }); setTimeout(() => setAlert(null), 4000); }
 
@@ -3164,52 +3165,52 @@ export default function DocumentMaker() {
 
       {/* ── Desktop left sidebar — Add Elements ─────────────── */}
       {isDesktop && (
-        <Box sx={{ width: 176, bgcolor: '#ffffff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-          <Box sx={{ px: 1.5, py: 1, borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
-            <Typography sx={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Add Elements</Typography>
+        <Box sx={{ width: 200, bgcolor: '#ffffff', borderRight: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+          <Box sx={{ px: 1.75, py: 1.25, borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
+            <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Add Elements</Typography>
           </Box>
-          <Box sx={{ flex: 1, overflowY: 'auto', p: 1 }}>
-            <Stack spacing={1}>
-              <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Content</Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 0.75 }}>
+          <Box sx={{ flex: 1, overflowY: 'auto', p: 1.25 }}>
+            <Stack spacing={1.25}>
+              <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Content</Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1 }}>
                 {[
-                  ['Text',    <TextFieldsIcon sx={{ fontSize: 22, color: '#d4a017' }} />,       addText],
-                  ['Photo',   <ImageIcon sx={{ fontSize: 22, color: '#d4a017' }} />,            () => fileInputRef.current?.click()],
-                  ['Gallery', <AddPhotoAlternateIcon sx={{ fontSize: 22, color: '#d4a017' }} />,() => setGalleryDialog(true)],
-                  ['SVG',     <FolderOpenIcon sx={{ fontSize: 22, color: '#d4a017' }} />,       () => svgInputRef.current?.click()],
+                  ['Text',    <TextFieldsIcon sx={{ fontSize: 26, color: '#d4a017' }} />,       addText],
+                  ['Photo',   <ImageIcon sx={{ fontSize: 26, color: '#d4a017' }} />,            () => fileInputRef.current?.click()],
+                  ['Gallery', <AddPhotoAlternateIcon sx={{ fontSize: 26, color: '#d4a017' }} />,() => setGalleryDialog(true)],
+                  ['SVG',     <FolderOpenIcon sx={{ fontSize: 26, color: '#d4a017' }} />,       () => svgInputRef.current?.click()],
                 ].map(([label, icon, action]) => (
-                  <Box key={label} onClick={action} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, cursor: 'pointer', p: 1, borderRadius: 2, border: '1px solid #e2e8f0', bgcolor: '#f8fafc', '&:hover': { borderColor: '#d4a01755', bgcolor: '#f1f5f9' } }}>
+                  <Box key={label} onClick={action} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.6, cursor: 'pointer', p: 1.25, borderRadius: 2.5, border: '1.5px solid #e2e8f0', bgcolor: '#f8fafc', transition: 'all 0.15s', '&:hover': { borderColor: '#d4a01766', bgcolor: '#fff8e1', boxShadow: '0 2px 8px rgba(212,160,23,0.1)' }, '&:active': { transform: 'scale(0.96)' } }}>
                     {icon}
-                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 500, color: '#64748b' }}>{label}</Typography>
+                    <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: '#475569' }}>{label}</Typography>
                   </Box>
                 ))}
               </Box>
 
-              <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', pt: 0.5 }}>Photo Frames</Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.5 }}>
+              <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', pt: 0.5 }}>Photo Frames</Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.75 }}>
                 {[
-                  ['Rect',   <Box sx={{ width: 20, height: 20, border: '2px dashed #d4a017', borderRadius: 1 }} />,     () => addFrame('rect')],
-                  ['Circle', <Box sx={{ width: 20, height: 20, border: '2px dashed #d4a017', borderRadius: '50%' }} />, () => addFrame('circle')],
-                  ['Round',  <Box sx={{ width: 20, height: 20, border: '2px dashed #d4a017', borderRadius: 5 }} />,     () => addFrame('rounded')],
+                  ['Rect',   <Box sx={{ width: 24, height: 24, border: '2.5px dashed #d4a017', borderRadius: 2 }} />,     () => addFrame('rect')],
+                  ['Circle', <Box sx={{ width: 24, height: 24, border: '2.5px dashed #d4a017', borderRadius: '50%' }} />, () => addFrame('circle')],
+                  ['Round',  <Box sx={{ width: 24, height: 24, border: '2.5px dashed #d4a017', borderRadius: 6 }} />,     () => addFrame('rounded')],
                 ].map(([label, icon, action]) => (
-                  <Box key={label} onClick={action} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4, cursor: 'pointer', p: 0.75, borderRadius: 2, border: '1px solid #e2e8f0', bgcolor: '#f8fafc', '&:hover': { borderColor: '#d4a01755', bgcolor: '#f1f5f9' } }}>
+                  <Box key={label} onClick={action} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, cursor: 'pointer', p: 1, borderRadius: 2.5, border: '1.5px solid #e2e8f0', bgcolor: '#f8fafc', transition: 'all 0.15s', '&:hover': { borderColor: '#d4a01766', bgcolor: '#fff8e1' }, '&:active': { transform: 'scale(0.96)' } }}>
                     {icon}
-                    <Typography sx={{ fontSize: '0.6rem', fontWeight: 500, color: '#64748b' }}>{label}</Typography>
+                    <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, color: '#475569' }}>{label}</Typography>
                   </Box>
                 ))}
               </Box>
 
-              <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', pt: 0.5 }}>Shapes</Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 0.75 }}>
+              <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', pt: 0.5 }}>Shapes</Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1 }}>
                 {[
-                  ['Rect',     <LayersIcon sx={{ fontSize: 22, color: '#d4a017' }} />,         () => addShape('rect')],
-                  ['Circle',   <LayersIcon sx={{ fontSize: 22, color: '#d4a017' }} />,         () => addShape('circle')],
-                  ['Triangle', <ChangeHistoryIcon sx={{ fontSize: 22, color: '#d4a017' }} />,  () => addShape('triangle')],
-                  ['Line',     <HorizontalRuleIcon sx={{ fontSize: 22, color: '#d4a017' }} />, () => addShape('line')],
+                  ['Rect',     <LayersIcon sx={{ fontSize: 26, color: '#d4a017' }} />,         () => addShape('rect')],
+                  ['Circle',   <LayersIcon sx={{ fontSize: 26, color: '#d4a017' }} />,         () => addShape('circle')],
+                  ['Triangle', <ChangeHistoryIcon sx={{ fontSize: 26, color: '#d4a017' }} />,  () => addShape('triangle')],
+                  ['Line',     <HorizontalRuleIcon sx={{ fontSize: 26, color: '#d4a017' }} />, () => addShape('line')],
                 ].map(([label, icon, action]) => (
-                  <Box key={label} onClick={action} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, cursor: 'pointer', p: 1, borderRadius: 2, border: '1px solid #e2e8f0', bgcolor: '#f8fafc', '&:hover': { borderColor: '#d4a01755', bgcolor: '#f1f5f9' } }}>
+                  <Box key={label} onClick={action} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.6, cursor: 'pointer', p: 1.25, borderRadius: 2.5, border: '1.5px solid #e2e8f0', bgcolor: '#f8fafc', transition: 'all 0.15s', '&:hover': { borderColor: '#d4a01766', bgcolor: '#fff8e1', boxShadow: '0 2px 8px rgba(212,160,23,0.1)' }, '&:active': { transform: 'scale(0.96)' } }}>
                     {icon}
-                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 500, color: '#64748b' }}>{label}</Typography>
+                    <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: '#475569' }}>{label}</Typography>
                   </Box>
                 ))}
               </Box>
@@ -3371,123 +3372,61 @@ export default function DocumentMaker() {
         </Box>
       )}
 
-      {/* ── Sidebar / bottom toolbar ───────────────────────── */}
-      <Box sx={{
-        bgcolor: '#ffffff',
-        borderTop: { xs: '1px solid #e2e8f0', md: 'none' },
-        borderLeft: { xs: 'none', md: '1px solid #e2e8f0' },
-        flexShrink: 0,
-        width: { xs: '100%', md: 300 },
-        height: { xs: 180, md: '100%' },
-        display: 'flex', flexDirection: 'column',
-        boxShadow: { xs: '0 -1px 8px rgba(0,0,0,0.06)', md: '-2px 0 8px rgba(0,0,0,0.04)' },
-      }}>
-        {/* Desktop-only contextual quick bar at top of sidebar */}
-        {isDesktop && selectedObj && ready && (
-          <Box sx={{ bgcolor: '#1e293b', flexShrink: 0, px: 1.5, height: 52, display: 'flex', alignItems: 'center', gap: 1, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-            {(selectedObj.type === 'i-text' || selectedObj.type === 'text') && (<>
-              <input type="color" value={fontColor} onChange={e => { setFontColor(e.target.value); applyFontProp('fill', e.target.value); }}
-                style={{ width: 26, height: 26, border: '2px solid rgba(255,255,255,0.25)', borderRadius: 4, cursor: 'pointer', padding: 0, background: 'none', flexShrink: 0 }} />
-              <IconButton size="small" onClick={() => { const v = !isBold; setIsBold(v); applyFontProp('fontWeight', v ? 'bold' : 'normal'); }}
-                sx={{ color: isBold ? '#f0c040' : 'rgba(255,255,255,0.6)', p: 0.5 }}><FormatBoldIcon sx={{ fontSize: 18 }} /></IconButton>
-              <IconButton size="small" onClick={() => { const v = !isItalic; setIsItalic(v); applyFontProp('fontStyle', v ? 'italic' : 'normal'); }}
-                sx={{ color: isItalic ? '#f0c040' : 'rgba(255,255,255,0.6)', p: 0.5 }}><FormatItalicIcon sx={{ fontSize: 18 }} /></IconButton>
-              <Stack direction="row" alignItems="center" sx={{ bgcolor: 'rgba(255,255,255,0.08)', borderRadius: 1, px: 0.5 }}>
-                <IconButton size="small" onClick={() => { const v = Math.max(8, fontSize - 1); setFontSize(v); applyFontProp('fontSize', v); }} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.35 }}>
-                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'inherit', lineHeight: 1 }}>−</Typography>
-                </IconButton>
-                <Typography sx={{ color: '#fff', fontSize: '0.72rem', minWidth: 22, textAlign: 'center' }}>{fontSize}</Typography>
-                <IconButton size="small" onClick={() => { const v = Math.min(200, fontSize + 1); setFontSize(v); applyFontProp('fontSize', v); }} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.35 }}>
-                  <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: 'inherit', lineHeight: 1 }}>+</Typography>
-                </IconButton>
-              </Stack>
-            </>)}
-            {selectedObj.type === 'image' && (<>
-              <WbSunnyIcon sx={{ fontSize: 18, color: '#fbbf24' }} />
-              <Box sx={{ width: 60 }}><Slider value={Math.round(imgBright * 100)} min={-100} max={100} size="small" onChange={(_, v) => { const n = v / 100; setImgBright(n); applyImageFilter('Brightness', n); }} sx={{ color: '#fbbf24', py: 0.5, '& .MuiSlider-thumb': { width: 12, height: 12 } }} /></Box>
-              <TonalityIcon sx={{ fontSize: 18, color: '#34c97e' }} />
-              <Box sx={{ width: 60 }}><Slider value={Math.round(imgContrast * 100)} min={-100} max={100} size="small" onChange={(_, v) => { const n = v / 100; setImgContrast(n); applyImageFilter('Contrast', n); }} sx={{ color: '#34c97e', py: 0.5, '& .MuiSlider-thumb': { width: 12, height: 12 } }} /></Box>
-            </>)}
-            {selectedObj.__frameType && (
-              <Button size="small" onClick={() => frameInputRef.current?.click()} startIcon={<ImageIcon sx={{ fontSize: 16 }} />}
-                sx={{ color: '#f0c040', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 1, textTransform: 'none', fontSize: '0.7rem', px: 1, py: 0.4 }}>Fill Photo</Button>
-            )}
-            {selectedObj.type === 'image' && selectedObj.__frameType && selectedObj.clipPath?.absolutePositioned && (
-              <Button size="small"
-                onClick={() => { setPhotoAdjustMode(true); photoAdjustModeRef.current = true; }}
-                startIcon={<OpenWithIcon sx={{ fontSize: 16 }} />}
-                sx={{ color: photoAdjustMode ? '#34d399' : 'rgba(255,255,255,0.65)', border: `1px solid ${photoAdjustMode ? 'rgba(52,211,153,0.5)' : 'rgba(255,255,255,0.18)'}`, borderRadius: 1, textTransform: 'none', fontSize: '0.7rem', px: 1, py: 0.4 }}>
-                {photoAdjustMode ? 'Adjusting' : 'Adjust'}
-              </Button>
-            )}
-            <Box sx={{ flex: 1 }} />
-            <IconButton size="small" onClick={duplicateObj} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.5 }}><ContentCopyIcon sx={{ fontSize: 18 }} /></IconButton>
-            <IconButton size="small" onClick={deleteSelected} sx={{ color: '#f87171', p: 0.5 }}><DeleteOutlineIcon sx={{ fontSize: 18 }} /></IconButton>
+
+      {/* ── Sidebar / bottom toolbar: Canva-style ────────────── */}
+      {(() => {
+        const sectionLabel = (text) => (
+          <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', pt: 0.5 }}>
+            {text}
+          </Typography>
+        );
+
+        const toolBtn = (label, icon, action) => (
+          <Box key={label} onClick={action} sx={{
+            flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
+            gap: 0.6, cursor: 'pointer', px: 1.25, py: 1.25,
+            borderRadius: 2.5, minWidth: 68,
+            border: '1.5px solid #e2e8f0', bgcolor: '#f8fafc',
+            transition: 'all 0.15s',
+            '&:active': { transform: 'scale(0.95)', opacity: 0.8 },
+            '&:hover': { borderColor: '#d4a01788', bgcolor: '#fff8e1', boxShadow: '0 2px 8px rgba(212,160,23,0.12)' },
+          }}>
+            <Box sx={{ color: '#d4a017' }}>{icon}</Box>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: '#475569' }}>{label}</Typography>
           </Box>
-        )}
+        );
 
-        {/* Scrollable tab bar — 6 focused sections */}
-        <Tabs
-          value={toolTab} onChange={(_, v) => setToolTab(v)}
-          variant="fullWidth"
-          sx={{
-            minHeight: 36, flexShrink: 0, borderBottom: '1px solid #e2e8f0',
-            '& .MuiTab-root': { minHeight: 36, py: 0, fontSize: '0.62rem', fontWeight: 600, textTransform: 'none', color: '#64748b', px: 0.25, minWidth: 0 },
-            '& .Mui-selected': { color: '#d4a017 !important' },
-            '& .MuiTabs-indicator': { bgcolor: '#d4a017' },
-          }}
-        >
-          <Tab label="Add" />
-          <Tab label="Text" />
-          <Tab label="Object" />
-          <Tab label="Arrange" />
-          <Tab label="Style" />
-          <Tab label="Export" />
-        </Tabs>
+        const panels = (
+          <>
+            {/* ── Tab 0: Add ── */}
+            {toolTab === 0 && (
+              <Stack spacing={1.25}>
+                {sectionLabel('Content')}
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {toolBtn('Text',     <TextFieldsIcon sx={{ fontSize: 26 }} />,        addText)}
+                  {toolBtn('Photo',    <ImageIcon sx={{ fontSize: 26 }} />,              () => fileInputRef.current?.click())}
+                  {toolBtn('Gallery',  <AddPhotoAlternateIcon sx={{ fontSize: 26 }} />,  () => setGalleryDialog(true))}
+                  {toolBtn('Sig',      <DrawIcon sx={{ fontSize: 26 }} />,               () => sigInputRef.current?.click())}
+                  {toolBtn('Sig Line', <HorizontalRuleIcon sx={{ fontSize: 26 }} />,    addSignatureLine)}
+                  {toolBtn('SVG',      <FolderOpenIcon sx={{ fontSize: 26 }} />,         () => svgInputRef.current?.click())}
+                </Box>
 
-        <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', p: 1.25 }}>
+                {sectionLabel('Photo Frames')}
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {toolBtn('Rect',    <Box sx={{ width: 24, height: 24, border: '2.5px dashed #d4a017', borderRadius: 2 }} />,      () => addFrame('rect'))}
+                  {toolBtn('Circle',  <Box sx={{ width: 24, height: 24, border: '2.5px dashed #d4a017', borderRadius: '50%' }} />,  () => addFrame('circle'))}
+                  {toolBtn('Rounded', <Box sx={{ width: 24, height: 24, border: '2.5px dashed #d4a017', borderRadius: 6 }} />,      () => addFrame('rounded'))}
+                </Box>
 
-          {/* ── Tab 0: Add elements ────────────────────────── */}
-          {toolTab === 0 && (() => {
-            const btn = (label, icon, action) => (
-              <Box key={label} onClick={action} sx={{
-                flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center',
-                gap: 0.4, cursor: 'pointer', px: 0.75, py: 0.75, borderRadius: 2, minWidth: 52,
-                border: '1px solid #e2e8f0', bgcolor: '#f8fafc',
-                '&:active': { opacity: 0.7 }, '&:hover': { borderColor: '#d4a01755', bgcolor: '#f1f5f9' },
-              }}>
-                <Box sx={{ color: '#d4a017' }}>{icon}</Box>
-                <Typography sx={{ fontSize: '0.6rem', fontWeight: 500, color: '#64748b' }}>{label}</Typography>
-              </Box>
-            );
-            return (
-              <Stack spacing={0.75}>
-                {/* Content */}
-                <Typography sx={{ fontSize: '0.58rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Content</Typography>
-                <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
-                  {btn('Text',    <TextFieldsIcon sx={{ fontSize: 18 }} />,       addText)}
-                  {btn('Photo',   <ImageIcon sx={{ fontSize: 18 }} />,             () => fileInputRef.current?.click())}
-                  {btn('Gallery', <AddPhotoAlternateIcon sx={{ fontSize: 18 }} />, () => setGalleryDialog(true))}
-                  {btn('Sig',     <DrawIcon sx={{ fontSize: 18 }} />,              () => sigInputRef.current?.click())}
-                  {btn('Sig Line',<HorizontalRuleIcon sx={{ fontSize: 18 }} />,   addSignatureLine)}
-                  {btn('SVG',     <FolderOpenIcon sx={{ fontSize: 18 }} />,        () => svgInputRef.current?.click())}
+                {sectionLabel('Shapes')}
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {toolBtn('Rect',     <LayersIcon sx={{ fontSize: 26 }} />,          () => addShape('rect'))}
+                  {toolBtn('Circle',   <LayersIcon sx={{ fontSize: 26 }} />,          () => addShape('circle'))}
+                  {toolBtn('Triangle', <ChangeHistoryIcon sx={{ fontSize: 26 }} />,   () => addShape('triangle'))}
+                  {toolBtn('Line',     <HorizontalRuleIcon sx={{ fontSize: 26 }} />,  () => addShape('line'))}
                 </Box>
-                {/* Photo Frames (image placeholders) */}
-                <Typography sx={{ fontSize: '0.58rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Photo Frames</Typography>
-                <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
-                  {btn('Rect',    <Box sx={{ width: 18, height: 18, border: '2px dashed #d4a017', borderRadius: 1 }} />, () => addFrame('rect'))}
-                  {btn('Circle',  <Box sx={{ width: 18, height: 18, border: '2px dashed #d4a017', borderRadius: '50%' }} />, () => addFrame('circle'))}
-                  {btn('Rounded', <Box sx={{ width: 18, height: 18, border: '2px dashed #d4a017', borderRadius: 5 }} />, () => addFrame('rounded'))}
-                </Box>
-                {/* Shapes */}
-                <Typography sx={{ fontSize: '0.58rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Shapes</Typography>
-                <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
-                  {btn('Rect',     <LayersIcon sx={{ fontSize: 18 }} />,          () => addShape('rect'))}
-                  {btn('Circle',   <LayersIcon sx={{ fontSize: 18 }} />,          () => addShape('circle'))}
-                  {btn('Triangle', <ChangeHistoryIcon sx={{ fontSize: 18 }} />,   () => addShape('triangle'))}
-                  {btn('Line',     <HorizontalRuleIcon sx={{ fontSize: 18 }} />,  () => addShape('line'))}
-                </Box>
-                {/* Dynamic Fields from Loaded Data */}
+
+                {/* Dynamic Fields */}
                 {(() => {
                   const HIDDEN = new Set(['_id', '__v', 'uuid', 'institute_uuid', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy', 'photo_url', 'bg_removed_url', '__placeholder', 'student_uuid']);
                   let fieldKeys = [];
@@ -3501,27 +3440,26 @@ export default function DocumentMaker() {
                   }
                   return fieldKeys.length > 0 ? (
                     <Box>
-                      <Stack direction="row" alignItems="center" gap={0.5} mb={0.4}>
-                        <Typography sx={{ fontSize: '0.6rem', color: '#059669', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      <Stack direction="row" alignItems="center" gap={0.75} mb={0.75}>
+                        <Typography sx={{ fontSize: '0.72rem', color: '#059669', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                           Available Fields
                         </Typography>
-                        <Box sx={{ px: 0.6, py: 0.1, borderRadius: 1, bgcolor: '#d1fae5', color: '#059669', fontSize: '0.52rem', fontWeight: 700 }}>
+                        <Box sx={{ px: 0.75, py: 0.2, borderRadius: 1, bgcolor: '#d1fae5', color: '#059669', fontSize: '0.65rem', fontWeight: 700 }}>
                           {fieldKeys.length}
                         </Box>
                       </Stack>
-                      <Typography sx={{ fontSize: '0.56rem', color: '#94a3b8', mb: 0.6 }}>
-                        From {sourceLabel} · Click to insert on canvas
+                      <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', mb: 0.75 }}>
+                        From {sourceLabel} · Tap to insert
                       </Typography>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.4 }}>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.6 }}>
                         {fieldKeys.map(key => (
                           <Box key={key} onClick={() => addPlaceholder(key)} sx={{
-                            cursor: 'pointer', px: 0.75, py: 0.3, borderRadius: 1.5,
+                            cursor: 'pointer', px: 1, py: 0.5, borderRadius: 2,
                             border: '1px solid #6ee7b7', bgcolor: '#ecfdf5',
                             '&:hover': { bgcolor: '#d1fae5', borderColor: '#34d399' },
-                            '&:active': { transform: 'scale(0.95)' },
-                            transition: 'all 0.1s',
+                            '&:active': { transform: 'scale(0.95)' }, transition: 'all 0.1s',
                           }}>
-                            <Typography sx={{ fontSize: '0.58rem', fontWeight: 700, color: '#059669', fontFamily: 'monospace' }}>{`{{${key}}}`}</Typography>
+                            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#059669', fontFamily: 'monospace' }}>{`{{${key}}}`}</Typography>
                           </Box>
                         ))}
                       </Box>
@@ -3529,533 +3467,491 @@ export default function DocumentMaker() {
                   ) : null;
                 })()}
 
-                {/* Smart Placeholders */}
-                <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', pt: 0.5 }}>Smart Placeholders</Typography>
-                <Typography sx={{ fontSize: '0.58rem', color: '#94a3b8', lineHeight: 1.4 }}>Insert data fields that auto-fill from students, CSV, or Excel</Typography>
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 0.5 }}>
+                {sectionLabel('Smart Placeholders')}
+                <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', lineHeight: 1.5 }}>
+                  Data fields that auto-fill from students, CSV, or Excel
+                </Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 0.75 }}>
                   {PLACEHOLDER_FIELDS.map(({ key, label }) => (
                     <Box key={key} onClick={() => addPlaceholder(key)} sx={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.3,
-                      cursor: 'pointer', p: 0.75, borderRadius: 2,
-                      border: '1px solid #d4a01733', bgcolor: '#fff8e1',
-                      '&:hover': { borderColor: '#d4a01788', bgcolor: '#fff8e1' },
-                      '&:active': { transform: 'scale(0.95)' },
-                      transition: 'all 0.1s',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4,
+                      cursor: 'pointer', p: 1, borderRadius: 2.5,
+                      border: '1.5px solid #d4a01744', bgcolor: '#fffdf0',
+                      '&:hover': { borderColor: '#d4a017aa', bgcolor: '#fff8e1' },
+                      '&:active': { transform: 'scale(0.96)' }, transition: 'all 0.12s',
                     }}>
-                      <Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: '#d4a017', fontFamily: 'monospace' }}>{`{{${key}}}`}</Typography>
-                      <Typography sx={{ fontSize: '0.58rem', color: '#d4a01799' }}>{label}</Typography>
+                      <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#d4a017', fontFamily: 'monospace' }}>{`{{${key}}}`}</Typography>
+                      <Typography sx={{ fontSize: '0.65rem', color: '#a07010' }}>{label}</Typography>
                     </Box>
                   ))}
                 </Box>
-                <Stack direction="row" spacing={0.5}>
+                <Stack direction="row" spacing={0.75}>
                   <TextField
                     placeholder="custom_field"
                     value={customPh}
                     onChange={e => setCustomPh(e.target.value.replace(/[^a-z0-9_]/g, ''))}
                     size="small"
-                    sx={{ flex: 1, '& .MuiOutlinedInput-root': { fontSize: '0.72rem', bgcolor: '#f8fafc' }, '& input': { py: 0.5 } }}
+                    sx={{ flex: 1, '& .MuiOutlinedInput-root': { fontSize: '0.82rem', bgcolor: '#f8fafc' }, '& input': { py: 0.75 } }}
                     onKeyDown={e => { if (e.key === 'Enter' && customPh) { addPlaceholder(customPh); setCustomPh(''); } }}
                   />
-                  <Button
-                    size="small"
-                    disabled={!customPh}
-                    onClick={() => { addPlaceholder(customPh); setCustomPh(''); }}
-                    sx={{ minWidth: 0, px: 1.5, bgcolor: '#d4a017', color: '#fff', '&:hover': { bgcolor: '#b8860b' }, fontSize: '0.72rem' }}>
+                  <Button size="small" disabled={!customPh} onClick={() => { addPlaceholder(customPh); setCustomPh(''); }}
+                    sx={{ minWidth: 0, px: 2, bgcolor: '#d4a017', color: '#fff', '&:hover': { bgcolor: '#b8860b' }, fontSize: '0.8rem', borderRadius: 1.5 }}>
                     Add
                   </Button>
                 </Stack>
               </Stack>
-            );
-          })()}
+            )}
 
-          {/* ── Tab 1: Text ────────────────────────────────── */}
-          {toolTab === 1 && (
-            (selectedObj?.type === 'i-text' || selectedObj?.type === 'text') ? (
-              <Stack spacing={0.75}>
-                <Stack direction="row" alignItems="center" gap={1}>
-                  <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 36 }}>Font</Typography>
-                  <Select value={fontFamily} size="small" onChange={e => { setFontFamily(e.target.value); applyFontProp('fontFamily', e.target.value); }}
-                    sx={{ flex: 1, fontSize: '0.7rem', '& .MuiSelect-select': { py: 0.3, px: 1 } }}>
-                    {['Arial','Georgia','Times New Roman','Verdana','Courier New','Impact','Trebuchet MS','Comic Sans MS'].map(f => (
-                      <MenuItem key={f} value={f} sx={{ fontSize: '0.75rem', fontFamily: f }}>{f}</MenuItem>
+            {/* ── Tab 1: Text ── */}
+            {toolTab === 1 && (
+              (selectedObj?.type === 'i-text' || selectedObj?.type === 'text') ? (
+                <Stack spacing={1.25}>
+                  <Stack direction="row" alignItems="center" gap={1.25}>
+                    <Typography sx={{ fontSize: '0.75rem', color: '#64748b', flexShrink: 0, minWidth: 48, fontWeight: 600 }}>Font</Typography>
+                    <Select value={fontFamily} size="small" onChange={e => { setFontFamily(e.target.value); applyFontProp('fontFamily', e.target.value); }}
+                      sx={{ flex: 1, fontSize: '0.82rem', '& .MuiSelect-select': { py: 0.6, px: 1 } }}>
+                      {['Arial','Georgia','Times New Roman','Verdana','Courier New','Impact','Trebuchet MS','Comic Sans MS'].map(f => (
+                        <MenuItem key={f} value={f} sx={{ fontSize: '0.82rem', fontFamily: f }}>{f}</MenuItem>
+                      ))}
+                    </Select>
+                  </Stack>
+                  <Stack direction="row" alignItems="center" gap={1.25}>
+                    <Typography sx={{ fontSize: '0.75rem', color: '#64748b', flexShrink: 0, minWidth: 48, fontWeight: 600 }}>Size</Typography>
+                    <Slider value={fontSize} min={8} max={120} size="small"
+                      onChange={(_, v) => { setFontSize(v); applyFontProp('fontSize', v); }}
+                      sx={{ flex: 1, color: '#d4a017', py: 0.75 }} />
+                    <Typography sx={{ fontSize: '0.75rem', color: '#94a3b8', minWidth: 28, fontWeight: 700, textAlign: 'right' }}>{fontSize}</Typography>
+                  </Stack>
+                  <Stack direction="row" alignItems="center" gap={1.25}>
+                    <Typography sx={{ fontSize: '0.75rem', color: '#64748b', flexShrink: 0, minWidth: 48, fontWeight: 600 }}>Color</Typography>
+                    <input type="color" value={fontColor} onChange={e => { setFontColor(e.target.value); applyFontProp('fill', e.target.value); }}
+                      style={{ width: 36, height: 32, border: 'none', borderRadius: 6, cursor: 'pointer', padding: 0 }} />
+                    <Tooltip title="Bold">
+                      <IconButton size="small" onClick={() => { const v = !isBold; setIsBold(v); applyFontProp('fontWeight', v ? 'bold' : 'normal'); }}
+                        sx={{ bgcolor: isBold ? '#d4a017' : '#f1f5f9', color: isBold ? '#fff' : '#64748b', border: '1.5px solid #e2e8f0', p: 0.75, borderRadius: 1.5, ml: 0.5 }}>
+                        <FormatBoldIcon sx={{ fontSize: 20 }} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Italic">
+                      <IconButton size="small" onClick={() => { const v = !isItalic; setIsItalic(v); applyFontProp('fontStyle', v ? 'italic' : 'normal'); }}
+                        sx={{ bgcolor: isItalic ? '#d4a017' : '#f1f5f9', color: isItalic ? '#fff' : '#64748b', border: '1.5px solid #e2e8f0', p: 0.75, borderRadius: 1.5 }}>
+                        <FormatItalicIcon sx={{ fontSize: 20 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
+                  <Stack direction="row" alignItems="center" gap={1.25}>
+                    <Typography sx={{ fontSize: '0.75rem', color: '#64748b', flexShrink: 0, minWidth: 48, fontWeight: 600 }}>Spacing</Typography>
+                    <Slider value={letterSp} min={-100} max={800} size="small"
+                      onChange={(_, v) => { setLetterSp(v); applyFontProp('charSpacing', v); }}
+                      sx={{ flex: 1, color: '#d4a017', py: 0.75 }} />
+                    <Typography sx={{ fontSize: '0.75rem', color: '#94a3b8', minWidth: 28, fontWeight: 700, textAlign: 'right' }}>{letterSp}</Typography>
+                  </Stack>
+                </Stack>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 5 }}>
+                  <TextFieldsIcon sx={{ fontSize: 44, color: '#e2e8f0', mb: 1.5 }} />
+                  <Typography sx={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                    Tap a text element on the canvas
+                  </Typography>
+                </Box>
+              )
+            )}
+
+            {/* ── Tab 2: Object ── */}
+            {toolTab === 2 && (
+              selectedObj ? (
+                <Stack spacing={1.25}>
+                  <Stack direction="row" alignItems="center" gap={1.25}>
+                    <Typography sx={{ fontSize: '0.75rem', color: '#64748b', flexShrink: 0, minWidth: 56, fontWeight: 600 }}>Opacity</Typography>
+                    <Slider value={Math.round(objOpacity * 100)} min={0} max={100} size="small"
+                      onChange={(_, v) => { const n = v / 100; setObjOpacity(n); applyObjProp('opacity', n); }}
+                      sx={{ flex: 1, color: '#d4a017', py: 0.75 }} />
+                    <Typography sx={{ fontSize: '0.75rem', color: '#94a3b8', minWidth: 36, fontWeight: 700 }}>{Math.round(objOpacity * 100)}%</Typography>
+                  </Stack>
+                  <Stack direction="row" alignItems="center" gap={1.25}>
+                    <Typography sx={{ fontSize: '0.75rem', color: '#64748b', flexShrink: 0, minWidth: 56, fontWeight: 600 }}>Rotate</Typography>
+                    <Slider value={objAngle} min={0} max={360} size="small"
+                      onChange={(_, v) => { setObjAngle(v); applyObjProp('angle', v); }}
+                      sx={{ flex: 1, color: '#d4a017', py: 0.75 }} />
+                    <Typography sx={{ fontSize: '0.75rem', color: '#94a3b8', minWidth: 36, fontWeight: 700 }}>{objAngle}°</Typography>
+                  </Stack>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    {[
+                      { label: 'Flip H',  icon: <SwapHorizIcon sx={{ fontSize: 20 }} />,    action: () => applyObjProp('flipX', !selectedObj.flipX) },
+                      { label: 'Flip V',  icon: <SwapVertIcon sx={{ fontSize: 20 }} />,      action: () => applyObjProp('flipY', !selectedObj.flipY) },
+                      { label: 'Copy',    icon: <ContentCopyIcon sx={{ fontSize: 20 }} />,   action: duplicateObj },
+                      { label: 'Delete',  icon: <DeleteOutlineIcon sx={{ fontSize: 20 }} />, action: deleteSelected, red: true },
+                    ].map(({ label, icon, action, red }) => (
+                      <Box key={label} onClick={action} sx={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4,
+                        cursor: 'pointer', px: 1.5, py: 1, borderRadius: 2.5, border: '1.5px solid #e2e8f0',
+                        bgcolor: red ? '#fff5f5' : '#f8fafc', minWidth: 60,
+                        '&:active': { transform: 'scale(0.94)', opacity: 0.8 }, transition: 'all 0.1s',
+                      }}>
+                        <Box sx={{ color: red ? '#ef4444' : '#d4a017' }}>{icon}</Box>
+                        <Typography sx={{ fontSize: '0.7rem', color: red ? '#ef4444' : '#64748b', fontWeight: 600 }}>{label}</Typography>
+                      </Box>
                     ))}
+                    {selectedObj.__frameType && (
+                      <Box onClick={() => frameInputRef.current?.click()} sx={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4,
+                        cursor: 'pointer', px: 1.5, py: 1, borderRadius: 2.5, border: '1.5px solid #d4a01766',
+                        bgcolor: '#fff8e1', minWidth: 72, '&:active': { transform: 'scale(0.94)' }, transition: 'all 0.1s',
+                      }}>
+                        <ImageIcon sx={{ fontSize: 20, color: '#d4a017' }} />
+                        <Typography sx={{ fontSize: '0.7rem', color: '#d4a017', fontWeight: 600 }}>Fill Photo</Typography>
+                      </Box>
+                    )}
+                    {selectedObj.type === 'group' && (
+                      <Box onClick={ungroupSelected} sx={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4,
+                        cursor: 'pointer', px: 1.5, py: 1, borderRadius: 2.5, border: '1.5px solid #0ea5e966',
+                        bgcolor: '#f0f9ff', minWidth: 72, '&:active': { transform: 'scale(0.94)' }, transition: 'all 0.1s',
+                      }}>
+                        <LayersIcon sx={{ fontSize: 20, color: '#0ea5e9' }} />
+                        <Typography sx={{ fontSize: '0.7rem', color: '#0ea5e9', fontWeight: 600 }}>Ungroup</Typography>
+                      </Box>
+                    )}
+                    {selectedObj.type === 'image' && selectedObj.__frameType && selectedObj.clipPath?.absolutePositioned && (
+                      <Box onClick={() => { setPhotoAdjustMode(true); photoAdjustModeRef.current = true; }}
+                        sx={{
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4,
+                          cursor: 'pointer', px: 1.5, py: 1, borderRadius: 2.5,
+                          border: `1.5px solid ${photoAdjustMode ? '#0ea5e9' : '#0ea5e966'}`,
+                          bgcolor: photoAdjustMode ? '#e0f2fe' : '#f0f9ff', minWidth: 72,
+                          '&:active': { transform: 'scale(0.94)' }, transition: 'all 0.1s',
+                        }}>
+                        <OpenWithIcon sx={{ fontSize: 20, color: '#0ea5e9' }} />
+                        <Typography sx={{ fontSize: '0.7rem', color: '#0ea5e9', fontWeight: 600 }}>Adjust</Typography>
+                      </Box>
+                    )}
+                  </Box>
+
+                  {selectedObj.__frameType && selectedObjs.length <= 1 && (
+                    <Box>
+                      <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', mb: 0.75 }}>Frame Shape</Typography>
+                      <Stack direction="row" gap={0.75}>
+                        {[
+                          ['rect',    'Rect',   <Box sx={{ width: 18, height: 18, border: '2px solid currentColor', borderRadius: 2 }} />],
+                          ['circle',  'Circle', <Box sx={{ width: 18, height: 18, border: '2px solid currentColor', borderRadius: '50%' }} />],
+                          ['rounded', 'Round',  <Box sx={{ width: 18, height: 18, border: '2px solid currentColor', borderRadius: 5 }} />],
+                        ].map(([type, label, icon]) => (
+                          <Box key={type} onClick={() => changeSelectedFrameType(type)} sx={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4,
+                            cursor: 'pointer', px: 1, py: 0.75, borderRadius: 2, flex: 1,
+                            border: `2px solid ${selectedObj.__frameType === type ? '#d4a017' : '#e2e8f0'}`,
+                            bgcolor: selectedObj.__frameType === type ? '#fff8e1' : '#f8fafc',
+                            color: selectedObj.__frameType === type ? '#d4a017' : '#64748b',
+                            '&:active': { transform: 'scale(0.96)' }, transition: 'all 0.1s',
+                          }}>
+                            {icon}
+                            <Typography sx={{ fontSize: '0.72rem', fontWeight: 600 }}>{label}</Typography>
+                          </Box>
+                        ))}
+                      </Stack>
+                    </Box>
+                  )}
+
+                  {selectedObjs.length > 1 && selectedObjs.every(o => o.__frameType) && (
+                    <Box sx={{ p: 1.25, bgcolor: '#f0f9ff', borderRadius: 2.5, border: '1.5px solid #bae6fd' }}>
+                      <Typography sx={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 700, mb: 0.75 }}>
+                        {selectedObjs.length} frames selected
+                      </Typography>
+                      <Typography sx={{ fontSize: '0.72rem', color: '#64748b', mb: 0.75 }}>Change all to shape:</Typography>
+                      <Stack direction="row" gap={0.75} mb={1}>
+                        {[
+                          ['rect',    'Rect',   <Box sx={{ width: 14, height: 14, border: '2px solid currentColor', borderRadius: 2 }} />],
+                          ['circle',  'Circle', <Box sx={{ width: 14, height: 14, border: '2px solid currentColor', borderRadius: '50%' }} />],
+                          ['rounded', 'Round',  <Box sx={{ width: 14, height: 14, border: '2px solid currentColor', borderRadius: 4 }} />],
+                        ].map(([type, label, icon]) => (
+                          <Box key={type} onClick={() => changeSelectedFrameType(type)} sx={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4,
+                            cursor: 'pointer', px: 1, py: 0.75, borderRadius: 2, flex: 1,
+                            border: '1.5px solid #bae6fd', bgcolor: '#fff', color: '#0284c7',
+                            '&:active': { transform: 'scale(0.96)' }, transition: 'all 0.1s',
+                          }}>
+                            {icon}
+                            <Typography sx={{ fontSize: '0.7rem', fontWeight: 600 }}>{label}</Typography>
+                          </Box>
+                        ))}
+                      </Stack>
+                      <Box onClick={() => bulkFrameRef.current?.click()} sx={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.75,
+                        cursor: 'pointer', px: 1.5, py: 1, borderRadius: 2,
+                        border: '1.5px solid #d4a01766', bgcolor: '#fff8e1',
+                        '&:active': { transform: 'scale(0.97)' }, transition: 'all 0.1s',
+                      }}>
+                        <ImageIcon sx={{ fontSize: 18, color: '#d4a017' }} />
+                        <Typography sx={{ fontSize: '0.78rem', color: '#d4a017', fontWeight: 700 }}>
+                          Fill All with Same Photo
+                        </Typography>
+                      </Box>
+                      <input hidden ref={bulkFrameRef} type="file" accept="image/*"
+                        onChange={e => { bulkFillFramesWithPhoto(e.target.files[0]); e.target.value = ''; }} />
+                    </Box>
+                  )}
+
+                  {selectedObj.type === 'image' && (
+                    <>
+                      <Stack direction="row" alignItems="center" gap={1.25}>
+                        <WbSunnyIcon sx={{ fontSize: 20, color: '#f59e0b', flexShrink: 0 }} />
+                        <Slider value={Math.round(imgBright * 100)} min={-100} max={100} size="small"
+                          onChange={(_, v) => { const n = v / 100; setImgBright(n); applyImageFilter('Brightness', n); }}
+                          sx={{ flex: 1, color: '#f59e0b', py: 0.75 }} />
+                        <Typography sx={{ fontSize: '0.75rem', color: '#94a3b8', minWidth: 28, fontWeight: 700 }}>{Math.round(imgBright * 100)}</Typography>
+                      </Stack>
+                      <Stack direction="row" alignItems="center" gap={1.25}>
+                        <TonalityIcon sx={{ fontSize: 20, color: '#25a066', flexShrink: 0 }} />
+                        <Slider value={Math.round(imgContrast * 100)} min={-100} max={100} size="small"
+                          onChange={(_, v) => { const n = v / 100; setImgContrast(n); applyImageFilter('Contrast', n); }}
+                          sx={{ flex: 1, color: '#25a066', py: 0.75 }} />
+                        <Typography sx={{ fontSize: '0.75rem', color: '#94a3b8', minWidth: 28, fontWeight: 700 }}>{Math.round(imgContrast * 100)}</Typography>
+                      </Stack>
+                    </>
+                  )}
+                </Stack>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 5 }}>
+                  <TuneIcon sx={{ fontSize: 44, color: '#e2e8f0', mb: 1.5 }} />
+                  <Typography sx={{ fontSize: '0.85rem', color: '#94a3b8' }}>Tap an element on the canvas</Typography>
+                </Box>
+              )
+            )}
+
+            {/* ── Tab 3: Arrange ── */}
+            {toolTab === 3 && (
+              selectedObj ? (
+                <Stack spacing={1.5}>
+                  <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Align to Canvas</Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.75 }}>
+                    {[
+                      { title: 'Left',     icon: <AlignHorizontalLeftIcon sx={{ fontSize: 22 }} />,   dir: 'left' },
+                      { title: 'H Center', icon: <AlignHorizontalCenterIcon sx={{ fontSize: 22 }} />, dir: 'hcenter' },
+                      { title: 'Right',    icon: <AlignHorizontalRightIcon sx={{ fontSize: 22 }} />,  dir: 'right' },
+                      { title: 'Top',      icon: <AlignVerticalTopIcon sx={{ fontSize: 22 }} />,      dir: 'top' },
+                      { title: 'V Center', icon: <AlignVerticalCenterIcon sx={{ fontSize: 22 }} />,   dir: 'vcenter' },
+                      { title: 'Bottom',   icon: <AlignVerticalBottomIcon sx={{ fontSize: 22 }} />,   dir: 'bottom' },
+                    ].map(({ title, icon, dir }) => (
+                      <Tooltip key={dir} title={title}>
+                        <Box onClick={() => alignObj(dir)} sx={{
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4,
+                          cursor: 'pointer', p: 1, borderRadius: 2, border: '1.5px solid #e2e8f0',
+                          bgcolor: '#f8fafc', color: '#d4a017',
+                          '&:hover': { bgcolor: '#fff8e1', borderColor: '#d4a01766' },
+                          '&:active': { transform: 'scale(0.94)' }, transition: 'all 0.1s',
+                        }}>
+                          {icon}
+                          <Typography sx={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>{title}</Typography>
+                        </Box>
+                      </Tooltip>
+                    ))}
+                  </Box>
+                  <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Layer Order</Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0.75 }}>
+                    {[
+                      { title: 'Front', icon: <FlipToFrontIcon sx={{ fontSize: 22 }} />,   dir: 'front' },
+                      { title: 'Up',    icon: <ArrowUpwardIcon sx={{ fontSize: 22 }} />,    dir: 'up' },
+                      { title: 'Down',  icon: <ArrowDownwardIcon sx={{ fontSize: 22 }} />,  dir: 'down' },
+                      { title: 'Back',  icon: <FlipToBackIcon sx={{ fontSize: 22 }} />,    dir: 'back' },
+                    ].map(({ title, icon, dir }) => (
+                      <Tooltip key={dir} title={title}>
+                        <Box onClick={() => applyLayer(dir)} sx={{
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.4,
+                          cursor: 'pointer', p: 1, borderRadius: 2, border: '1.5px solid #e2e8f0',
+                          bgcolor: '#f8fafc', color: '#64748b',
+                          '&:hover': { bgcolor: '#f1f5f9', borderColor: '#d0d0d0' },
+                          '&:active': { transform: 'scale(0.94)' }, transition: 'all 0.1s',
+                        }}>
+                          {icon}
+                          <Typography sx={{ fontSize: '0.65rem', color: '#64748b', fontWeight: 600 }}>{title}</Typography>
+                        </Box>
+                      </Tooltip>
+                    ))}
+                  </Box>
+                </Stack>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 5 }}>
+                  <LayersIcon sx={{ fontSize: 44, color: '#e2e8f0', mb: 1.5 }} />
+                  <Typography sx={{ fontSize: '0.85rem', color: '#94a3b8' }}>Tap an element to arrange it</Typography>
+                </Box>
+              )
+            )}
+
+            {/* ── Tab 4: Style ── */}
+            {toolTab === 4 && (
+              <Stack spacing={1.75}>
+                <Stack direction="row" alignItems="center" gap={1.75}>
+                  <Box sx={{ width: 52, height: 52, borderRadius: 2.5, border: '2px solid #e2e8f0', overflow: 'hidden', flexShrink: 0, cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                    <input type="color" value={bgColor} onChange={e => setCanvasBg(e.target.value)}
+                      style={{ width: '200%', height: '200%', border: 'none', cursor: 'pointer', padding: 0, marginLeft: '-50%', marginTop: '-50%' }} />
+                  </Box>
+                  <Box>
+                    <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#1e293b' }}>Background Color</Typography>
+                    <Typography sx={{ fontSize: '0.75rem', color: '#94a3b8', fontFamily: 'monospace' }}>{bgColor.toUpperCase()}</Typography>
+                  </Box>
+                </Stack>
+                <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
+                  {['#ffffff','#f8fafc','#1e293b','#d4a017','#1a7a4a','#0f766e','#b45309','#be123c','#f1f5f9','#fef9c3'].map(c => (
+                    <Box key={c} onClick={() => setCanvasBg(c)} sx={{
+                      width: 38, height: 38, borderRadius: 2, bgcolor: c, cursor: 'pointer',
+                      border: bgColor === c ? '3px solid #d4a017' : '1.5px solid #e2e8f0',
+                      transition: 'all 0.12s',
+                      '&:hover': { transform: 'scale(1.12)' },
+                    }} />
+                  ))}
+                </Box>
+              </Stack>
+            )}
+
+            {/* ── Tab 5: Export ── */}
+            {toolTab === 5 && (
+              <Stack spacing={1.75}>
+                {batchStudents.length > 0 && (
+                  <Box sx={{ bgcolor: '#f8fafc', borderRadius: 2.5, border: '1.5px solid #e2e8f0', p: 1.5 }}>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.25}>
+                      <Typography sx={{ fontSize: '0.82rem', color: '#475569', fontWeight: 700 }}>
+                        Record {carouselIdx + 1} / {batchStudents.length}
+                      </Typography>
+                      <Stack direction="row" spacing={0.5} alignItems="center">
+                        <IconButton size="small" onClick={() => goCarousel(carouselIdx - 1)} disabled={carouselIdx === 0}
+                          sx={{ color: '#d4a017', p: 0.5, border: '1px solid #e2e8f0', borderRadius: 1.5, '&.Mui-disabled': { opacity: 0.3 } }}>
+                          <ChevronLeftIcon sx={{ fontSize: 20 }} />
+                        </IconButton>
+                        <Box sx={{ display: 'flex', gap: 0.4 }}>
+                          {batchStudents.slice(Math.max(0, carouselIdx - 2), carouselIdx + 3).map((_, i) => {
+                            const absIdx = Math.max(0, carouselIdx - 2) + i;
+                            return (
+                              <Box key={absIdx} onClick={() => goCarousel(absIdx)} sx={{
+                                width: absIdx === carouselIdx ? 20 : 7, height: 7, borderRadius: 4,
+                                bgcolor: absIdx === carouselIdx ? '#d4a017' : '#cbd5e1',
+                                cursor: 'pointer', transition: 'all 0.2s',
+                              }} />
+                            );
+                          })}
+                        </Box>
+                        <IconButton size="small" onClick={() => goCarousel(carouselIdx + 1)} disabled={carouselIdx === batchStudents.length - 1}
+                          sx={{ color: '#d4a017', p: 0.5, border: '1px solid #e2e8f0', borderRadius: 1.5, '&.Mui-disabled': { opacity: 0.3 } }}>
+                          <ChevronRightIcon sx={{ fontSize: 20 }} />
+                        </IconButton>
+                      </Stack>
+                    </Stack>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 1.25 }}>
+                      {[['name', 'Name'], ['rollNo', 'Roll No'], ['course', 'Course'], ['batch', 'Batch']].map(([key, lbl]) => (
+                        <TextField key={key} label={lbl} value={carouselFields[key] || ''} size="small"
+                          onChange={e => setCarouselFields(prev => ({ ...prev, [key]: e.target.value }))}
+                          sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#fff', fontSize: '0.82rem' }, '& label': { fontSize: '0.78rem' } }}
+                        />
+                      ))}
+                    </Box>
+                    <Button size="small" fullWidth onClick={applyCarouselToCanvas}
+                      sx={{ bgcolor: '#d4a01722', color: '#d4a017', border: '1.5px solid #d4a01744', textTransform: 'none', fontSize: '0.82rem', py: 0.75, '&:hover': { bgcolor: '#d4a01733' }, borderRadius: 1.5 }}>
+                      Apply to Canvas
+                    </Button>
+                  </Box>
+                )}
+
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Select value={fillStudent} onChange={e => { setFillStudent(e.target.value); fillFromStudent(e.target.value); }}
+                    displayEmpty size="small"
+                    sx={{ flex: 1, bgcolor: '#f1f5f9', color: '#1e293b', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' }, fontSize: '0.82rem' }}>
+                    <MenuItem value=""><em style={{ color: '#94a3b8' }}>Fill from student...</em></MenuItem>
+                    {students.map(s => <MenuItem key={s.uuid || s._id} value={s.uuid || s._id}>{s.firstName} {s.lastName}</MenuItem>)}
                   </Select>
                 </Stack>
-                <Stack direction="row" alignItems="center" gap={1}>
-                  <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 36 }}>Size</Typography>
-                  <Slider value={fontSize} min={8} max={120} size="small"
-                    onChange={(_, v) => { setFontSize(v); applyFontProp('fontSize', v); }}
-                    sx={{ flex: 1, color: '#d4a017', py: 0.5 }} />
-                  <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{fontSize}</Typography>
-                </Stack>
-                <Stack direction="row" alignItems="center" gap={1}>
-                  <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 36 }}>Color</Typography>
-                  <input type="color" value={fontColor} onChange={e => { setFontColor(e.target.value); applyFontProp('fill', e.target.value); }}
-                    style={{ width: 28, height: 24, border: 'none', borderRadius: 4, cursor: 'pointer', padding: 0 }} />
-                  <Tooltip title="Bold">
-                    <IconButton size="small" onClick={() => { const v = !isBold; setIsBold(v); applyFontProp('fontWeight', v ? 'bold' : 'normal'); }}
-                      sx={{ bgcolor: isBold ? '#d4a017' : '#f1f5f9', color: isBold ? '#fff' : '#64748b', border: '1px solid #e2e8f0', p: 0.4 }}>
-                      <FormatBoldIcon sx={{ fontSize: 14 }} />
-                    </IconButton>
-                  </Tooltip>
-                  <Tooltip title="Italic">
-                    <IconButton size="small" onClick={() => { const v = !isItalic; setIsItalic(v); applyFontProp('fontStyle', v ? 'italic' : 'normal'); }}
-                      sx={{ bgcolor: isItalic ? '#d4a017' : '#f1f5f9', color: isItalic ? '#fff' : '#64748b', border: '1px solid #e2e8f0', p: 0.4 }}>
-                      <FormatItalicIcon sx={{ fontSize: 14 }} />
-                    </IconButton>
-                  </Tooltip>
-                </Stack>
-                <Stack direction="row" alignItems="center" gap={1}>
-                  <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 36 }}>Spacing</Typography>
-                  <Slider value={letterSp} min={-100} max={800} size="small"
-                    onChange={(_, v) => { setLetterSp(v); applyFontProp('charSpacing', v); }}
-                    sx={{ flex: 1, color: '#d4a017', py: 0.5 }} />
-                  <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{letterSp}</Typography>
-                </Stack>
-              </Stack>
-            ) : (
-              <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', pt: 1, textAlign: 'center' }}>
-                Tap a text element on the canvas to edit it
-              </Typography>
-            )
-          )}
 
-          {/* ── Tab 2: Object ──────────────────────────────── */}
-          {toolTab === 2 && (
-            selectedObj ? (
-              <Stack spacing={0.75}>
-                <Stack direction="row" alignItems="center" gap={1}>
-                  <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 36 }}>Opacity</Typography>
-                  <Slider value={Math.round(objOpacity * 100)} min={0} max={100} size="small"
-                    onChange={(_, v) => { const n = v / 100; setObjOpacity(n); applyObjProp('opacity', n); }}
-                    sx={{ flex: 1, color: '#d4a017', py: 0.5 }} />
-                  <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 24 }}>{Math.round(objOpacity * 100)}%</Typography>
-                </Stack>
-                <Stack direction="row" alignItems="center" gap={1}>
-                  <Typography sx={{ fontSize: '0.62rem', color: '#64748b', flexShrink: 0, minWidth: 36 }}>Rotate</Typography>
-                  <Slider value={objAngle} min={0} max={360} size="small"
-                    onChange={(_, v) => { setObjAngle(v); applyObjProp('angle', v); }}
-                    sx={{ flex: 1, color: '#d4a017', py: 0.5 }} />
-                  <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 24 }}>{objAngle}°</Typography>
-                </Stack>
-                <Stack direction="row" gap={0.5} flexWrap="wrap">
-                  {[
-                    { label: 'Flip H',  icon: <SwapHorizIcon sx={{ fontSize: 13 }} />,    action: () => applyObjProp('flipX', !selectedObj.flipX) },
-                    { label: 'Flip V',  icon: <SwapVertIcon sx={{ fontSize: 13 }} />,      action: () => applyObjProp('flipY', !selectedObj.flipY) },
-                    { label: 'Copy',    icon: <ContentCopyIcon sx={{ fontSize: 13 }} />,   action: duplicateObj },
-                    { label: 'Delete',  icon: <DeleteOutlineIcon sx={{ fontSize: 13 }} />, action: deleteSelected, red: true },
-                  ].map(({ label, icon, action, red }) => (
-                    <Box key={label} onClick={action} sx={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.2,
-                      cursor: 'pointer', px: 0.75, py: 0.4, borderRadius: 1.5, border: '1px solid #e2e8f0',
-                      bgcolor: red ? '#fff0f0' : '#f8fafc', minWidth: 42, '&:active': { opacity: 0.7 },
-                    }}>
-                      <Box sx={{ color: red ? '#ef4444' : '#d4a017' }}>{icon}</Box>
-                      <Typography sx={{ fontSize: '0.56rem', color: red ? '#ef4444' : '#64748b' }}>{label}</Typography>
-                    </Box>
-                  ))}
-                  {/* Fill frame with photo if a frame is selected */}
-                  {selectedObj.__frameType && (
-                    <Box onClick={() => frameInputRef.current?.click()} sx={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.2,
-                      cursor: 'pointer', px: 0.75, py: 0.4, borderRadius: 1.5, border: '1px solid #d4a01755',
-                      bgcolor: '#fff8e1', minWidth: 52, '&:active': { opacity: 0.7 },
-                    }}>
-                      <ImageIcon sx={{ fontSize: 13, color: '#d4a017' }} />
-                      <Typography sx={{ fontSize: '0.56rem', color: '#d4a017' }}>Fill Photo</Typography>
-                    </Box>
-                  )}
-                  {/* Ungroup if an SVG/group is selected */}
-                  {selectedObj.type === 'group' && (
-                    <Box onClick={ungroupSelected} sx={{
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.2,
-                      cursor: 'pointer', px: 0.75, py: 0.4, borderRadius: 1.5, border: '1px solid #0ea5e955',
-                      bgcolor: '#f0f9ff', minWidth: 52, '&:active': { opacity: 0.7 },
-                    }}>
-                      <LayersIcon sx={{ fontSize: 13, color: '#0ea5e9' }} />
-                      <Typography sx={{ fontSize: '0.56rem', color: '#0ea5e9' }}>Ungroup</Typography>
-                    </Box>
-                  )}
-                  {/* Adjust photo position (double-click shortcut) */}
-                  {selectedObj.type === 'image' && selectedObj.__frameType && selectedObj.clipPath?.absolutePositioned && (
-                    <Box onClick={() => { setPhotoAdjustMode(true); photoAdjustModeRef.current = true; }}
-                      sx={{
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.2,
-                        cursor: 'pointer', px: 0.75, py: 0.4, borderRadius: 1.5,
-                        border: `1px solid ${photoAdjustMode ? '#0ea5e9' : '#0ea5e955'}`,
-                        bgcolor: photoAdjustMode ? '#e0f2fe' : '#f0f9ff', minWidth: 52, '&:active': { opacity: 0.7 },
-                      }}>
-                      <OpenWithIcon sx={{ fontSize: 13, color: '#0ea5e9' }} />
-                      <Typography sx={{ fontSize: '0.56rem', color: '#0ea5e9' }}>Adjust</Typography>
-                    </Box>
-                  )}
+                <Stack direction="row" spacing={1}>
+                  <Button size="small" startIcon={<DownloadIcon />} onClick={exportPNG} fullWidth
+                    sx={{ bgcolor: '#f1f5f9', color: '#1e293b', border: '1px solid #e2e8f0', '&:hover': { bgcolor: '#e2e8f0' }, fontSize: '0.8rem', py: 0.85 }}>PNG</Button>
+                  <Button size="small" startIcon={<PictureAsPdfIcon />} onClick={exportPDF} disabled={exporting} fullWidth
+                    sx={{ bgcolor: '#d4a01722', color: '#d4a017', border: '1.5px solid #d4a01744', '&:hover': { bgcolor: '#d4a01733' }, fontSize: '0.8rem', py: 0.85 }}>PDF</Button>
                 </Stack>
 
-                {/* Frame shape selector */}
-                {selectedObj.__frameType && selectedObjs.length <= 1 && (
-                  <Box>
-                    <Typography sx={{ fontSize: '0.56rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', mb: 0.4 }}>Frame Shape</Typography>
-                    <Stack direction="row" gap={0.5}>
-                      {[
-                        ['rect',    'Rect',   <Box sx={{ width: 12, height: 12, border: '2px solid currentColor', borderRadius: 1 }} />],
-                        ['circle',  'Circle', <Box sx={{ width: 12, height: 12, border: '2px solid currentColor', borderRadius: '50%' }} />],
-                        ['rounded', 'Round',  <Box sx={{ width: 12, height: 12, border: '2px solid currentColor', borderRadius: 4 }} />],
-                      ].map(([type, label, icon]) => (
-                        <Box key={type} onClick={() => changeSelectedFrameType(type)} sx={{
-                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.2,
-                          cursor: 'pointer', px: 0.75, py: 0.4, borderRadius: 1.5, flex: 1,
-                          border: `1.5px solid ${selectedObj.__frameType === type ? '#d4a017' : '#e2e8f0'}`,
-                          bgcolor: selectedObj.__frameType === type ? '#fff8e1' : '#f8fafc',
-                          color: selectedObj.__frameType === type ? '#d4a017' : '#64748b',
-                          '&:active': { opacity: 0.7 },
-                        }}>
-                          {icon}
-                          <Typography sx={{ fontSize: '0.56rem' }}>{label}</Typography>
-                        </Box>
-                      ))}
-                    </Stack>
-                  </Box>
-                )}
-
-                {/* Bulk frame controls when multiple frames are selected */}
-                {selectedObjs.length > 1 && selectedObjs.every(o => o.__frameType) && (
-                  <Box sx={{ p: 0.75, bgcolor: '#f0f9ff', borderRadius: 2, border: '1px solid #bae6fd' }}>
-                    <Typography sx={{ fontSize: '0.58rem', color: '#0284c7', fontWeight: 600, mb: 0.5 }}>
-                      {selectedObjs.length} frames selected
-                    </Typography>
-                    <Typography sx={{ fontSize: '0.56rem', color: '#94a3b8', mb: 0.4 }}>Change all to shape:</Typography>
-                    <Stack direction="row" gap={0.5} mb={0.75}>
-                      {[
-                        ['rect',    'Rect',   <Box sx={{ width: 11, height: 11, border: '2px solid currentColor', borderRadius: 1 }} />],
-                        ['circle',  'Circle', <Box sx={{ width: 11, height: 11, border: '2px solid currentColor', borderRadius: '50%' }} />],
-                        ['rounded', 'Round',  <Box sx={{ width: 11, height: 11, border: '2px solid currentColor', borderRadius: 3 }} />],
-                      ].map(([type, label, icon]) => (
-                        <Box key={type} onClick={() => changeSelectedFrameType(type)} sx={{
-                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.2,
-                          cursor: 'pointer', px: 0.5, py: 0.4, borderRadius: 1.5, flex: 1,
-                          border: '1px solid #bae6fd', bgcolor: '#fff', color: '#0284c7',
-                          '&:active': { opacity: 0.7 },
-                        }}>
-                          {icon}
-                          <Typography sx={{ fontSize: '0.54rem' }}>{label}</Typography>
-                        </Box>
-                      ))}
-                    </Stack>
-                    <Box onClick={() => bulkFrameRef.current?.click()} sx={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5,
-                      cursor: 'pointer', px: 1, py: 0.6, borderRadius: 1.5,
-                      border: '1px solid #d4a01755', bgcolor: '#fff8e1',
-                      '&:active': { opacity: 0.7 },
-                    }}>
-                      <ImageIcon sx={{ fontSize: 12, color: '#d4a017' }} />
-                      <Typography sx={{ fontSize: '0.58rem', color: '#d4a017', fontWeight: 600 }}>
-                        Fill All with Same Photo
-                      </Typography>
-                    </Box>
-                    <input hidden ref={bulkFrameRef} type="file" accept="image/*"
-                      onChange={e => { bulkFillFramesWithPhoto(e.target.files[0]); e.target.value = ''; }} />
-                  </Box>
-                )}
-
-                {/* Image-specific: brightness + contrast */}
-                {selectedObj.type === 'image' && (
-                  <>
-                    <Stack direction="row" alignItems="center" gap={1}>
-                      <WbSunnyIcon sx={{ fontSize: 13, color: '#f59e0b', flexShrink: 0 }} />
-                      <Slider value={Math.round(imgBright * 100)} min={-100} max={100} size="small"
-                        onChange={(_, v) => { const n = v / 100; setImgBright(n); applyImageFilter('Brightness', n); }}
-                        sx={{ flex: 1, color: '#f59e0b', py: 0.5 }} />
-                      <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{Math.round(imgBright * 100)}</Typography>
-                    </Stack>
-                    <Stack direction="row" alignItems="center" gap={1}>
-                      <TonalityIcon sx={{ fontSize: 13, color: '#25a066', flexShrink: 0 }} />
-                      <Slider value={Math.round(imgContrast * 100)} min={-100} max={100} size="small"
-                        onChange={(_, v) => { const n = v / 100; setImgContrast(n); applyImageFilter('Contrast', n); }}
-                        sx={{ flex: 1, color: '#25a066', py: 0.5 }} />
-                      <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', minWidth: 20 }}>{Math.round(imgContrast * 100)}</Typography>
-                    </Stack>
-                  </>
-                )}
-              </Stack>
-            ) : (
-              <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', pt: 1, textAlign: 'center' }}>
-                Tap an element on the canvas
-              </Typography>
-            )
-          )}
-
-          {/* ── Tab 3: Arrange ─────────────────────────────── */}
-          {toolTab === 3 && (
-            selectedObj ? (
-              <Stack spacing={1}>
-                <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Align to Canvas</Typography>
-                <Stack direction="row" gap={0.5}>
-                  {[
-                    { title: 'Left',     icon: <AlignHorizontalLeftIcon sx={{ fontSize: 15 }} />,   dir: 'left' },
-                    { title: 'H Center', icon: <AlignHorizontalCenterIcon sx={{ fontSize: 15 }} />, dir: 'hcenter' },
-                    { title: 'Right',    icon: <AlignHorizontalRightIcon sx={{ fontSize: 15 }} />,  dir: 'right' },
-                    { title: 'Top',      icon: <AlignVerticalTopIcon sx={{ fontSize: 15 }} />,      dir: 'top' },
-                    { title: 'V Center', icon: <AlignVerticalCenterIcon sx={{ fontSize: 15 }} />,   dir: 'vcenter' },
-                    { title: 'Bottom',   icon: <AlignVerticalBottomIcon sx={{ fontSize: 15 }} />,   dir: 'bottom' },
-                  ].map(({ title, icon, dir }) => (
-                    <Tooltip key={dir} title={title}>
-                      <IconButton size="small" onClick={() => alignObj(dir)}
-                        sx={{ p: 0.5, border: '1px solid #e2e8f0', borderRadius: 1.5, color: '#d4a017', bgcolor: '#f8fafc', '&:hover': { bgcolor: '#f1f5f9' } }}>
-                        {icon}
-                      </IconButton>
-                    </Tooltip>
-                  ))}
-                </Stack>
-                <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Layer Order</Typography>
-                <Stack direction="row" gap={0.5}>
-                  {[
-                    { title: 'Bring to Front', icon: <FlipToFrontIcon sx={{ fontSize: 15 }} />,  dir: 'front' },
-                    { title: 'Bring Forward',  icon: <ArrowUpwardIcon sx={{ fontSize: 15 }} />,   dir: 'up' },
-                    { title: 'Send Backward',  icon: <ArrowDownwardIcon sx={{ fontSize: 15 }} />,  dir: 'down' },
-                    { title: 'Send to Back',   icon: <FlipToBackIcon sx={{ fontSize: 15 }} />,   dir: 'back' },
-                  ].map(({ title, icon, dir }) => (
-                    <Tooltip key={dir} title={title}>
-                      <IconButton size="small" onClick={() => applyLayer(dir)}
-                        sx={{ p: 0.5, border: '1px solid #e2e8f0', borderRadius: 1.5, color: '#64748b', bgcolor: '#f8fafc', '&:hover': { bgcolor: '#f1f5f9' } }}>
-                        {icon}
-                      </IconButton>
-                    </Tooltip>
-                  ))}
-                </Stack>
-              </Stack>
-            ) : (
-              <Typography sx={{ fontSize: '0.72rem', color: '#94a3b8', pt: 1, textAlign: 'center' }}>
-                Tap an element to arrange it
-              </Typography>
-            )
-          )}
-
-          {/* ── Tab 4: Style ───────────────────────────────── */}
-          {toolTab === 4 && (
-            <Stack spacing={1}>
-              <Stack direction="row" alignItems="center" gap={1.5}>
-                <Box sx={{ width: 36, height: 36, borderRadius: 1.5, border: '2px solid #e2e8f0', overflow: 'hidden', flexShrink: 0 }}>
-                  <input type="color" value={bgColor} onChange={e => setCanvasBg(e.target.value)}
-                    style={{ width: '200%', height: '200%', border: 'none', cursor: 'pointer', padding: 0, marginLeft: '-50%', marginTop: '-50%' }} />
-                </Box>
-                <Box>
-                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: '#1e293b' }}>Background Color</Typography>
-                  <Typography sx={{ fontSize: '0.62rem', color: '#94a3b8' }}>{bgColor.toUpperCase()}</Typography>
-                </Box>
-              </Stack>
-              {/* Quick BG presets */}
-              <Stack direction="row" gap={0.75} flexWrap="wrap">
-                {['#ffffff','#f8fafc','#1e293b','#d4a017','#1a7a4a','#0f766e','#b45309','#be123c','#f1f5f9','#fef9c3'].map(c => (
-                  <Box key={c} onClick={() => setCanvasBg(c)} sx={{
-                    width: 28, height: 28, borderRadius: 1.5, bgcolor: c, cursor: 'pointer',
-                    border: bgColor === c ? '2px solid #d4a017' : '1px solid #e2e8f0',
-                    '&:hover': { transform: 'scale(1.12)', transition: 'transform 0.1s' },
-                  }} />
-                ))}
-              </Stack>
-            </Stack>
-          )}
-
-          {/* ── Tab 5: Export ──────────────────────────────── */}
-          {toolTab === 5 && (
-            <Stack spacing={1.5}>
-
-              {/* Student Carousel */}
-              {batchStudents.length > 0 && (
-                <Box sx={{ bgcolor: '#f8fafc', borderRadius: 2, border: '1px solid #e2e8f0', p: 1.25 }}>
-                  {/* Header + navigation */}
-                  <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
-                    <Typography sx={{ fontSize: '0.72rem', color: '#475569', fontWeight: 700 }}>
-                      Record {carouselIdx + 1} / {batchStudents.length}
-                    </Typography>
-                    <Stack direction="row" spacing={0.25} alignItems="center">
-                      <IconButton size="small" onClick={() => goCarousel(carouselIdx - 1)} disabled={carouselIdx === 0}
-                        sx={{ color: '#d4a017', p: 0.3, border: '1px solid #e2e8f0', borderRadius: 1, '&.Mui-disabled': { opacity: 0.3 } }}>
-                        <ChevronLeftIcon sx={{ fontSize: 16 }} />
-                      </IconButton>
-                      <Box sx={{ display: 'flex', gap: 0.3 }}>
-                        {batchStudents.slice(Math.max(0, carouselIdx - 2), carouselIdx + 3).map((_, i) => {
-                          const absIdx = Math.max(0, carouselIdx - 2) + i;
-                          return (
-                            <Box key={absIdx} onClick={() => goCarousel(absIdx)} sx={{
-                              width: absIdx === carouselIdx ? 16 : 6, height: 6, borderRadius: 3,
-                              bgcolor: absIdx === carouselIdx ? '#d4a017' : '#cbd5e1',
-                              cursor: 'pointer', transition: 'all 0.2s',
-                            }} />
-                          );
-                        })}
-                      </Box>
-                      <IconButton size="small" onClick={() => goCarousel(carouselIdx + 1)} disabled={carouselIdx === batchStudents.length - 1}
-                        sx={{ color: '#d4a017', p: 0.3, border: '1px solid #e2e8f0', borderRadius: 1, '&.Mui-disabled': { opacity: 0.3 } }}>
-                        <ChevronRightIcon sx={{ fontSize: 16 }} />
-                      </IconButton>
-                    </Stack>
-                  </Stack>
-                  {/* Editable fields */}
-                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0.75, mb: 1 }}>
-                    {[['name', 'Name'], ['rollNo', 'Roll No'], ['course', 'Course'], ['batch', 'Batch']].map(([key, lbl]) => (
-                      <TextField key={key} label={lbl} value={carouselFields[key] || ''} size="small"
-                        onChange={e => setCarouselFields(prev => ({ ...prev, [key]: e.target.value }))}
-                        sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#fff', fontSize: '0.75rem' }, '& label': { fontSize: '0.72rem' } }}
-                      />
-                    ))}
-                  </Box>
-                  <Button size="small" fullWidth onClick={applyCarouselToCanvas}
-                    sx={{ bgcolor: '#d4a01722', color: '#d4a017', border: '1px solid #d4a01733', textTransform: 'none', fontSize: '0.72rem', '&:hover': { bgcolor: '#d4a01733' } }}>
-                    Apply to Canvas
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography sx={{ fontSize: '0.8rem', color: '#64748b', flexShrink: 0, fontWeight: 600 }}>Copies</Typography>
+                  <TextField type="number" size="small" value={printCopies}
+                    onChange={e => setPrintCopies(Math.max(1, Math.min(99, Number(e.target.value))))}
+                    inputProps={{ min: 1, max: 99 }}
+                    sx={{ width: 72, '& .MuiOutlinedInput-root': { bgcolor: '#f1f5f9', '& fieldset': { borderColor: '#e2e8f0' } }, '& input': { py: 0.75, px: 1, fontSize: '0.85rem' } }}
+                  />
+                  <Button size="small"
+                    startIcon={printing ? <CircularProgress size={14} color="inherit" /> : <PrintIcon />}
+                    onClick={printDocument} disabled={printing}
+                    sx={{ flex: 1, bgcolor: '#1a7a4a22', color: '#1a7a4a', border: '1.5px solid #1a7a4a44', '&:hover': { bgcolor: '#1a7a4a33' }, fontSize: '0.8rem', py: 0.85 }}>
+                    {printing ? 'Printing...' : 'Print'}
                   </Button>
-                </Box>
-              )}
-
-              {/* Fill from student */}
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Select value={fillStudent} onChange={e => { setFillStudent(e.target.value); fillFromStudent(e.target.value); }}
-                  displayEmpty size="small"
-                  sx={{ flex: 1, bgcolor: '#f1f5f9', color: '#1e293b', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}>
-                  <MenuItem value=""><em style={{ color: '#94a3b8' }}>Fill from student…</em></MenuItem>
-                  {students.map(s => <MenuItem key={s.uuid || s._id} value={s.uuid || s._id}>{s.firstName} {s.lastName}</MenuItem>)}
-                </Select>
-              </Stack>
-              <Stack direction="row" spacing={1} flexWrap="wrap">
-                <Button size="small" startIcon={<DownloadIcon />} onClick={exportPNG}
-                  sx={{ flex: 1, bgcolor: '#f1f5f9', color: '#1e293b', border: '1px solid #e2e8f0', '&:hover': { bgcolor: '#e2e8f0' } }}>PNG</Button>
-                <Button size="small" startIcon={<PictureAsPdfIcon />} onClick={exportPDF} disabled={exporting}
-                  sx={{ flex: 1, bgcolor: '#d4a01722', color: '#d4a017', border: '1px solid #d4a01733', '&:hover': { bgcolor: '#d4a01733' } }}>PDF</Button>
-              </Stack>
-              {/* Copies + direct Print */}
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Typography sx={{ fontSize: '0.72rem', color: '#64748b', flexShrink: 0 }}>Copies</Typography>
-                <TextField type="number" size="small" value={printCopies}
-                  onChange={e => setPrintCopies(Math.max(1, Math.min(99, Number(e.target.value))))}
-                  inputProps={{ min: 1, max: 99 }}
-                  sx={{ width: 64, '& .MuiOutlinedInput-root': { bgcolor: '#f1f5f9', '& fieldset': { borderColor: '#e2e8f0' } }, '& input': { py: 0.5, px: 1 } }}
-                />
-                <Button size="small"
-                  startIcon={printing ? <CircularProgress size={12} color="inherit" /> : <PrintIcon />}
-                  onClick={printDocument} disabled={printing}
-                  sx={{ flex: 1, bgcolor: '#1a7a4a22', color: '#1a7a4a', border: '1px solid #1a7a4a33', '&:hover': { bgcolor: '#1a7a4a33' } }}>
-                  {printing ? 'Printing…' : 'Print'}
-                </Button>
-              </Stack>
-              {/* Data Source */}
-              <Box>
-                <Typography sx={{ fontSize: '0.62rem', color: '#64748b', mb: 0.75, fontWeight: 600 }}>Data Source</Typography>
-                <Stack direction="row" spacing={0.75} flexWrap="wrap">
-                  <Chip
-                    label="DB Students"
-                    size="small"
-                    onClick={() => setDataSource('batch')}
-                    variant={dataSource === 'batch' ? 'filled' : 'outlined'}
-                    color="primary"
-                    sx={{ fontSize: '0.65rem', height: 22, cursor: 'pointer' }}
-                  />
-                  <Chip
-                    label={csvFile || 'Upload CSV/Excel'}
-                    size="small"
-                    onClick={() => csvInputRef.current?.click()}
-                    variant={dataSource === 'csv' ? 'filled' : 'outlined'}
-                    color="secondary"
-                    sx={{ fontSize: '0.65rem', height: 22, cursor: 'pointer' }}
-                  />
-                </Stack>
-                {dataSource === 'csv' && csvRows.length > 0 && (
-                  <Typography sx={{ fontSize: '0.6rem', color: '#10b981', mt: 0.5 }}>
-                    ✓ {csvRows.length} rows loaded from {csvFile}
-                  </Typography>
-                )}
-                <input hidden type="file" ref={csvInputRef} accept=".csv,.xlsx,.xls"
-                  onChange={e => handleCsvUpload(e.target.files[0])} />
-              </Box>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Select value={selBatch} onChange={e => setSelBatch(e.target.value)} displayEmpty size="small"
-                  sx={{ flex: 1, bgcolor: '#f1f5f9', color: '#1e293b', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}>
-                  <MenuItem value=""><em style={{ color: '#94a3b8' }}>Select batch for bulk…</em></MenuItem>
-                  {batches.map(b => <MenuItem key={b._id || b.Batch_uuid} value={b.name}>{b.name}{b.timing ? ` (${b.timing})` : ''}</MenuItem>)}
-                </Select>
-                <Button size="small" startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <FolderZipIcon />}
-                  onClick={generateBatchZip} disabled={generating || !getActiveRows().length}
-                  sx={{ flexShrink: 0, bgcolor: '#f1f5f9', color: '#1e293b', border: '1px solid #e2e8f0', '&:hover': { bgcolor: '#e2e8f0' } }}>
-                  {generating ? '…' : `ZIP (${getActiveRows().length})`}
-                </Button>
-                <Button size="small" startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <PictureAsPdfIcon />}
-                  onClick={generateBatchPDF} disabled={generating || !getActiveRows().length}
-                  sx={{ flexShrink: 0, bgcolor: '#d4a01722', color: '#d4a017', border: '1px solid #d4a01733', '&:hover': { bgcolor: '#d4a01733' } }}>
-                  {generating ? '…' : `PDF`}
-                </Button>
-              </Stack>
-              {loadingBatch && <CircularProgress size={16} sx={{ mx: 'auto', color: '#d4a017' }} />}
-
-              {/* ── Print Layout System ──────────────────────── */}
-              <Box>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1}>
-                  <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#475569' }}>Print Layouts</Typography>
-                  <Button size="small" onClick={() => { setEditingLayout({ id: null, name: '', pageW: 210, pageH: 297, marginT: 8, marginR: 8, marginB: 8, marginL: 8, cols: 2, rows: 4, gapH: 5, gapV: 5 }); setLayoutDialog(true); }}
-                    sx={{ fontSize: '0.62rem', textTransform: 'none', color: '#d4a017', minWidth: 0 }}>+ New</Button>
                 </Stack>
 
-                {/* Saved layouts */}
-                {userLayouts.length > 0 && (
-                  <Stack spacing={0.5} mb={1}>
-                    <Typography sx={{ fontSize: '0.56rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Saved ({userLayouts.length})</Typography>
-                    {userLayouts.map(layout => {
-                      const { cellW, cellH } = layoutCellDims(layout);
-                      return (
-                        <Box key={layout.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 0.75, borderRadius: 1.5, border: '1px solid #e2e8f0', bgcolor: '#f8fafc' }}>
-                          <LayoutPreview layout={layout} size={44} />
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#1e293b' }} noWrap>{layout.name}</Typography>
-                            <Typography sx={{ fontSize: '0.56rem', color: '#94a3b8' }}>{layout.cols}×{layout.rows} · {cellW.toFixed(0)}×{cellH.toFixed(0)}mm · {layout.cols * layout.rows}/page</Typography>
-                          </Box>
-                          <Stack direction="row" gap={0.25}>
-                            <Tooltip title="Export current card">
-                              <IconButton size="small" onClick={() => exportWithLayout(layout)} disabled={exporting || generating} sx={{ color: '#1a7a4a', p: 0.3 }}><DownloadIcon sx={{ fontSize: 14 }} /></IconButton>
-                            </Tooltip>
-                            {batchStudents.length > 0 && (
-                              <Tooltip title={`Batch (${batchStudents.length} students)`}>
-                                <IconButton size="small" onClick={() => exportWithLayout(layout, true)} disabled={exporting || generating} sx={{ color: '#d4a017', p: 0.3 }}><PictureAsPdfIcon sx={{ fontSize: 14 }} /></IconButton>
-                              </Tooltip>
-                            )}
-                            <Tooltip title="Edit">
-                              <IconButton size="small" onClick={() => { setEditingLayout({ ...layout }); setLayoutDialog(true); }} sx={{ color: '#64748b', p: 0.3 }}><TuneIcon sx={{ fontSize: 13 }} /></IconButton>
-                            </Tooltip>
-                            <Tooltip title="Delete">
-                              <IconButton size="small" onClick={() => deleteUserLayout(layout.id)} sx={{ color: '#f87171', p: 0.3 }}><DeleteOutlineIcon sx={{ fontSize: 14 }} /></IconButton>
-                            </Tooltip>
-                          </Stack>
-                        </Box>
-                      );
-                    })}
-                  </Stack>
-                )}
-
-                {/* Presets — collapsible */}
                 <Box>
-                  <Box onClick={() => setPresetsOpen(v => !v)} sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', mb: 0.5 }}>
-                    <Typography sx={{ fontSize: '0.56rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1 }}>Presets (18)</Typography>
-                    <Typography sx={{ fontSize: '0.62rem', color: '#94a3b8' }}>{presetsOpen ? '▲' : '▼'}</Typography>
-                  </Box>
-                  {presetsOpen && (
-                    <Stack spacing={0.5}>
-                      {PRESET_LAYOUTS.map(layout => {
+                  <Typography sx={{ fontSize: '0.75rem', color: '#64748b', mb: 1, fontWeight: 700 }}>Data Source</Typography>
+                  <Stack direction="row" spacing={0.75} flexWrap="wrap">
+                    <Chip label="DB Students" size="small" onClick={() => setDataSource('batch')}
+                      variant={dataSource === 'batch' ? 'filled' : 'outlined'} color="primary"
+                      sx={{ fontSize: '0.75rem', height: 30, cursor: 'pointer' }} />
+                    <Chip label={csvFile || 'Upload CSV/Excel'} size="small" onClick={() => csvInputRef.current?.click()}
+                      variant={dataSource === 'csv' ? 'filled' : 'outlined'} color="secondary"
+                      sx={{ fontSize: '0.75rem', height: 30, cursor: 'pointer' }} />
+                  </Stack>
+                  {dataSource === 'csv' && csvRows.length > 0 && (
+                    <Typography sx={{ fontSize: '0.72rem', color: '#10b981', mt: 0.75, fontWeight: 600 }}>
+                      {csvRows.length} rows loaded from {csvFile}
+                    </Typography>
+                  )}
+                  <input hidden type="file" ref={csvInputRef} accept=".csv,.xlsx,.xls"
+                    onChange={e => handleCsvUpload(e.target.files[0])} />
+                </Box>
+
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Select value={selBatch} onChange={e => setSelBatch(e.target.value)} displayEmpty size="small"
+                    sx={{ flex: 1, bgcolor: '#f1f5f9', color: '#1e293b', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' }, fontSize: '0.8rem' }}>
+                    <MenuItem value=""><em style={{ color: '#94a3b8' }}>Select batch for bulk...</em></MenuItem>
+                    {batches.map(b => <MenuItem key={b._id || b.Batch_uuid} value={b.name}>{b.name}{b.timing ? ` (${b.timing})` : ''}</MenuItem>)}
+                  </Select>
+                  <Button size="small" startIcon={generating ? <CircularProgress size={14} color="inherit" /> : <FolderZipIcon />}
+                    onClick={generateBatchZip} disabled={generating || !getActiveRows().length}
+                    sx={{ flexShrink: 0, bgcolor: '#f1f5f9', color: '#1e293b', border: '1px solid #e2e8f0', '&:hover': { bgcolor: '#e2e8f0' }, fontSize: '0.75rem' }}>
+                    {generating ? '...' : `ZIP (${getActiveRows().length})`}
+                  </Button>
+                  <Button size="small" startIcon={generating ? <CircularProgress size={14} color="inherit" /> : <PictureAsPdfIcon />}
+                    onClick={generateBatchPDF} disabled={generating || !getActiveRows().length}
+                    sx={{ flexShrink: 0, bgcolor: '#d4a01722', color: '#d4a017', border: '1.5px solid #d4a01744', '&:hover': { bgcolor: '#d4a01733' }, fontSize: '0.75rem' }}>
+                    {generating ? '...' : 'PDF'}
+                  </Button>
+                </Stack>
+                {loadingBatch && <CircularProgress size={20} sx={{ mx: 'auto', color: '#d4a017' }} />}
+
+                <Box>
+                  <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.25}>
+                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: '#475569' }}>Print Layouts</Typography>
+                    <Button size="small" onClick={() => { setEditingLayout({ id: null, name: '', pageW: 210, pageH: 297, marginT: 8, marginR: 8, marginB: 8, marginL: 8, cols: 2, rows: 4, gapH: 5, gapV: 5 }); setLayoutDialog(true); }}
+                      sx={{ fontSize: '0.75rem', textTransform: 'none', color: '#d4a017', minWidth: 0, fontWeight: 700 }}>+ New</Button>
+                  </Stack>
+
+                  {userLayouts.length > 0 && (
+                    <Stack spacing={0.75} mb={1.25}>
+                      <Typography sx={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Saved ({userLayouts.length})</Typography>
+                      {userLayouts.map(layout => {
                         const { cellW, cellH } = layoutCellDims(layout);
                         return (
-                          <Box key={layout.id} sx={{ display: 'flex', alignItems: 'center', gap: 1, p: 0.75, borderRadius: 1.5, border: '1px solid #e2e8f0', bgcolor: '#fff' }}>
-                            <LayoutPreview layout={layout} size={40} />
+                          <Box key={layout.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: 1.25, borderRadius: 2, border: '1.5px solid #e2e8f0', bgcolor: '#f8fafc' }}>
+                            <LayoutPreview layout={layout} size={50} />
                             <Box sx={{ flex: 1, minWidth: 0 }}>
-                              <Typography sx={{ fontSize: '0.62rem', fontWeight: 600, color: '#374151' }} noWrap>{layout.name}</Typography>
-                              <Typography sx={{ fontSize: '0.55rem', color: '#94a3b8' }}>{cellW.toFixed(0)}×{cellH.toFixed(0)}mm · {layout.cols * layout.rows}/pg</Typography>
+                              <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#1e293b' }} noWrap>{layout.name}</Typography>
+                              <Typography sx={{ fontSize: '0.68rem', color: '#94a3b8' }}>{layout.cols}x{layout.rows} · {cellW.toFixed(0)}x{cellH.toFixed(0)}mm</Typography>
                             </Box>
-                            <Stack direction="row" gap={0.25}>
+                            <Stack direction="row" gap={0.5}>
                               <Tooltip title="Export current card">
-                                <IconButton size="small" onClick={() => exportWithLayout(layout)} disabled={exporting || generating} sx={{ color: '#1a7a4a', p: 0.3 }}><DownloadIcon sx={{ fontSize: 14 }} /></IconButton>
+                                <IconButton size="small" onClick={() => exportWithLayout(layout)} disabled={exporting || generating} sx={{ color: '#1a7a4a', p: 0.5 }}><DownloadIcon sx={{ fontSize: 18 }} /></IconButton>
                               </Tooltip>
                               {batchStudents.length > 0 && (
-                                <Tooltip title="Batch export">
-                                  <IconButton size="small" onClick={() => exportWithLayout(layout, true)} disabled={exporting || generating} sx={{ color: '#d4a017', p: 0.3 }}><PictureAsPdfIcon sx={{ fontSize: 14 }} /></IconButton>
+                                <Tooltip title={`Batch (${batchStudents.length})`}>
+                                  <IconButton size="small" onClick={() => exportWithLayout(layout, true)} disabled={exporting || generating} sx={{ color: '#d4a017', p: 0.5 }}><PictureAsPdfIcon sx={{ fontSize: 18 }} /></IconButton>
                                 </Tooltip>
                               )}
-                              <Tooltip title="Save as custom">
-                                <IconButton size="small" onClick={() => { setEditingLayout({ ...layout, id: null, name: layout.name + ' (copy)' }); setLayoutDialog(true); }} sx={{ color: '#64748b', p: 0.3 }}><CheckIcon sx={{ fontSize: 13 }} /></IconButton>
+                              <Tooltip title="Edit">
+                                <IconButton size="small" onClick={() => { setEditingLayout({ ...layout }); setLayoutDialog(true); }} sx={{ color: '#64748b', p: 0.5 }}><TuneIcon sx={{ fontSize: 18 }} /></IconButton>
+                              </Tooltip>
+                              <Tooltip title="Delete">
+                                <IconButton size="small" onClick={() => deleteUserLayout(layout.id)} sx={{ color: '#f87171', p: 0.5 }}><DeleteOutlineIcon sx={{ fontSize: 18 }} /></IconButton>
                               </Tooltip>
                             </Stack>
                           </Box>
@@ -4063,12 +3959,218 @@ export default function DocumentMaker() {
                       })}
                     </Stack>
                   )}
+
+                  <Box>
+                    <Box onClick={() => setPresetsOpen(v => !v)} sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer', mb: 0.75 }}>
+                      <Typography sx={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', flex: 1 }}>Presets (18)</Typography>
+                      <Typography sx={{ fontSize: '0.75rem', color: '#94a3b8' }}>{presetsOpen ? '▲' : '▼'}</Typography>
+                    </Box>
+                    {presetsOpen && (
+                      <Stack spacing={0.75}>
+                        {PRESET_LAYOUTS.map(layout => {
+                          const { cellW, cellH } = layoutCellDims(layout);
+                          return (
+                            <Box key={layout.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: 1, borderRadius: 2, border: '1.5px solid #e2e8f0', bgcolor: '#fff' }}>
+                              <LayoutPreview layout={layout} size={44} />
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#374151' }} noWrap>{layout.name}</Typography>
+                                <Typography sx={{ fontSize: '0.65rem', color: '#94a3b8' }}>{cellW.toFixed(0)}x{cellH.toFixed(0)}mm · {layout.cols * layout.rows}/pg</Typography>
+                              </Box>
+                              <Stack direction="row" gap={0.5}>
+                                <Tooltip title="Export current card">
+                                  <IconButton size="small" onClick={() => exportWithLayout(layout)} disabled={exporting || generating} sx={{ color: '#1a7a4a', p: 0.5 }}><DownloadIcon sx={{ fontSize: 18 }} /></IconButton>
+                                </Tooltip>
+                                {batchStudents.length > 0 && (
+                                  <Tooltip title="Batch export">
+                                    <IconButton size="small" onClick={() => exportWithLayout(layout, true)} disabled={exporting || generating} sx={{ color: '#d4a017', p: 0.5 }}><PictureAsPdfIcon sx={{ fontSize: 18 }} /></IconButton>
+                                  </Tooltip>
+                                )}
+                                <Tooltip title="Save as custom">
+                                  <IconButton size="small" onClick={() => { setEditingLayout({ ...layout, id: null, name: layout.name + ' (copy)' }); setLayoutDialog(true); }} sx={{ color: '#64748b', p: 0.5 }}><CheckIcon sx={{ fontSize: 16 }} /></IconButton>
+                                </Tooltip>
+                              </Stack>
+                            </Box>
+                          );
+                        })}
+                      </Stack>
+                    )}
+                  </Box>
                 </Box>
+              </Stack>
+            )}
+          </>
+        );
+
+        const tabDefs = [
+          { label: 'Add',     icon: <AddCircleOutlineIcon sx={{ fontSize: 16 }} /> },
+          { label: 'Text',    icon: <TextFieldsIcon sx={{ fontSize: 16 }} /> },
+          { label: 'Object',  icon: <TuneIcon sx={{ fontSize: 16 }} /> },
+          { label: 'Arrange', icon: <LayersIcon sx={{ fontSize: 16 }} /> },
+          { label: 'Style',   icon: <AutoFixHighIcon sx={{ fontSize: 16 }} /> },
+          { label: 'Export',  icon: <DownloadIcon sx={{ fontSize: 16 }} /> },
+        ];
+
+        if (isDesktop) {
+          return (
+            <Box sx={{
+              bgcolor: '#ffffff',
+              borderLeft: '1px solid #e2e8f0',
+              flexShrink: 0,
+              width: 320,
+              height: '100%',
+              display: 'flex', flexDirection: 'column',
+              boxShadow: '-2px 0 8px rgba(0,0,0,0.04)',
+            }}>
+              {selectedObj && ready && (
+                <Box sx={{ bgcolor: '#1e293b', flexShrink: 0, px: 1.5, height: 56, display: 'flex', alignItems: 'center', gap: 1.25, borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  {(selectedObj.type === 'i-text' || selectedObj.type === 'text') && (<>
+                    <input type="color" value={fontColor} onChange={e => { setFontColor(e.target.value); applyFontProp('fill', e.target.value); }}
+                      style={{ width: 30, height: 30, border: '2px solid rgba(255,255,255,0.3)', borderRadius: 6, cursor: 'pointer', padding: 0, background: 'none', flexShrink: 0 }} />
+                    <IconButton size="small" onClick={() => { const v = !isBold; setIsBold(v); applyFontProp('fontWeight', v ? 'bold' : 'normal'); }}
+                      sx={{ color: isBold ? '#f0c040' : 'rgba(255,255,255,0.6)', p: 0.75, borderRadius: 1.5 }}><FormatBoldIcon sx={{ fontSize: 20 }} /></IconButton>
+                    <IconButton size="small" onClick={() => { const v = !isItalic; setIsItalic(v); applyFontProp('fontStyle', v ? 'italic' : 'normal'); }}
+                      sx={{ color: isItalic ? '#f0c040' : 'rgba(255,255,255,0.6)', p: 0.75, borderRadius: 1.5 }}><FormatItalicIcon sx={{ fontSize: 20 }} /></IconButton>
+                    <Stack direction="row" alignItems="center" sx={{ bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 2, px: 0.75 }}>
+                      <IconButton size="small" onClick={() => { const v = Math.max(8, fontSize - 1); setFontSize(v); applyFontProp('fontSize', v); }} sx={{ color: 'rgba(255,255,255,0.7)', p: 0.5 }}>
+                        <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'inherit', lineHeight: 1 }}>-</Typography>
+                      </IconButton>
+                      <Typography sx={{ color: '#fff', fontSize: '0.85rem', minWidth: 26, textAlign: 'center', fontWeight: 700 }}>{fontSize}</Typography>
+                      <IconButton size="small" onClick={() => { const v = Math.min(200, fontSize + 1); setFontSize(v); applyFontProp('fontSize', v); }} sx={{ color: 'rgba(255,255,255,0.7)', p: 0.5 }}>
+                        <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: 'inherit', lineHeight: 1 }}>+</Typography>
+                      </IconButton>
+                    </Stack>
+                  </>)}
+                  {selectedObj.type === 'image' && (<>
+                    <WbSunnyIcon sx={{ fontSize: 20, color: '#fbbf24' }} />
+                    <Box sx={{ width: 64 }}><Slider value={Math.round(imgBright * 100)} min={-100} max={100} size="small" onChange={(_, v) => { const n = v / 100; setImgBright(n); applyImageFilter('Brightness', n); }} sx={{ color: '#fbbf24', py: 0.5, '& .MuiSlider-thumb': { width: 14, height: 14 } }} /></Box>
+                    <TonalityIcon sx={{ fontSize: 20, color: '#34c97e' }} />
+                    <Box sx={{ width: 64 }}><Slider value={Math.round(imgContrast * 100)} min={-100} max={100} size="small" onChange={(_, v) => { const n = v / 100; setImgContrast(n); applyImageFilter('Contrast', n); }} sx={{ color: '#34c97e', py: 0.5, '& .MuiSlider-thumb': { width: 14, height: 14 } }} /></Box>
+                  </>)}
+                  {selectedObj.__frameType && (
+                    <Button size="small" onClick={() => frameInputRef.current?.click()} startIcon={<ImageIcon sx={{ fontSize: 18 }} />}
+                      sx={{ color: '#f0c040', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 1.5, textTransform: 'none', fontSize: '0.78rem', px: 1.25, py: 0.5 }}>Fill Photo</Button>
+                  )}
+                  {selectedObj.type === 'image' && selectedObj.__frameType && selectedObj.clipPath?.absolutePositioned && (
+                    <Button size="small"
+                      onClick={() => { setPhotoAdjustMode(true); photoAdjustModeRef.current = true; }}
+                      startIcon={<OpenWithIcon sx={{ fontSize: 18 }} />}
+                      sx={{ color: photoAdjustMode ? '#34d399' : 'rgba(255,255,255,0.65)', border: `1px solid ${photoAdjustMode ? 'rgba(52,211,153,0.5)' : 'rgba(255,255,255,0.18)'}`, borderRadius: 1.5, textTransform: 'none', fontSize: '0.78rem', px: 1.25, py: 0.5 }}>
+                      {photoAdjustMode ? 'Adjusting' : 'Adjust'}
+                    </Button>
+                  )}
+                  <Box sx={{ flex: 1 }} />
+                  <IconButton size="small" onClick={duplicateObj} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.75 }}><ContentCopyIcon sx={{ fontSize: 20 }} /></IconButton>
+                  <IconButton size="small" onClick={deleteSelected} sx={{ color: '#f87171', p: 0.75 }}><DeleteOutlineIcon sx={{ fontSize: 20 }} /></IconButton>
+                </Box>
+              )}
+
+              <Tabs
+                value={toolTab} onChange={(_, v) => setToolTab(v)}
+                variant="fullWidth"
+                sx={{
+                  minHeight: 46, flexShrink: 0, borderBottom: '1px solid #e2e8f0',
+                  '& .MuiTab-root': { minHeight: 46, py: 0, fontSize: '0.72rem', fontWeight: 600, textTransform: 'none', color: '#64748b', px: 0, minWidth: 0, gap: 0.4 },
+                  '& .Mui-selected': { color: '#d4a017 !important' },
+                  '& .MuiTabs-indicator': { bgcolor: '#d4a017', height: 3, borderRadius: '3px 3px 0 0' },
+                }}
+              >
+                {tabDefs.map(({ label, icon }) => (
+                  <Tab key={label} label={label} icon={icon} iconPosition="start" />
+                ))}
+              </Tabs>
+
+              <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', p: 1.5 }}>
+                {panels}
               </Box>
-            </Stack>
-          )}
-        </Box>
-      </Box>
+            </Box>
+          );
+        }
+
+        return (
+          <>
+            <Box sx={{
+              bgcolor: '#ffffff',
+              borderTop: '1px solid #e2e8f0',
+              flexShrink: 0,
+              height: 66,
+              display: 'flex',
+              alignItems: 'center',
+              px: 0.5,
+              boxShadow: '0 -2px 16px rgba(0,0,0,0.08)',
+              zIndex: 10,
+            }}>
+              {[
+                { id: 0, icon: <AddCircleOutlineIcon />, label: 'Add' },
+                { id: 1, icon: <TextFieldsIcon />, label: 'Text' },
+                { id: 2, icon: <TuneIcon />, label: 'Object' },
+                { id: 3, icon: <LayersIcon />, label: 'Arrange' },
+                { id: 4, icon: <AutoFixHighIcon />, label: 'Style' },
+                { id: 5, icon: <DownloadIcon />, label: 'Export' },
+              ].map(({ id, icon, label }) => {
+                const active = toolTab === id && mobileDrawerOpen;
+                return (
+                  <Box
+                    key={id}
+                    onClick={() => {
+                      if (active) {
+                        setMobileDrawerOpen(false);
+                      } else {
+                        setToolTab(id);
+                        setMobileDrawerOpen(true);
+                      }
+                    }}
+                    sx={{
+                      flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                      gap: 0.3, cursor: 'pointer', py: 0.75, mx: 0.25, borderRadius: 2,
+                      bgcolor: active ? '#fff8e1' : 'transparent',
+                      color: active ? '#d4a017' : '#64748b',
+                      transition: 'all 0.15s',
+                      '& svg': { fontSize: 24, color: 'inherit' },
+                    }}
+                  >
+                    {icon}
+                    <Typography sx={{ fontSize: '0.63rem', fontWeight: active ? 700 : 500, color: 'inherit' }}>{label}</Typography>
+                  </Box>
+                );
+              })}
+            </Box>
+
+            <SwipeableDrawer
+              anchor="bottom"
+              open={mobileDrawerOpen}
+              onClose={() => setMobileDrawerOpen(false)}
+              onOpen={() => setMobileDrawerOpen(true)}
+              disableSwipeToOpen
+              disableDiscovery
+              sx={{
+                '& .MuiDrawer-paper': {
+                  borderTopLeftRadius: 20,
+                  borderTopRightRadius: 20,
+                  maxHeight: '68vh',
+                  display: 'flex',
+                  flexDirection: 'column',
+                },
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'center', pt: 1.25, pb: 0.5, flexShrink: 0 }}>
+                <Box sx={{ width: 44, height: 4, bgcolor: '#e2e8f0', borderRadius: 2 }} />
+              </Box>
+              <Stack direction="row" alignItems="center" sx={{ px: 2, pb: 1.25, flexShrink: 0, borderBottom: '1px solid #f1f5f9' }}>
+                <Typography sx={{ flex: 1, fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+                  {['Add', 'Text', 'Object', 'Arrange', 'Style', 'Export'][toolTab]}
+                </Typography>
+                <IconButton size="small" onClick={() => setMobileDrawerOpen(false)} sx={{ color: '#94a3b8', p: 0.5 }}>
+                  <Typography sx={{ fontSize: '1.2rem', lineHeight: 1 }}>x</Typography>
+                </IconButton>
+              </Stack>
+              <Box sx={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', p: 2, pb: 3 }}>
+                {panels}
+              </Box>
+            </SwipeableDrawer>
+          </>
+        );
+      })()}
+
 
       {/* ── Close main body row ────────────────────────────── */}
       </Box>
