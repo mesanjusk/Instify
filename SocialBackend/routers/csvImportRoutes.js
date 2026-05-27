@@ -109,7 +109,7 @@ router.post('/students', upload.single('file'), async (req, res) => {
         const firstName = (row.firstname || row.first_name || row['first name'] || '').trim();
         if (!firstName) { results.errors.push({ row, reason: 'firstName missing' }); continue; }
 
-        const mobile = (row.mobileself || row.mobile || row.phone || row['mobile no'] || '').trim();
+        const mobile = (row.mobileself || row.mobile_no || row.mobile || row.phone || '').trim();
         if (mobile) {
           const exists = await Student.findOne({ institute_uuid, mobileSelf: mobile });
           if (exists) { results.skipped++; continue; }
@@ -126,7 +126,7 @@ router.post('/students', upload.single('file'), async (req, res) => {
           mobileParent: (row.mobileparent || row.parent_mobile || '').trim(),
           mothersName: (row.mothersname || row.mothers_name || row['mothers name'] || '').trim(),
           aadharNo: (row.aadharno || row.adhar_no || row['adhar no'] || row.aadhaar || '').trim(),
-          dob: row.dob || row['date of birth'] ? parseDob(row.dob || row['date of birth']) : undefined,
+          dob: parseDob(row.dob || row.date_of_birth) || undefined,
           gender: row.gender?.trim() || undefined,
           address: (row.address || '').trim(),
           education: (row.education || '').trim(),
@@ -162,7 +162,7 @@ router.post('/leads', upload.single('file'), async (req, res) => {
         const firstName = (row.firstname || row.first_name || row.name || '').trim();
         if (!firstName) { results.errors.push({ row, reason: 'firstName missing' }); continue; }
 
-        const mobile = (row.mobileself || row.mobile || row.phone || '').trim();
+        const mobile = (row.mobileself || row.mobile_no || row.mobile || row.phone || '').trim();
         let student = mobile ? await Student.findOne({ institute_uuid, mobileSelf: mobile }) : null;
 
         if (!student) {
@@ -297,7 +297,7 @@ router.post('/admissions', upload.single('file'), async (req, res) => {
         const course = (row.course || row.course_name || '').trim();
         if (!course) { results.errors.push({ row, reason: 'course missing' }); continue; }
 
-        const mobile = (row.mobileself || row.mobile || row.phone || '').trim();
+        const mobile = (row.mobileself || row.mobile_no || row.mobile || row.phone || '').trim();
         const firstName = (row.firstname || row.first_name || row.name || '').trim();
 
         if (!mobile && !firstName) {
