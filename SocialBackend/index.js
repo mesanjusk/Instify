@@ -183,6 +183,7 @@ app.use('/api/reports', require('./routers/reportsRoutes'));
 app.use('/api/custom-templates', require('./routers/customTemplateRoutes'));
 app.use('/api/forms', require('./routers/formRoutes'));
 app.use('/api/idcard', require('./routers/idCardRoutes'));
+app.use('/api/greetings', require('./routers/greetingsRoutes'));
 
 
 // ✅ 404 fallback

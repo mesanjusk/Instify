@@ -29,6 +29,7 @@ const ROUTE_LABELS = {
   addAccount: 'Accounts', 'upi-payment': 'UPI Payment', 'csv-import': 'CSV Import',
   'bulk-download': 'Bulk Download', forms: 'Public Forms', idcard: 'ID Cards',
   whatsapp: 'WhatsApp', coursesCategory: 'Course Categories', education: 'Education',
+  greetings: 'Achievement Greetings',
   allBalance: 'Balance Report', allLeadByAdmission: 'Lead by Admission',
   'add-lead': 'Add Lead', addNewAdd: 'New Admission',
 };
