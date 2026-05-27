@@ -216,11 +216,20 @@ const PRESET_LAYOUTS = [
 /* ─── Placeholder fields ─────────────────────────────────── */
 const PLACEHOLDER_FIELDS = [
   { key: 'name',        label: 'Name' },
+  { key: 'full_name',   label: 'Full Name' },
+  { key: 'first_name',  label: 'First Name' },
+  { key: 'middle_name', label: 'Middle Name' },
+  { key: 'last_name',   label: 'Last Name' },
   { key: 'roll_number', label: 'Roll No' },
+  { key: 'reg_no',      label: 'Reg No' },
   { key: 'course',      label: 'Course' },
   { key: 'batch',       label: 'Batch' },
   { key: 'mobile',      label: 'Mobile' },
   { key: 'father_name', label: "Father's Name" },
+  { key: 'mother_name', label: "Mother's Name" },
+  { key: 'aadhar_no',   label: 'Aadhar No' },
+  { key: 'dob',         label: 'Date of Birth' },
+  { key: 'education',   label: 'Education' },
   { key: 'class',       label: 'Class' },
   { key: 'section',     label: 'Section' },
   { key: 'email',       label: 'Email' },
@@ -228,13 +237,26 @@ const PLACEHOLDER_FIELDS = [
 ];
 
 function studentToRow(s, batchName) {
+  const dobDate = s.dob ? new Date(s.dob) : null;
+  const dobStr = dobDate && !isNaN(dobDate)
+    ? `${String(dobDate.getDate()).padStart(2, '0')}/${String(dobDate.getMonth() + 1).padStart(2, '0')}/${dobDate.getFullYear()}`
+    : '—';
   return {
     name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.name || 'Student',
-    roll_number: s.rollNo || s.roll_number || '—',
+    full_name: [s.firstName, s.middleName, s.lastName].filter(Boolean).join(' ') || s.name || 'Student',
+    first_name: s.firstName || '—',
+    middle_name: s.middleName || '',
+    last_name: s.lastName || '—',
+    roll_number: s.rollNo || s.roll_number || s.regNo || '—',
+    reg_no: s.regNo || '—',
     course: s.course || '—',
     batch: s.batch || batchName || '—',
     mobile: s.mobileSelf || s.mobile || '—',
     father_name: s.fatherName || s.father_name || '—',
+    mother_name: s.mothersName || '—',
+    aadhar_no: s.aadharNo || '—',
+    dob: dobStr,
+    education: s.education || '—',
     class: s.class_name || s.class || '—',
     section: s.section || '—',
     email: s.email || '—',
@@ -3423,6 +3445,48 @@ export default function DocumentMaker() {
                   {btn('Triangle', <ChangeHistoryIcon sx={{ fontSize: 18 }} />,   () => addShape('triangle'))}
                   {btn('Line',     <HorizontalRuleIcon sx={{ fontSize: 18 }} />,  () => addShape('line'))}
                 </Box>
+                {/* Dynamic Fields from Loaded Data */}
+                {(() => {
+                  const HIDDEN = new Set(['_id', '__v', 'uuid', 'institute_uuid', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy', 'photo_url', 'bg_removed_url', '__placeholder', 'student_uuid']);
+                  let fieldKeys = [];
+                  let sourceLabel = '';
+                  if (dataSource === 'csv' && csvRows.length > 0) {
+                    fieldKeys = Object.keys(csvRows[0]).filter(k => k && !HIDDEN.has(k));
+                    sourceLabel = csvFile || 'CSV/Excel';
+                  } else if (batchStudents.length > 0) {
+                    fieldKeys = Object.keys(studentToRow(batchStudents[0], selBatch)).filter(k => k !== 'photo_url');
+                    sourceLabel = selBatch || 'DB Batch';
+                  }
+                  return fieldKeys.length > 0 ? (
+                    <Box>
+                      <Stack direction="row" alignItems="center" gap={0.5} mb={0.4}>
+                        <Typography sx={{ fontSize: '0.6rem', color: '#059669', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Available Fields
+                        </Typography>
+                        <Box sx={{ px: 0.6, py: 0.1, borderRadius: 1, bgcolor: '#d1fae5', color: '#059669', fontSize: '0.52rem', fontWeight: 700 }}>
+                          {fieldKeys.length}
+                        </Box>
+                      </Stack>
+                      <Typography sx={{ fontSize: '0.56rem', color: '#94a3b8', mb: 0.6 }}>
+                        From {sourceLabel} · Click to insert on canvas
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.4 }}>
+                        {fieldKeys.map(key => (
+                          <Box key={key} onClick={() => addPlaceholder(key)} sx={{
+                            cursor: 'pointer', px: 0.75, py: 0.3, borderRadius: 1.5,
+                            border: '1px solid #6ee7b7', bgcolor: '#ecfdf5',
+                            '&:hover': { bgcolor: '#d1fae5', borderColor: '#34d399' },
+                            '&:active': { transform: 'scale(0.95)' },
+                            transition: 'all 0.1s',
+                          }}>
+                            <Typography sx={{ fontSize: '0.58rem', fontWeight: 700, color: '#059669', fontFamily: 'monospace' }}>{`{{${key}}}`}</Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+                  ) : null;
+                })()}
+
                 {/* Smart Placeholders */}
                 <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', pt: 0.5 }}>Smart Placeholders</Typography>
                 <Typography sx={{ fontSize: '0.58rem', color: '#94a3b8', lineHeight: 1.4 }}>Insert data fields that auto-fill from students, CSV, or Excel</Typography>
@@ -3864,7 +3928,7 @@ export default function DocumentMaker() {
                 <Select value={selBatch} onChange={e => setSelBatch(e.target.value)} displayEmpty size="small"
                   sx={{ flex: 1, bgcolor: '#f1f5f9', color: '#1e293b', '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e2e8f0' } }}>
                   <MenuItem value=""><em style={{ color: '#94a3b8' }}>Select batch for bulk…</em></MenuItem>
-                  {batches.map(b => <MenuItem key={b._id} value={b.batch_name || b._id}>{b.batch_name}</MenuItem>)}
+                  {batches.map(b => <MenuItem key={b._id || b.Batch_uuid} value={b.name}>{b.name}{b.timing ? ` (${b.timing})` : ''}</MenuItem>)}
                 </Select>
                 <Button size="small" startIcon={generating ? <CircularProgress size={12} color="inherit" /> : <FolderZipIcon />}
                   onClick={generateBatchZip} disabled={generating || !getActiveRows().length}
