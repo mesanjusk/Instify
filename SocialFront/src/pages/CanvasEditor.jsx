@@ -749,6 +749,13 @@ export default function DocumentMaker() {
   const [photoAdjustMode, setPhotoAdjustMode] = useState(false);
   const photoAdjustModeRef = useRef(false);
 
+  const [editorMode,      setEditorMode]      = useState('single');  // 'single' | 'bulk' | 'batch'
+  const [modeSelectDlg,   setModeSelectDlg]   = useState(false);
+  const [pendingDocType,  setPendingDocType]  = useState('id_card');
+  const [pendingTplIdx,   setPendingTplIdx]   = useState(0);
+  const [modeDialogMode,  setModeDialogMode]  = useState('single');
+  const [modeDialogBatch, setModeDialogBatch] = useState('');
+
   // ── Projects / student management state ───────────────────────
   const [projects,          setProjects]          = useState([]);
   const [selectedProject,   setSelectedProject]   = useState(null);
@@ -1345,7 +1352,8 @@ export default function DocumentMaker() {
     confirmThen(() => { setIsDirty(false); setView('home'); });
   }
 
-  function openEditor(type, tplIdx = 0) {
+  function openEditor(type, tplIdx = 0, mode = 'single') {
+    setEditorMode(mode);
     const setup = { ...(DEFAULT_SETUPS[type] || DEFAULT_SETUPS.result) };
     pageSetupRef.current = setup;
     initParamsRef.current = { type, tplIdx: null };   // null = blank canvas on first open
@@ -1361,6 +1369,67 @@ export default function DocumentMaker() {
     setCarouselIdx(0);
     setView('editor');
     // initCanvas is triggered by the useEffect([view]) — never call it here directly
+  }
+
+  function pickMode(type, tplIdx = 0) {
+    setPendingDocType(type);
+    setPendingTplIdx(tplIdx);
+    setModeDialogMode('single');
+    setModeDialogBatch('');
+    setModeSelectDlg(true);
+  }
+
+  function confirmModeAndOpen() {
+    const mode = modeDialogMode;
+    if ((mode === 'bulk' || mode === 'batch') && modeDialogBatch) {
+      setSelBatch(modeDialogBatch);
+    }
+    setModeSelectDlg(false);
+    openEditor(pendingDocType, pendingTplIdx, mode);
+  }
+
+  function saveBulkCanvas() {
+    const fc = fabricRef.current;
+    if (!fc || !batchStudents.length) return;
+    const cur = batchStudents[carouselIdx];
+    const curKey = cur?.uuid || cur?._id || String(carouselIdx);
+    carouselStatesRef.current[curKey] = JSON.stringify(fc.toJSON(CUSTOM_PROPS));
+    showAlert('success', `Saved card for ${carouselFields.name || 'student'}`);
+  }
+
+  async function exportBulkPDF() {
+    saveBulkCanvas();
+    const setup = pageSetupRef.current;
+    if (!setup || !batchStudents.length) return;
+    setGenerating(true);
+    const { fabric } = await getFabric();
+    const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
+    try {
+      const wMM = setup.w, hMM = setup.h;
+      const isLand = setup.orientation === 'landscape';
+      const pdf = new jsPDF({ orientation: isLand ? 'landscape' : 'portrait', unit: 'mm', format: [wMM, hMM] });
+      const pW = wMM - setup.marginL - setup.marginR;
+      const pH = hMM - setup.marginT - setup.marginB;
+      for (let idx = 0; idx < batchStudents.length; idx++) {
+        const s = batchStudents[idx];
+        const sKey = s?.uuid || s?._id || String(idx);
+        const el = document.createElement('canvas'); document.body.appendChild(el);
+        const { w, h } = DOC_TYPES.find(d => d.key === docType).dims;
+        const fc = new fabric.Canvas(el, { width: w, height: h });
+        if (carouselStatesRef.current[sKey]) {
+          await new Promise(r => fc.loadFromJSON(JSON.parse(carouselStatesRef.current[sKey]), () => { fc.renderAll(); r(); }));
+        } else {
+          await seedCanvas(fc, docType, tpl, studentToRow(s, selBatch), instituteName);
+        }
+        const imgData = fc.toDataURL({ format: 'png', multiplier: 3 });
+        if (idx > 0) pdf.addPage([wMM, hMM], isLand ? 'landscape' : 'portrait');
+        pdf.addImage(imgData, 'PNG', setup.marginL, setup.marginT, pW, pH);
+        fc.dispose(); document.body.removeChild(el);
+      }
+      pdf.save(`bulk_${docType}.pdf`);
+      showAlert('success', `Bulk PDF ready — ${batchStudents.length} pages!`);
+    } catch (err) { showAlert('error', err.message); }
+    finally { setGenerating(false); }
   }
 
   async function goCarousel(newIdx) {
@@ -2488,6 +2557,25 @@ export default function DocumentMaker() {
 
           {/* Explore templates grid */}
           <Box sx={{ px: 2, pt: 0.5, pb: 2 }}>
+            {/* Blank Canvas quick-start */}
+            <Box
+              onClick={() => pickMode('id_card', 0)}
+              sx={{
+                mb: 2, p: 1.5, borderRadius: 2.5, border: '2px dashed #e2e8f0', bgcolor: '#fff',
+                display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer',
+                '&:hover': { borderColor: '#d4a017', bgcolor: '#fffbf0' }, transition: 'all 0.15s',
+              }}
+            >
+              <Box sx={{ width: 38, height: 38, borderRadius: 2, bgcolor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <AddCircleOutlineIcon sx={{ color: '#64748b', fontSize: 20 }} />
+              </Box>
+              <Box sx={{ flex: 1 }}>
+                <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#1e293b' }}>Start with Blank Canvas</Typography>
+                <Typography sx={{ fontSize: '0.7rem', color: '#64748b', mt: 0.2 }}>Begin from scratch — Single, Bulk or Batch</Typography>
+              </Box>
+              <ArrowForwardIosIcon sx={{ fontSize: 12, color: '#94a3b8', flexShrink: 0 }} />
+            </Box>
+
             <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '1.1rem', mb: 1.5 }}>
               Explore templates
             </Typography>
@@ -2499,7 +2587,7 @@ export default function DocumentMaker() {
                   return (
                     <Box
                       key={`${item.key}-${idx}`}
-                      onClick={() => openEditor(item.key, 0)}
+                      onClick={() => pickMode(item.key, 0)}
                       sx={{
                         cursor: 'pointer', borderRadius: 2, overflow: 'hidden',
                         bgcolor: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
@@ -2563,7 +2651,7 @@ export default function DocumentMaker() {
                   { label: 'Admit Cards',  icon: <AssignmentIcon sx={{ color: '#fff', fontSize: 18 }} />,       key: 'admit_card',  bg: 'linear-gradient(135deg, #059669, #10b981)' },
                   { label: 'Results',      icon: <AutoAwesomeIcon sx={{ color: '#fff', fontSize: 18 }} />,      key: 'result',      bg: 'linear-gradient(135deg, #dc2626, #ef4444)' },
                 ].map(item => (
-                  <Box key={item.key} onClick={() => openEditor(item.key, 0)}
+                  <Box key={item.key} onClick={() => pickMode(item.key, 0)}
                     sx={{ borderRadius: 2, p: 1.5, cursor: 'pointer', background: item.bg, display: 'flex', alignItems: 'center', gap: 1,
                       '&:hover': { opacity: 0.88 }, '&:active': { transform: 'scale(0.97)' }, transition: 'opacity 0.15s, transform 0.1s' }}>
                     <Box sx={{ width: 30, height: 30, borderRadius: 1.5, bgcolor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -2624,7 +2712,7 @@ export default function DocumentMaker() {
                     })
                   : recentDesigns.map(({ dt, tpl, key }) => (
                       <RecentTile key={key} dt={dt} tpl={tpl}
-                        onClick={() => openEditor(dt.key, TEMPLATES[dt.key].indexOf(tpl))} />
+                        onClick={() => pickMode(dt.key, TEMPLATES[dt.key].indexOf(tpl))} />
                     ))
                 }
               </Box>
@@ -2687,7 +2775,7 @@ export default function DocumentMaker() {
                   <Typography sx={{ color: '#1e293b', fontWeight: 600, fontSize: '0.85rem', mb: 1 }}>{dt.label}</Typography>
                   <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
                     {(TEMPLATES[dt.key] || []).map((tpl, i) => (
-                      <Box key={tpl.id} onClick={() => openEditor(dt.key, i)} sx={{
+                      <Box key={tpl.id} onClick={() => pickMode(dt.key, i)} sx={{
                         width: 96, flexShrink: 0, cursor: 'pointer', borderRadius: 2, overflow: 'hidden',
                         bgcolor: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
                         border: '1px solid #e8eef4', '&:hover': { border: '1px solid #c4b5fd', boxShadow: '0 2px 8px rgba(124,58,237,0.1)' },
@@ -2790,6 +2878,57 @@ export default function DocumentMaker() {
           </DialogActions>
         </Dialog>
 
+        {/* ── Mode Selection Dialog ── */}
+        <Dialog open={modeSelectDlg} onClose={() => setModeSelectDlg(false)} maxWidth="xs" fullWidth>
+          <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem', pb: 1 }}>How would you like to create?</DialogTitle>
+          <DialogContent sx={{ pb: 1 }}>
+            <Stack spacing={1.25}>
+              {[
+                { mode: 'single', label: 'Single Document', desc: 'Design one document — for one person', icon: <BadgeIcon sx={{ fontSize: 22 }} />, color: '#1a7a4a' },
+                { mode: 'bulk', label: 'Bulk (Carousel)', desc: 'Go through each student, adjust photo & text, save individually', icon: <PeopleIcon sx={{ fontSize: 22 }} />, color: '#d97706' },
+                { mode: 'batch', label: 'Batch Generate', desc: 'Generate all documents at once from student data', icon: <FolderZipIcon sx={{ fontSize: 22 }} />, color: '#7c3aed' },
+              ].map(item => (
+                <Box key={item.mode} onClick={() => setModeDialogMode(item.mode)}
+                  sx={{
+                    p: 1.5, borderRadius: 2, border: `2px solid ${modeDialogMode === item.mode ? item.color : '#e2e8f0'}`,
+                    cursor: 'pointer', bgcolor: modeDialogMode === item.mode ? `${item.color}0d` : '#fff',
+                    display: 'flex', alignItems: 'center', gap: 1.5, transition: 'all 0.15s',
+                  }}>
+                  <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: `${item.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: item.color }}>
+                    {item.icon}
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#1e293b' }}>{item.label}</Typography>
+                    <Typography sx={{ fontSize: '0.7rem', color: '#64748b', mt: 0.15 }}>{item.desc}</Typography>
+                  </Box>
+                  {modeDialogMode === item.mode && <CheckIcon sx={{ fontSize: 18, color: item.color, flexShrink: 0 }} />}
+                </Box>
+              ))}
+
+              {(modeDialogMode === 'bulk' || modeDialogMode === 'batch') && (
+                <Box sx={{ pt: 0.5 }}>
+                  <Typography sx={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, mb: 0.75 }}>Select student batch (optional)</Typography>
+                  <Select value={modeDialogBatch} onChange={e => setModeDialogBatch(e.target.value)} size="small" displayEmpty fullWidth
+                    sx={{ bgcolor: '#f8fafc', fontSize: '0.82rem' }}>
+                    <MenuItem value=""><em style={{ color: '#94a3b8' }}>Choose batch…</em></MenuItem>
+                    {batches.map(b => <MenuItem key={b._id} value={b.batch_name || b._id}>{b.batch_name}</MenuItem>)}
+                  </Select>
+                  <Typography sx={{ fontSize: '0.65rem', color: '#94a3b8', mt: 0.5 }}>
+                    You can also upload CSV/Excel from the Export tab inside the editor.
+                  </Typography>
+                </Box>
+              )}
+            </Stack>
+          </DialogContent>
+          <DialogActions sx={{ px: 2.5, pb: 2 }}>
+            <Button onClick={() => setModeSelectDlg(false)} sx={{ textTransform: 'none', color: '#64748b' }}>Cancel</Button>
+            <Button variant="contained" onClick={confirmModeAndOpen}
+              sx={{ bgcolor: '#d4a017', '&:hover': { bgcolor: '#b8860b' }, textTransform: 'none', fontWeight: 700, px: 2.5 }}>
+              Start →
+            </Button>
+          </DialogActions>
+        </Dialog>
+
         {/* ── Bottom nav ── */}
         <Box sx={{ bgcolor: '#ffffff', borderTop: '1px solid #e8eef4', display: 'flex', flexShrink: 0, boxShadow: '0 -1px 8px rgba(0,0,0,0.06)' }}>
           <HomeNavItem icon={<AddCircleOutlineIcon fontSize="small" />} label="Create"       active={homeNav === 0} onClick={() => setHomeNav(0)} />
@@ -2887,6 +3026,64 @@ export default function DocumentMaker() {
           ))}
         </Box>
       </Box>
+
+      {/* ── Bulk Carousel Bar ──────────────────────────────── */}
+      {editorMode === 'bulk' && (
+        <Box sx={{
+          bgcolor: '#1e293b', px: 1.5, py: 0.6, display: 'flex', alignItems: 'center', gap: 1,
+          flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+        }}>
+          {batchStudents.length === 0 ? (
+            <Typography sx={{ color: 'rgba(255,255,255,0.55)', fontSize: '0.72rem', flex: 1, textAlign: 'center' }}>
+              No students loaded — select a batch in the Export tab or upload CSV
+            </Typography>
+          ) : (<>
+            <IconButton size="small" onClick={() => goCarousel(carouselIdx - 1)} disabled={carouselIdx === 0}
+              sx={{ color: '#fff', p: 0.4, '&.Mui-disabled': { opacity: 0.3 }, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 1 }}>
+              <ArrowBackIosNewIcon sx={{ fontSize: 13 }} />
+            </IconButton>
+
+            <Box sx={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
+              <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.82rem' }} noWrap>
+                {carouselFields.name || batchStudents[carouselIdx]?.firstName || 'Student'}
+              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.4, mt: 0.3 }}>
+                {batchStudents.slice(Math.max(0, carouselIdx - 2), carouselIdx + 3).map((_, i) => {
+                  const absIdx = Math.max(0, carouselIdx - 2) + i;
+                  return (
+                    <Box key={absIdx} onClick={() => goCarousel(absIdx)}
+                      sx={{ width: absIdx === carouselIdx ? 16 : 5, height: 5, borderRadius: 3,
+                        bgcolor: absIdx === carouselIdx ? '#d4a017' : 'rgba(255,255,255,0.3)',
+                        cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }} />
+                  );
+                })}
+              </Box>
+              <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.6rem' }}>
+                {carouselIdx + 1} / {batchStudents.length}
+              </Typography>
+            </Box>
+
+            <IconButton size="small" onClick={() => goCarousel(carouselIdx + 1)} disabled={carouselIdx === batchStudents.length - 1}
+              sx={{ color: '#fff', p: 0.4, '&.Mui-disabled': { opacity: 0.3 }, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 1 }}>
+              <ArrowForwardIosIcon sx={{ fontSize: 13 }} />
+            </IconButton>
+
+            <Button size="small" onClick={saveBulkCanvas}
+              sx={{ bgcolor: '#d4a017', color: '#fff', fontSize: '0.68rem', textTransform: 'none', px: 1, py: 0.35, minWidth: 0,
+                flexShrink: 0, '&:hover': { bgcolor: '#b8860b' }, borderRadius: 1.5 }}>
+              Save
+            </Button>
+
+            {carouselIdx === batchStudents.length - 1 && (
+              <Button size="small" onClick={exportBulkPDF} disabled={generating}
+                sx={{ bgcolor: '#059669', color: '#fff', fontSize: '0.68rem', textTransform: 'none', px: 1, py: 0.35, minWidth: 0,
+                  flexShrink: 0, '&:hover': { bgcolor: '#047857' }, borderRadius: 1.5 }}>
+                {generating ? '…' : 'Export All'}
+              </Button>
+            )}
+          </>)}
+        </Box>
+      )}
 
       {/* ── Alert ──────────────────────────────────────────── */}
       {alert && (
