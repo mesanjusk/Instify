@@ -77,6 +77,7 @@ import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
 import AutoFixHighIcon from '@mui/icons-material/AutoFixHigh';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
+import OpenWithIcon from '@mui/icons-material/OpenWith';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PeopleIcon from '@mui/icons-material/People';
 import BlockIcon from '@mui/icons-material/Block';
@@ -709,6 +710,7 @@ export default function DocumentMaker() {
   const initParamsRef    = useRef(null);   // { type, tplIdx } set by openEditor/switchTemplate
   const frameInputRef    = useRef(null);
   const svgInputRef      = useRef(null);
+  const bulkFrameRef     = useRef(null);
   const historyRef     = useRef([]);
   const historyIdxRef  = useRef(-1);
   const skipHistoryRef = useRef(false);
@@ -741,6 +743,11 @@ export default function DocumentMaker() {
   const [csvFile,       setCsvFile]       = useState('');
   const csvInputRef = useRef(null);
   const [customPh,      setCustomPh]      = useState('');
+
+  // Multi-selection and photo-adjust state
+  const [selectedObjs,    setSelectedObjs]    = useState([]);
+  const [photoAdjustMode, setPhotoAdjustMode] = useState(false);
+  const photoAdjustModeRef = useRef(false);
 
   // ── Projects / student management state ───────────────────────
   const [projects,          setProjects]          = useState([]);
@@ -918,9 +925,11 @@ export default function DocumentMaker() {
   function zoomFit() { setUserZoom(1); }
 
   /* ── History (undo / redo) ─────────────────────────────────── */
+  const CUSTOM_PROPS = ['__placeholder', '__frameType', '__frameBounds'];
+
   function pushHistory() {
     if (!fabricRef.current || skipHistoryRef.current || suppressDirtyRef.current) return;
-    const json = JSON.stringify(fabricRef.current.toJSON());
+    const json = JSON.stringify(fabricRef.current.toJSON(CUSTOM_PROPS));
     historyRef.current = historyRef.current.slice(0, historyIdxRef.current + 1);
     historyRef.current.push(json);
     if (historyRef.current.length > 40) historyRef.current.shift();
@@ -1187,10 +1196,32 @@ export default function DocumentMaker() {
   function attachCanvasListeners(fc) {
     fc.on('selection:created', handleSelect);
     fc.on('selection:updated', handleSelect);
-    fc.on('selection:cleared', () => setSelectedObj(null));
+    fc.on('selection:cleared', () => {
+      setSelectedObj(null);
+      setSelectedObjs([]);
+      if (photoAdjustModeRef.current) {
+        setPhotoAdjustMode(false);
+        photoAdjustModeRef.current = false;
+      }
+    });
     fc.on('object:added',    () => { if (!suppressDirtyRef.current) { setIsDirty(true); pushHistory(); } });
     fc.on('object:modified', () => { if (!suppressDirtyRef.current) { setIsDirty(true); pushHistory(); } });
     fc.on('object:removed',  () => { if (!suppressDirtyRef.current) { setIsDirty(true); pushHistory(); } });
+    fc.on('mouse:dblclick', handleDblClick);
+    fc.on('object:moving', e => {
+      const obj = e.target;
+      if (obj.__frameType && obj.type === 'image' && obj.clipPath?.absolutePositioned && !photoAdjustModeRef.current) {
+        // Normal move: keep absolutePositioned clip in sync with the image
+        obj.clipPath.left = obj.left;
+        obj.clipPath.top = obj.top;
+        if (obj.__frameBounds) {
+          const hw = obj.__frameBounds.width / 2;
+          const hh = obj.__frameBounds.height / 2;
+          obj.__frameBounds = { ...obj.__frameBounds, left: obj.left - hw, top: obj.top - hh };
+        }
+      }
+      // In adjust mode: clip stays fixed, image moves freely (pan effect)
+    });
   }
 
   // tplIdx = null  → blank white canvas (default when opening from home)
@@ -1220,7 +1251,7 @@ export default function DocumentMaker() {
       }
       suppressDirtyRef.current = false;
       setIsDirty(false);
-      historyRef.current = [JSON.stringify(fc.toJSON())];
+      historyRef.current = [JSON.stringify(fc.toJSON(CUSTOM_PROPS))];
       historyIdxRef.current = 0;
       setCanUndo(false); setCanRedo(false);
       setBgColor(typeof fc.backgroundColor === 'string' ? fc.backgroundColor : '#ffffff');
@@ -1255,8 +1286,15 @@ export default function DocumentMaker() {
   }
 
   function handleSelect(e) {
+    const fc = fabricRef.current;
+    const allSelected = fc ? fc.getActiveObjects() : (e.selected || []);
+    setSelectedObjs(allSelected);
     const obj = e.selected?.[0];
     if (!obj) return;
+    if (photoAdjustModeRef.current) {
+      setPhotoAdjustMode(false);
+      photoAdjustModeRef.current = false;
+    }
     setSelectedObj(obj);
     setObjOpacity(obj.opacity !== undefined ? obj.opacity : 1);
     setObjAngle(Math.round(obj.angle || 0));
@@ -1276,6 +1314,22 @@ export default function DocumentMaker() {
     } else {
       setToolTab(2); // → Object tab
     }
+  }
+
+  function handleDblClick(e) {
+    const obj = e.target;
+    if (obj && obj.__frameType && obj.type === 'image' && obj.clipPath?.absolutePositioned) {
+      setPhotoAdjustMode(true);
+      photoAdjustModeRef.current = true;
+      setSelectedObj(obj);
+      setToolTab(2);
+    }
+  }
+
+  function exitPhotoAdjustMode() {
+    setPhotoAdjustMode(false);
+    photoAdjustModeRef.current = false;
+    pushHistory();
   }
 
   function confirmThen(action) {
@@ -1316,7 +1370,7 @@ export default function DocumentMaker() {
       const cur = batchStudents[carouselIdx];
       const curKey = cur?.uuid || cur?._id || String(carouselIdx);
       suppressDirtyRef.current = true;
-      carouselStatesRef.current[curKey] = JSON.stringify(fc.toJSON());
+      carouselStatesRef.current[curKey] = JSON.stringify(fc.toJSON(CUSTOM_PROPS));
       suppressDirtyRef.current = false;
     }
     const nxt = batchStudents[newIdx];
@@ -1459,22 +1513,127 @@ export default function DocumentMaker() {
       fabric.Image.fromURL(ev.target.result, img => {
         const scale = Math.max(tW / img.width, tH / img.height);
         img.scale(scale);
+        const centerLeft = tLeft + tW / 2;
+        const centerTop  = tTop  + tH / 2;
         let clip;
         if (shapeType === 'circle') {
-          clip = new fabric.Circle({ radius: Math.min(tW, tH) / 2, originX: 'center', originY: 'center' });
+          clip = new fabric.Circle({ radius: Math.min(tW, tH) / 2, left: centerLeft, top: centerTop, originX: 'center', originY: 'center', absolutePositioned: true });
         } else if (shapeType === 'rounded') {
-          clip = new fabric.Rect({ width: tW, height: tH, rx: 24, ry: 24, originX: 'center', originY: 'center' });
+          clip = new fabric.Rect({ width: tW, height: tH, rx: 24, ry: 24, left: centerLeft, top: centerTop, originX: 'center', originY: 'center', absolutePositioned: true });
         } else {
-          clip = new fabric.Rect({ width: tW, height: tH, originX: 'center', originY: 'center' });
+          clip = new fabric.Rect({ width: tW, height: tH, left: centerLeft, top: centerTop, originX: 'center', originY: 'center', absolutePositioned: true });
         }
         img.clipPath = clip;
-        img.set({ left: tLeft + tW / 2, top: tTop + tH / 2, originX: 'center', originY: 'center' });
+        img.__frameBounds = { left: tLeft, top: tTop, width: tW, height: tH };
+        img.set({ left: centerLeft, top: centerTop, originX: 'center', originY: 'center' });
         if (obj) fc.remove(obj);
         img.__frameType = shapeType;
         fc.add(img); fc.setActiveObject(img); fc.renderAll();
-        setSelectedObj(img); setToolTab(0);
+        setSelectedObj(img); setToolTab(2);
         pushHistory(); setIsDirty(true);
       }, { crossOrigin: 'anonymous' });
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function changeSelectedFrameType(shapeType) {
+    const fc = fabricRef.current;
+    if (!fc) return;
+    const { fabric } = await getFabric();
+    const targets = fc.getActiveObjects().filter(o => o.__frameType);
+    if (!targets.length) return;
+    for (const obj of targets) {
+      if (obj.type === 'group') {
+        const oldLeft = obj.left || 0;
+        const oldTop  = obj.top  || 0;
+        obj._restoreObjectsState();
+        fc.remove(obj);
+        const w = shapeType === 'circle' ? 130 : 140;
+        const h = shapeType === 'circle' ? 130 : 180;
+        let border;
+        if (shapeType === 'circle') {
+          border = new fabric.Circle({ radius: w / 2, fill: '#fff8e1', stroke: '#d4a017', strokeWidth: 2, strokeDashArray: [8, 4] });
+        } else if (shapeType === 'rounded') {
+          border = new fabric.Rect({ width: w, height: h, fill: '#fff8e1', stroke: '#d4a017', strokeWidth: 2, strokeDashArray: [8, 4], rx: 24, ry: 24 });
+        } else {
+          border = new fabric.Rect({ width: w, height: h, fill: '#fff8e1', stroke: '#d4a017', strokeWidth: 2, strokeDashArray: [8, 4], rx: 4, ry: 4 });
+        }
+        const cx = w / 2, cy = shapeType === 'circle' ? w / 2 : h / 2;
+        const lbl = new fabric.Text('+ Photo', { left: cx, top: cy, originX: 'center', originY: 'center', fontSize: 12, fill: '#d4a017', fontFamily: 'Arial', fontWeight: 'bold', selectable: false, evented: false });
+        const newGrp = new fabric.Group([border, lbl], { left: oldLeft, top: oldTop });
+        newGrp.__frameType = shapeType;
+        fc.add(newGrp);
+      } else if (obj.type === 'image' && obj.__frameBounds) {
+        const fb = obj.__frameBounds;
+        const cLeft = fb.left + fb.width / 2;
+        const cTop  = fb.top  + fb.height / 2;
+        let clip;
+        if (shapeType === 'circle') {
+          clip = new fabric.Circle({ radius: Math.min(fb.width, fb.height) / 2, left: cLeft, top: cTop, originX: 'center', originY: 'center', absolutePositioned: true });
+        } else if (shapeType === 'rounded') {
+          clip = new fabric.Rect({ width: fb.width, height: fb.height, rx: 24, ry: 24, left: cLeft, top: cTop, originX: 'center', originY: 'center', absolutePositioned: true });
+        } else {
+          clip = new fabric.Rect({ width: fb.width, height: fb.height, left: cLeft, top: cTop, originX: 'center', originY: 'center', absolutePositioned: true });
+        }
+        obj.clipPath = clip;
+        obj.__frameType = shapeType;
+      } else {
+        // Placeholder rect — just update the type tag
+        obj.__frameType = shapeType;
+      }
+    }
+    fc.discardActiveObject();
+    fc.renderAll();
+    pushHistory();
+    setIsDirty(true);
+    setSelectedObj(null);
+    setSelectedObjs([]);
+  }
+
+  async function bulkFillFramesWithPhoto(file) {
+    const fc = fabricRef.current;
+    if (!fc || !file) return;
+    const { fabric } = await getFabric();
+    const frames = fc.getActiveObjects().filter(o => o.__frameType);
+    if (!frames.length) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      let remaining = frames.length;
+      frames.forEach(frame => {
+        const shapeType = frame.__frameType;
+        const tLeft = frame.left || 0;
+        const tTop  = frame.top  || 0;
+        const tW = frame.getScaledWidth();
+        const tH = frame.getScaledHeight();
+        const centerLeft = tLeft + tW / 2;
+        const centerTop  = tTop  + tH / 2;
+        fabric.Image.fromURL(ev.target.result, img => {
+          const scale = Math.max(tW / img.width, tH / img.height);
+          img.scale(scale);
+          let clip;
+          if (shapeType === 'circle') {
+            clip = new fabric.Circle({ radius: Math.min(tW, tH) / 2, left: centerLeft, top: centerTop, originX: 'center', originY: 'center', absolutePositioned: true });
+          } else if (shapeType === 'rounded') {
+            clip = new fabric.Rect({ width: tW, height: tH, rx: 24, ry: 24, left: centerLeft, top: centerTop, originX: 'center', originY: 'center', absolutePositioned: true });
+          } else {
+            clip = new fabric.Rect({ width: tW, height: tH, left: centerLeft, top: centerTop, originX: 'center', originY: 'center', absolutePositioned: true });
+          }
+          img.clipPath = clip;
+          img.__frameBounds = { left: tLeft, top: tTop, width: tW, height: tH };
+          img.__frameType = shapeType;
+          img.set({ left: centerLeft, top: centerTop, originX: 'center', originY: 'center' });
+          fc.remove(frame);
+          fc.add(img);
+          remaining--;
+          if (remaining === 0) {
+            fc.discardActiveObject();
+            fc.renderAll();
+            pushHistory();
+            setIsDirty(true);
+            showAlert('success', `Filled ${frames.length} frame${frames.length > 1 ? 's' : ''} with photo`);
+          }
+        }, { crossOrigin: 'anonymous' });
+      });
     };
     reader.readAsDataURL(file);
   }
@@ -1648,7 +1807,7 @@ export default function DocumentMaker() {
     setGenerating(true);
     const zip = new JSZip();
     const { fabric } = await getFabric();
-    const templateJSON = fabricRef.current?.toJSON();
+    const templateJSON = fabricRef.current?.toJSON(CUSTOM_PROPS);
     if (!templateJSON) return;
     const hasPlaceholders = (templateJSON.objects || []).some(o => o.__placeholder);
     const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
@@ -1726,7 +1885,7 @@ export default function DocumentMaker() {
         if (!rows.length) { showAlert('error', 'No data. Select a batch or upload CSV/Excel.'); return; }
         const { fabric } = await getFabric();
         const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
-        const templateJSON = fabricRef.current?.toJSON();
+        const templateJSON = fabricRef.current?.toJSON(CUSTOM_PROPS);
         const hasPlaceholders = (templateJSON?.objects || []).some(o => o.__placeholder);
         const pdf = new jsPDF({ orientation: isLand ? 'landscape' : 'portrait', unit: 'mm', format: [pageW, pageH] });
         let pos = 0;
@@ -1768,7 +1927,7 @@ export default function DocumentMaker() {
     if (!fabricRef.current) return;
     setSavingDesign(true);
     try {
-      const canvasJSON = JSON.stringify(fabricRef.current.toJSON());
+      const canvasJSON = JSON.stringify(fabricRef.current.toJSON(CUSTOM_PROPS));
       const thumbnail = fabricRef.current.toDataURL({ format: 'png', multiplier: 0.3 });
       const uuid = localStorage.getItem('institute_uuid');
       const payload = {
@@ -2818,6 +2977,28 @@ export default function DocumentMaker() {
           <canvas ref={canvasRef} />
         </Box>
 
+        {/* Photo adjust mode hint overlay */}
+        {photoAdjustMode && ready && (
+          <Box sx={{
+            position: 'absolute', top: 8, left: '50%', transform: 'translateX(-50%)',
+            bgcolor: 'rgba(15,23,42,0.88)', color: '#fff', borderRadius: 2, px: 1.5, py: 0.6,
+            display: 'flex', alignItems: 'center', gap: 0.75, zIndex: 10,
+            backdropFilter: 'blur(4px)', pointerEvents: 'all',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
+          }}>
+            <OpenWithIcon sx={{ fontSize: 14, color: '#fbbf24', flexShrink: 0 }} />
+            <Typography sx={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.9)', whiteSpace: 'nowrap' }}>
+              Drag photo to reposition
+            </Typography>
+            <Button size="small" onClick={exitPhotoAdjustMode}
+              sx={{ color: '#34d399', border: '1px solid rgba(52,211,153,0.45)', borderRadius: 1, ml: 0.5,
+                    textTransform: 'none', fontSize: '0.65rem', px: 0.75, py: 0.2, minWidth: 0,
+                    '&:hover': { bgcolor: 'rgba(52,211,153,0.12)' } }}>
+              ✓ Done
+            </Button>
+          </Box>
+        )}
+
         {/* Zoom pill — bottom right of canvas area */}
         {ready && (
           <Box sx={{
@@ -2889,12 +3070,20 @@ export default function DocumentMaker() {
             </IconButton>
           </>)}
 
-          {/* FRAME quick tool — fill photo */}
+          {/* FRAME quick tools — fill photo + adjust position */}
           {selectedObj.__frameType && (
             <Button size="small" onClick={() => frameInputRef.current?.click()}
               startIcon={<ImageIcon sx={{ fontSize: 18 }} />}
               sx={{ color: '#f0c040', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 1.5, textTransform: 'none', fontSize: '0.75rem', px: 1.5, py: 0.5, '&:hover': { bgcolor: 'rgba(167,139,250,0.1)' } }}>
               Fill Photo
+            </Button>
+          )}
+          {selectedObj.type === 'image' && selectedObj.__frameType && selectedObj.clipPath?.absolutePositioned && (
+            <Button size="small"
+              onClick={() => { setPhotoAdjustMode(true); photoAdjustModeRef.current = true; }}
+              startIcon={<OpenWithIcon sx={{ fontSize: 18 }} />}
+              sx={{ color: photoAdjustMode ? '#34d399' : 'rgba(255,255,255,0.7)', border: `1px solid ${photoAdjustMode ? 'rgba(52,211,153,0.5)' : 'rgba(255,255,255,0.2)'}`, borderRadius: 1.5, textTransform: 'none', fontSize: '0.75rem', px: 1.5, py: 0.5 }}>
+              {photoAdjustMode ? 'Adjusting…' : 'Adjust'}
             </Button>
           )}
 
@@ -2958,6 +3147,14 @@ export default function DocumentMaker() {
             {selectedObj.__frameType && (
               <Button size="small" onClick={() => frameInputRef.current?.click()} startIcon={<ImageIcon sx={{ fontSize: 16 }} />}
                 sx={{ color: '#f0c040', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 1, textTransform: 'none', fontSize: '0.7rem', px: 1, py: 0.4 }}>Fill Photo</Button>
+            )}
+            {selectedObj.type === 'image' && selectedObj.__frameType && selectedObj.clipPath?.absolutePositioned && (
+              <Button size="small"
+                onClick={() => { setPhotoAdjustMode(true); photoAdjustModeRef.current = true; }}
+                startIcon={<OpenWithIcon sx={{ fontSize: 16 }} />}
+                sx={{ color: photoAdjustMode ? '#34d399' : 'rgba(255,255,255,0.65)', border: `1px solid ${photoAdjustMode ? 'rgba(52,211,153,0.5)' : 'rgba(255,255,255,0.18)'}`, borderRadius: 1, textTransform: 'none', fontSize: '0.7rem', px: 1, py: 0.4 }}>
+                {photoAdjustMode ? 'Adjusting' : 'Adjust'}
+              </Button>
             )}
             <Box sx={{ flex: 1 }} />
             <IconButton size="small" onClick={duplicateObj} sx={{ color: 'rgba(255,255,255,0.6)', p: 0.5 }}><ContentCopyIcon sx={{ fontSize: 18 }} /></IconButton>
@@ -3173,7 +3370,87 @@ export default function DocumentMaker() {
                       <Typography sx={{ fontSize: '0.56rem', color: '#0ea5e9' }}>Ungroup</Typography>
                     </Box>
                   )}
+                  {/* Adjust photo position (double-click shortcut) */}
+                  {selectedObj.type === 'image' && selectedObj.__frameType && selectedObj.clipPath?.absolutePositioned && (
+                    <Box onClick={() => { setPhotoAdjustMode(true); photoAdjustModeRef.current = true; }}
+                      sx={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.2,
+                        cursor: 'pointer', px: 0.75, py: 0.4, borderRadius: 1.5,
+                        border: `1px solid ${photoAdjustMode ? '#0ea5e9' : '#0ea5e955'}`,
+                        bgcolor: photoAdjustMode ? '#e0f2fe' : '#f0f9ff', minWidth: 52, '&:active': { opacity: 0.7 },
+                      }}>
+                      <OpenWithIcon sx={{ fontSize: 13, color: '#0ea5e9' }} />
+                      <Typography sx={{ fontSize: '0.56rem', color: '#0ea5e9' }}>Adjust</Typography>
+                    </Box>
+                  )}
                 </Stack>
+
+                {/* Frame shape selector */}
+                {selectedObj.__frameType && selectedObjs.length <= 1 && (
+                  <Box>
+                    <Typography sx={{ fontSize: '0.56rem', color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', mb: 0.4 }}>Frame Shape</Typography>
+                    <Stack direction="row" gap={0.5}>
+                      {[
+                        ['rect',    'Rect',   <Box sx={{ width: 12, height: 12, border: '2px solid currentColor', borderRadius: 1 }} />],
+                        ['circle',  'Circle', <Box sx={{ width: 12, height: 12, border: '2px solid currentColor', borderRadius: '50%' }} />],
+                        ['rounded', 'Round',  <Box sx={{ width: 12, height: 12, border: '2px solid currentColor', borderRadius: 4 }} />],
+                      ].map(([type, label, icon]) => (
+                        <Box key={type} onClick={() => changeSelectedFrameType(type)} sx={{
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.2,
+                          cursor: 'pointer', px: 0.75, py: 0.4, borderRadius: 1.5, flex: 1,
+                          border: `1.5px solid ${selectedObj.__frameType === type ? '#d4a017' : '#e2e8f0'}`,
+                          bgcolor: selectedObj.__frameType === type ? '#fff8e1' : '#f8fafc',
+                          color: selectedObj.__frameType === type ? '#d4a017' : '#64748b',
+                          '&:active': { opacity: 0.7 },
+                        }}>
+                          {icon}
+                          <Typography sx={{ fontSize: '0.56rem' }}>{label}</Typography>
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Box>
+                )}
+
+                {/* Bulk frame controls when multiple frames are selected */}
+                {selectedObjs.length > 1 && selectedObjs.every(o => o.__frameType) && (
+                  <Box sx={{ p: 0.75, bgcolor: '#f0f9ff', borderRadius: 2, border: '1px solid #bae6fd' }}>
+                    <Typography sx={{ fontSize: '0.58rem', color: '#0284c7', fontWeight: 600, mb: 0.5 }}>
+                      {selectedObjs.length} frames selected
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.56rem', color: '#94a3b8', mb: 0.4 }}>Change all to shape:</Typography>
+                    <Stack direction="row" gap={0.5} mb={0.75}>
+                      {[
+                        ['rect',    'Rect',   <Box sx={{ width: 11, height: 11, border: '2px solid currentColor', borderRadius: 1 }} />],
+                        ['circle',  'Circle', <Box sx={{ width: 11, height: 11, border: '2px solid currentColor', borderRadius: '50%' }} />],
+                        ['rounded', 'Round',  <Box sx={{ width: 11, height: 11, border: '2px solid currentColor', borderRadius: 3 }} />],
+                      ].map(([type, label, icon]) => (
+                        <Box key={type} onClick={() => changeSelectedFrameType(type)} sx={{
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.2,
+                          cursor: 'pointer', px: 0.5, py: 0.4, borderRadius: 1.5, flex: 1,
+                          border: '1px solid #bae6fd', bgcolor: '#fff', color: '#0284c7',
+                          '&:active': { opacity: 0.7 },
+                        }}>
+                          {icon}
+                          <Typography sx={{ fontSize: '0.54rem' }}>{label}</Typography>
+                        </Box>
+                      ))}
+                    </Stack>
+                    <Box onClick={() => bulkFrameRef.current?.click()} sx={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5,
+                      cursor: 'pointer', px: 1, py: 0.6, borderRadius: 1.5,
+                      border: '1px solid #d4a01755', bgcolor: '#fff8e1',
+                      '&:active': { opacity: 0.7 },
+                    }}>
+                      <ImageIcon sx={{ fontSize: 12, color: '#d4a017' }} />
+                      <Typography sx={{ fontSize: '0.58rem', color: '#d4a017', fontWeight: 600 }}>
+                        Fill All with Same Photo
+                      </Typography>
+                    </Box>
+                    <input hidden ref={bulkFrameRef} type="file" accept="image/*"
+                      onChange={e => { bulkFillFramesWithPhoto(e.target.files[0]); e.target.value = ''; }} />
+                  </Box>
+                )}
+
                 {/* Image-specific: brightness + contrast */}
                 {selectedObj.type === 'image' && (
                   <>
