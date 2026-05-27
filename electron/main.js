@@ -1,14 +1,46 @@
-const { app, BrowserWindow, ipcMain, Menu, Tray, dialog, net } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, Tray, dialog } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const net_module = require('net');
 const http = require('http');
 const crypto = require('crypto');
+const os = require('os');
 const Store = require('electron-store');
 
-const store = new Store({
-  encryptionKey: 'instify-desktop-local-key',
-});
+// Derive a machine-specific encryption key so the store is tied to this device.
+// Falls back to the legacy key on first run if the migrated flag is not set,
+// then re-encrypts with the new key — enabling a transparent migration.
+function getMachineKey() {
+  const seed = [
+    app.getPath('userData'),
+    os.hostname(),
+    os.platform(),
+    'instify-v2',
+  ].join(':');
+  return crypto.createHash('sha256').update(seed).digest('hex');
+}
+
+const MACHINE_KEY = getMachineKey();
+const LEGACY_KEY = 'instify-desktop-local-key';
+
+let store;
+try {
+  store = new Store({ encryptionKey: MACHINE_KEY });
+  // Verify the store is readable (throws if key is wrong on existing data)
+  store.get('_migrated');
+} catch {
+  // First run after upgrade: migrate data from legacy key
+  try {
+    const legacyStore = new Store({ encryptionKey: LEGACY_KEY, name: 'config' });
+    const allData = legacyStore.store;
+    store = new Store({ encryptionKey: MACHINE_KEY });
+    Object.entries(allData).forEach(([k, v]) => store.set(k, v));
+    store.set('_migrated', true);
+    legacyStore.clear();
+  } catch {
+    store = new Store({ encryptionKey: MACHINE_KEY });
+  }
+}
 
 let mainWindow = null;
 let tray = null;
@@ -200,8 +232,28 @@ function registerIPC() {
   ipcMain.handle('config:get', (_, key) => store.get(key));
   ipcMain.handle('config:set', (_, { key, value }) => {
     store.set(key, value);
-    // Restart sync engine if remote URI changed
-    if (key === 'remoteMongoUri' && syncEngine) syncEngine.restart(value);
+    if (key === 'remoteMongoUri' && syncEngine) {
+      syncEngine.restart(value);
+    }
+    // Stop sync engine if switched to local_only mode
+    if (key === 'storageMode') {
+      if (value === 'local_only' && syncEngine) {
+        syncEngine.stop();
+        syncEngine = null;
+        mainWindow?.webContents.send('sync:status', { state: 'disabled', message: 'Local-only mode — sync disabled' });
+      } else if (value !== 'local_only') {
+        const uri = store.get('remoteMongoUri', '');
+        if (uri && !syncEngine) {
+          const { SyncEngine } = require('./sync/syncEngine');
+          syncEngine = new SyncEngine({
+            localUri: `mongodb://127.0.0.1:${MONGO_PORT}/instify`,
+            remoteUri: uri,
+            onStatus: (data) => mainWindow?.webContents.send('sync:status', data),
+          });
+          syncEngine.start();
+        }
+      }
+    }
   });
 
   ipcMain.handle('sync:now', async () => {
@@ -241,9 +293,10 @@ app.whenReady().then(async () => {
   createWindow();
   createTray();
 
-  // Start sync engine if remote URI is configured
+  // Only start sync if institute is configured for hybrid or cloud_only mode
   const remoteUri = store.get('remoteMongoUri', '');
-  if (remoteUri) {
+  const storageMode = store.get('storageMode', 'cloud_only');
+  if (remoteUri && storageMode !== 'local_only') {
     const { SyncEngine } = require('./sync/syncEngine');
     syncEngine = new SyncEngine({
       localUri: `mongodb://127.0.0.1:${MONGO_PORT}/instify`,

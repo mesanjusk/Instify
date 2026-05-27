@@ -13,6 +13,7 @@ import {
 import {
   Business, CheckCircle, DeleteForever, Edit, HourglassEmpty,
   ManageAccounts, PauseCircle, Refresh, School, SupervisorAccount,
+  Cloud, SyncAlt, Computer,
 } from '@mui/icons-material';
 import { formatDisplayDate } from '../utils/dateUtils';
 
@@ -32,6 +33,11 @@ const ALL_MODULES = [
 
 const PLAN_COLORS = { paid: '#10b981', trial: '#f59e0b', free: '#6b7280' };
 const STATUS_COLORS = { active: '#10b981', trial: '#f59e0b', expired: '#ef4444' };
+const STORAGE_MODE_META = {
+  cloud_only: { label: 'Cloud', color: '#0891b2', Icon: Cloud },
+  hybrid: { label: 'Hybrid', color: '#7c3aed', Icon: SyncAlt },
+  local_only: { label: 'Local', color: '#b45309', Icon: Computer },
+};
 
 function StatCard({ icon, label, value, color }) {
   return (
@@ -106,6 +112,7 @@ export default function ToolsPanel() {
     setEditTarget({
       ...inst,
       modulesEnabled: inst.modulesEnabled || [],
+      storage_mode: inst.storage_mode || 'cloud_only',
       trialExpiresAt: inst.trialExpiresAt
         ? new Date(inst.trialExpiresAt).toISOString().slice(0, 10)
         : '',
@@ -129,6 +136,7 @@ export default function ToolsPanel() {
         status: editTarget.status,
         modulesEnabled: editTarget.modulesEnabled,
         trialExpiresAt: editTarget.trialExpiresAt || undefined,
+        storage_mode: editTarget.storage_mode || 'cloud_only',
       };
       const res = await axios.put(
         `${BASE_URL}/api/institute/manage/${editTarget.institute_uuid}`,
@@ -215,6 +223,17 @@ export default function ToolsPanel() {
                       Code: {inst.center_code} &nbsp;·&nbsp; {inst.institute_call_number}
                       {inst.trialExpiresAt && ` · Expires: ${formatDisplayDate(inst.trialExpiresAt)}`}
                     </Typography>
+                    {inst.storage_mode && (() => {
+                      const meta = STORAGE_MODE_META[inst.storage_mode] || STORAGE_MODE_META.cloud_only;
+                      return (
+                        <Chip
+                          icon={<meta.Icon sx={{ fontSize: '0.75rem !important', color: `${meta.color} !important` }} />}
+                          label={meta.label}
+                          size="small"
+                          sx={{ bgcolor: `${meta.color}15`, color: meta.color, fontWeight: 600, fontSize: '0.65rem', height: 18, mt: 0.25 }}
+                        />
+                      );
+                    })()}
                     {inst.modulesEnabled?.length > 0 && (
                       <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap mt={0.5}>
                         {inst.modulesEnabled.map(m => (
@@ -298,6 +317,20 @@ export default function ToolsPanel() {
                 value={editTarget.trialExpiresAt}
                 onChange={e => setEditTarget(p => ({ ...p, trialExpiresAt: e.target.value }))}
               />
+
+              {/* Storage Mode */}
+              <FormControl fullWidth size="small">
+                <InputLabel>Storage Mode</InputLabel>
+                <Select
+                  value={editTarget.storage_mode || 'cloud_only'}
+                  label="Storage Mode"
+                  onChange={e => setEditTarget(p => ({ ...p, storage_mode: e.target.value }))}
+                >
+                  <MenuItem value="cloud_only">☁️ Cloud Only — Web & Mobile</MenuItem>
+                  <MenuItem value="hybrid">🔄 Hybrid — Desktop + Cloud Sync</MenuItem>
+                  <MenuItem value="local_only">💻 Local Only — Fully Offline Desktop</MenuItem>
+                </Select>
+              </FormControl>
 
               {/* Modules */}
               <Box>

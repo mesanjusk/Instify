@@ -28,6 +28,23 @@ class AppDatabase extends Dexie {
       educations: '++id',
       paymentModes: '++id'
     });
+
+    // v3 — add transactions, fees, employees; add status index to leads/admissions
+    this.version(3).stores({
+      leads: '++id, lead_uuid, institute_uuid, status',
+      students: '++id, student_uuid, institute_uuid',
+      attendance: '++id, attendance_uuid, institute_uuid',
+      admissions: '++id, admission_uuid, institute_uuid, status',
+      courses: '++id, course_uuid, institute_uuid',
+      exams: '++id, exam_uuid, institute_uuid',
+      batches: '++id, batch_uuid, institute_uuid',
+      educations: '++id',
+      paymentModes: '++id',
+      transactions: '++id, institute_uuid, student_uuid',
+      fees: '++id, fee_uuid, student_uuid, institute_uuid',
+      employees: '++id, employee_uuid, institute_uuid',
+      offlineMutations: '++id, timestamp, synced',
+    });
   }
 
   encrypt(data) {

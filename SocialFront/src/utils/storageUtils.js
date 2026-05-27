@@ -4,7 +4,7 @@
  * Store institute-related data safely in localStorage.
  * Accepts an object with optional fields: institute_uuid, institute_name, institute_id, theme_color.
  */
-export const storeInstituteData = ({ institute_uuid, institute_name, institute_id, theme_color, plan_type, status, modulesEnabled, trialExpiresAt }) => {
+export const storeInstituteData = ({ institute_uuid, institute_name, institute_id, theme_color, plan_type, status, modulesEnabled, trialExpiresAt, storage_mode }) => {
   const instituteObj = {
     institute_uuid,
     institute_name,
@@ -14,6 +14,7 @@ export const storeInstituteData = ({ institute_uuid, institute_name, institute_i
     status: status || 'trial',
     modulesEnabled: modulesEnabled || [],
     trialExpiresAt: trialExpiresAt || null,
+    storage_mode: storage_mode || 'cloud_only',
   };
   localStorage.setItem('institute', JSON.stringify(instituteObj));
 

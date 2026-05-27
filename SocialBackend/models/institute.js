@@ -105,6 +105,12 @@ const instituteSchema = new mongoose.Schema({
   website: {
     type: String,
     default: ''
+  },
+
+  storage_mode: {
+    type: String,
+    enum: ['cloud_only', 'local_only', 'hybrid'],
+    default: 'cloud_only'
   }
 });
 
