@@ -10,6 +10,7 @@ import PrivateRoute from './components/PrivateRoute';
 import FeatureGate from './components/FeatureGate';
 
 // Always-present routes (auth + shell) — load eagerly
+import Intro from './pages/Intro';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import ForgotPassword from './components/ForgotPassword';
@@ -95,7 +96,8 @@ export default function App() {
     <Suspense fallback={<PageLoader />}>
     <Routes>
       {/* ── Public ───────────────────────────────────────── */}
-      <Route path="/" element={<Login />} />
+      <Route path="/" element={<Intro />} />
+      <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Signup />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/upload" element={<ImageUploader />} />

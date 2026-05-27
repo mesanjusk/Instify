@@ -39,10 +39,10 @@ const Login = () => {
     if (branding?.theme?.color) {
       document.documentElement.style.setProperty('--theme-color', branding.theme.color);
     }
-    const user = localStorage.getItem('user');
-    const insti = localStorage.getItem('institute');
-    if (user && insti) {
-      navigate('/dashboard');
+    const token    = localStorage.getItem('authToken');
+    const savedUn  = localStorage.getItem('login_username');
+    if (token && savedUn) {
+      navigate(`/${savedUn}`, { replace: true });
     }
   }, [navigate, branding]);
 
