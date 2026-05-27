@@ -64,11 +64,11 @@
   },
   "dependencies": {
     "electron-store": "^8.1.0",
+    "electron-updater": "^6.1.7",
     "mongoose": "^7.6.1"
   },
   "devDependencies": {
     "electron": "^30.0.0",
-    "electron-builder": "^24.13.0",
-    "electron-updater": "^6.1.7"
+    "electron-builder": "^24.13.0"
   }
 }

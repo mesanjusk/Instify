@@ -72,6 +72,7 @@ const Login = () => {
         username: data.login_username,
       });
       localStorage.setItem('authToken', data.token);
+      if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
       storeInstituteData({
         institute_uuid: data.institute_uuid,
         institute_name: data.institute_name,
@@ -81,6 +82,7 @@ const Login = () => {
         status: data.status,
         modulesEnabled: data.modulesEnabled,
         trialExpiresAt: data.trialExpiresAt,
+        storage_mode: data.storage_mode,
       });
       if (data.trialExpiresAt) {
         localStorage.setItem('trialExpiresAt', data.trialExpiresAt);

@@ -66,6 +66,17 @@ const userSchema = new mongoose.Schema({
   last_password_change: {
     type: Date,
     default: Date.now
+  },
+
+  refreshToken: {
+    type: String,
+    default: null,
+    index: true,
+  },
+
+  refreshTokenExpiry: {
+    type: Date,
+    default: null,
   }
 
 }, { timestamps: true });
