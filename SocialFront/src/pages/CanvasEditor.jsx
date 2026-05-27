@@ -808,6 +808,7 @@ export default function DocumentMaker() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [explorePage,    setExplorePage]    = useState(0);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const [carouselWebcam,   setCarouselWebcam]   = useState(false);
 
   function showAlert(type, text) { setAlert({ type, text }); setTimeout(() => setAlert(null), 4000); }
 
@@ -896,6 +897,44 @@ export default function DocumentMaker() {
     const file = new File([blob], 'webcam.jpg', { type: 'image/jpeg' });
     await uploadStudentPhoto(webcamTarget, file, 'webcam');
     setWebcamTarget(null);
+  }
+
+  async function handleCarouselWebcamCapture(blob) {
+    const dataUrl = await new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.readAsDataURL(blob);
+    });
+    const curStudent = batchStudents[carouselIdx];
+    const updated = { ...curStudent, photo_url: dataUrl };
+    setBatchStudents(prev => { const a = [...prev]; a[carouselIdx] = updated; return a; });
+    const curKey = curStudent?.uuid || curStudent?._id || String(carouselIdx);
+    delete carouselStatesRef.current[curKey];
+    const fc = fabricRef.current;
+    if (fc && carouselBaseTemplateRef.current) {
+      await renderRowToCanvas(fc, carouselBaseTemplateRef.current, studentToRow(updated, selBatch));
+    }
+    showAlert('success', 'Photo captured and applied to canvas');
+    setCarouselWebcam(false);
+  }
+
+  async function handleCarouselPhotoFile(file) {
+    if (!file) return;
+    const dataUrl = await new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result);
+      reader.readAsDataURL(file);
+    });
+    const curStudent = batchStudents[carouselIdx];
+    const updated = { ...curStudent, photo_url: dataUrl };
+    setBatchStudents(prev => { const a = [...prev]; a[carouselIdx] = updated; return a; });
+    const curKey = curStudent?.uuid || curStudent?._id || String(carouselIdx);
+    delete carouselStatesRef.current[curKey];
+    const fc = fabricRef.current;
+    if (fc && carouselBaseTemplateRef.current) {
+      await renderRowToCanvas(fc, carouselBaseTemplateRef.current, studentToRow(updated, selBatch));
+    }
+    showAlert('success', 'Photo applied to canvas');
   }
 
   async function bulkUploadPhotos(files) {
@@ -2424,6 +2463,7 @@ export default function DocumentMaker() {
         <CreateProjectDlg open={createProjDlg} onSave={createNewProject} onClose={() => setCreateProjDlg(false)} />
         <AddStudentDlg open={addStudentDlg} onSave={addStudentToProject} onClose={() => setAddStudentDlg(false)} />
         <WebcamCapture open={!!webcamTarget} onCapture={handleWebcamCapture} onClose={() => setWebcamTarget(null)} />
+        <WebcamCapture open={carouselWebcam} onCapture={handleCarouselWebcamCapture} onClose={() => setCarouselWebcam(false)} />
 
         {/* Bulk photo dialog */}
         <Dialog open={bulkPhotoDlg} onClose={() => setBulkPhotoDlg(false)} maxWidth="xs" fullWidth>
@@ -3412,10 +3452,31 @@ export default function DocumentMaker() {
                 </Box>
 
                 {sectionLabel('Photo Frames')}
+                <Typography sx={{ fontSize: '0.68rem', color: '#94a3b8', lineHeight: 1.4, mt: -0.5 }}>
+                  Manual frames — fill by tapping the frame then "Fill Photo"
+                </Typography>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   {toolBtn('Rect',    <Box sx={{ width: 24, height: 24, border: '2.5px dashed #d4a017', borderRadius: 2 }} />,      () => addFrame('rect'))}
                   {toolBtn('Circle',  <Box sx={{ width: 24, height: 24, border: '2.5px dashed #d4a017', borderRadius: '50%' }} />,  () => addFrame('circle'))}
                   {toolBtn('Rounded', <Box sx={{ width: 24, height: 24, border: '2.5px dashed #d4a017', borderRadius: 6 }} />,      () => addFrame('rounded'))}
+                </Box>
+
+                {/* Batch photo placeholder — auto-fills during bulk export */}
+                <Box onClick={() => addPlaceholder('photo')} sx={{
+                  display: 'flex', alignItems: 'center', gap: 1.25, cursor: 'pointer',
+                  p: 1.25, borderRadius: 2.5,
+                  border: '2px dashed #059669', bgcolor: '#f0fdf4',
+                  transition: 'all 0.15s',
+                  '&:hover': { bgcolor: '#dcfce7', borderColor: '#16a34a' },
+                  '&:active': { transform: 'scale(0.97)' },
+                }}>
+                  <Box sx={{ width: 36, height: 36, borderRadius: 2, border: '2px solid #059669', bgcolor: '#bbf7d0', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <PhotoCameraIcon sx={{ fontSize: 20, color: '#059669' }} />
+                  </Box>
+                  <Box>
+                    <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669' }}>Batch Photo Frame</Typography>
+                    <Typography sx={{ fontSize: '0.65rem', color: '#16a34a', lineHeight: 1.3 }}>Auto-fills each student's photo during bulk export</Typography>
+                  </Box>
                 </Box>
 
                 {sectionLabel('Shapes')}
@@ -3806,11 +3867,29 @@ export default function DocumentMaker() {
             {/* ── Tab 5: Export ── */}
             {toolTab === 5 && (
               <Stack spacing={1.75}>
+
+                {/* Bulk workflow guide */}
+                {batchStudents.length === 0 && (
+                  <Box sx={{ p: 1.5, bgcolor: '#fffbeb', borderRadius: 2.5, border: '1.5px solid #fcd34d' }}>
+                    <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: '#92400e', mb: 0.75 }}>How to make bulk ID cards</Typography>
+                    {[
+                      '1. Add tab → Smart Placeholders → insert {{name}}, {{roll_number}} etc.',
+                      '2. Add tab → Photo Frames → "Batch Photo Frame" (auto-fills photos)',
+                      '3. Export tab → Data Source → pick batch or upload CSV/Excel',
+                      '4. Use carousel below to preview & adjust each student',
+                      '5. Export ZIP (one PNG each) or PDF (all on pages)',
+                    ].map((step, i) => (
+                      <Typography key={i} sx={{ fontSize: '0.72rem', color: '#78350f', lineHeight: 1.7 }}>{step}</Typography>
+                    ))}
+                  </Box>
+                )}
+
                 {batchStudents.length > 0 && (
                   <Box sx={{ bgcolor: '#f8fafc', borderRadius: 2.5, border: '1.5px solid #e2e8f0', p: 1.5 }}>
+                    {/* Header row with navigation */}
                     <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.25}>
                       <Typography sx={{ fontSize: '0.82rem', color: '#475569', fontWeight: 700 }}>
-                        Record {carouselIdx + 1} / {batchStudents.length}
+                        Student {carouselIdx + 1} / {batchStudents.length}
                       </Typography>
                       <Stack direction="row" spacing={0.5} alignItems="center">
                         <IconButton size="small" onClick={() => goCarousel(carouselIdx - 1)} disabled={carouselIdx === 0}
@@ -3835,6 +3914,65 @@ export default function DocumentMaker() {
                         </IconButton>
                       </Stack>
                     </Stack>
+
+                    {/* Photo thumbnail + camera button */}
+                    {(() => {
+                      const stu = batchStudents[carouselIdx];
+                      const photoUrl = stu?.photo_url || stu?.bg_removed_url;
+                      const carouselPhotoRef = { current: null };
+                      return (
+                        <Stack direction="row" gap={1.5} alignItems="flex-start" mb={1.25}>
+                          {/* Thumbnail */}
+                          <Box sx={{ width: 64, height: 80, borderRadius: 2, overflow: 'hidden', border: '1.5px solid #e2e8f0', flexShrink: 0, bgcolor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                            {photoUrl ? (
+                              <img src={photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              <PeopleIcon sx={{ fontSize: 28, color: '#cbd5e1' }} />
+                            )}
+                          </Box>
+                          {/* Photo actions */}
+                          <Box sx={{ flex: 1 }}>
+                            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: '#1e293b', mb: 0.5 }} noWrap>
+                              {stu?.firstName || stu?.student_name || carouselFields.name || 'Student'}
+                            </Typography>
+                            {photoUrl ? (
+                              <Stack direction="row" gap={0.5} flexWrap="wrap">
+                                <Button size="small" startIcon={<PhotoCameraIcon sx={{ fontSize: 14 }} />}
+                                  onClick={() => setCarouselWebcam(true)}
+                                  sx={{ fontSize: '0.68rem', textTransform: 'none', bgcolor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', py: 0.4, px: 0.75 }}>
+                                  Retake
+                                </Button>
+                                <Button size="small" component="label" startIcon={<ImageIcon sx={{ fontSize: 14 }} />}
+                                  sx={{ fontSize: '0.68rem', textTransform: 'none', bgcolor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', py: 0.4, px: 0.75 }}>
+                                  Replace
+                                  <input hidden type="file" accept="image/*" onChange={e => { if (e.target.files?.[0]) handleCarouselPhotoFile(e.target.files[0]); e.target.value = ''; }} />
+                                </Button>
+                              </Stack>
+                            ) : (
+                              <Stack direction="row" gap={0.5} flexWrap="wrap">
+                                <Button size="small" variant="contained" startIcon={<PhotoCameraIcon sx={{ fontSize: 14 }} />}
+                                  onClick={() => setCarouselWebcam(true)}
+                                  sx={{ fontSize: '0.72rem', textTransform: 'none', bgcolor: '#059669', '&:hover': { bgcolor: '#047857' }, py: 0.5 }}>
+                                  Take Photo
+                                </Button>
+                                <Button size="small" component="label" startIcon={<ImageIcon sx={{ fontSize: 14 }} />}
+                                  sx={{ fontSize: '0.72rem', textTransform: 'none', bgcolor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', py: 0.5 }}>
+                                  Upload
+                                  <input hidden type="file" accept="image/*" onChange={e => { if (e.target.files?.[0]) handleCarouselPhotoFile(e.target.files[0]); e.target.value = ''; }} />
+                                </Button>
+                              </Stack>
+                            )}
+                            {!photoUrl && (
+                              <Typography sx={{ fontSize: '0.65rem', color: '#f87171', mt: 0.5, fontWeight: 600 }}>
+                                No photo — canvas photo frame will be empty
+                              </Typography>
+                            )}
+                          </Box>
+                        </Stack>
+                      );
+                    })()}
+
+                    {/* Editable fields */}
                     <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1, mb: 1.25 }}>
                       {[['name', 'Name'], ['rollNo', 'Roll No'], ['course', 'Course'], ['batch', 'Batch']].map(([key, lbl]) => (
                         <TextField key={key} label={lbl} value={carouselFields[key] || ''} size="small"
@@ -3843,10 +3981,16 @@ export default function DocumentMaker() {
                         />
                       ))}
                     </Box>
-                    <Button size="small" fullWidth onClick={applyCarouselToCanvas}
-                      sx={{ bgcolor: '#d4a01722', color: '#d4a017', border: '1.5px solid #d4a01744', textTransform: 'none', fontSize: '0.82rem', py: 0.75, '&:hover': { bgcolor: '#d4a01733' }, borderRadius: 1.5 }}>
-                      Apply to Canvas
-                    </Button>
+                    <Stack direction="row" gap={0.75}>
+                      <Button size="small" fullWidth onClick={applyCarouselToCanvas}
+                        sx={{ bgcolor: '#d4a01722', color: '#d4a017', border: '1.5px solid #d4a01744', textTransform: 'none', fontSize: '0.82rem', py: 0.75, '&:hover': { bgcolor: '#d4a01733' }, borderRadius: 1.5 }}>
+                        Apply to Canvas
+                      </Button>
+                      <Button size="small" onClick={saveBulkCanvas}
+                        sx={{ flexShrink: 0, bgcolor: '#1e293b22', color: '#1e293b', border: '1.5px solid #1e293b33', textTransform: 'none', fontSize: '0.82rem', py: 0.75, px: 1.5, '&:hover': { bgcolor: '#1e293b33' }, borderRadius: 1.5 }}>
+                        Save
+                      </Button>
+                    </Stack>
                   </Box>
                 )}
 
