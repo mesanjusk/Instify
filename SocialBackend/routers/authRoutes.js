@@ -1,8 +1,10 @@
 const express = require('express');
 const { v4: uuid } = require('uuid');
+const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
 const jwt = require("jsonwebtoken");
 const Institute = require('../models/institute');
+const OtpStore = require('../models/OtpStore');
 const bcrypt = require('bcryptjs');
 const { body } = require('express-validator');
 const validate = require('../middleware/validate');
@@ -15,7 +17,15 @@ require('dotenv').config();
 const JWT_SECRET = process.env.JWT_SECRET;
 
 const router = express.Router();
-const otpStore = {};
+
+// Stricter limiter for OTP endpoints — 3 requests per 10 minutes per IP
+const otpLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many OTP requests — please wait 10 minutes before trying again' },
+});
 
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -122,13 +132,13 @@ router.post('/user/login',
     });
   } catch (err) {
     console.error('User login error:', err.message, err.stack);
-    res.status(500).json({ message: 'server_error', detail: err.message });
+    res.status(500).json({ message: 'server_error' });
   }
 });
 
 
-// ✅ Forgot password — sends OTP via WhatsApp
-router.post('/institute/forgot-password', async (req, res) => {
+// ✅ Forgot password — sends OTP via WhatsApp (OTP stored in MongoDB with TTL)
+router.post('/institute/forgot-password', otpLimiter, async (req, res) => {
   try {
     const { center_code, mobile } = req.body;
 
@@ -139,28 +149,22 @@ router.post('/institute/forgot-password', async (req, res) => {
     const trimmedCode = center_code.trim();
     const trimmedMobile = mobile.trim();
 
-    // Search by center_code first, then verify mobile matches
     const user = await User.findOne({ login_username: trimmedCode });
-
     if (!user) {
       return res.status(404).json({ message: 'No account found with this center code' });
     }
 
-    // Normalize stored mobile and provided mobile before comparing
     const storedMobile = String(user.mobile || '').replace(/^91/, '').trim();
     const inputMobile = trimmedMobile.replace(/^91/, '');
-
     if (storedMobile !== inputMobile) {
       return res.status(404).json({ message: 'Mobile number does not match our records' });
     }
 
     const otp = generateOTP();
 
-    otpStore[trimmedMobile] = {
-      otp,
-      expiresAt: Date.now() + 10 * 60 * 1000,
-      user_id: user._id
-    };
+    // Replace any existing OTP for this mobile, then store the new one in MongoDB
+    await OtpStore.deleteMany({ mobile: trimmedMobile });
+    await OtpStore.create({ mobile: trimmedMobile, otp, user_id: user._id });
 
     try {
       await whatsappService.sendOtpMessage(trimmedMobile, otp);
@@ -168,37 +172,38 @@ router.post('/institute/forgot-password', async (req, res) => {
       console.error('WhatsApp OTP send failed:', waErr.message);
     }
 
-    res.status(200).json({
-      message: 'otp_sent',
-      user_id: user._id,
-    });
+    res.status(200).json({ message: 'otp_sent', user_id: user._id });
   } catch (err) {
     console.error('Forgot password error:', err);
     res.status(500).json({ message: 'server_error' });
   }
 });
 
-// ✅ Verify forgot-password OTP
-router.post('/institute/verify-forgot-otp', (req, res) => {
-  const { mobile, otp } = req.body;
-  const record = otpStore[mobile];
+// ✅ Verify forgot-password OTP (reads from MongoDB — survives server restarts)
+router.post('/institute/verify-forgot-otp', async (req, res) => {
+  try {
+    const { mobile, otp } = req.body;
+    if (!mobile || !otp) {
+      return res.status(400).json({ success: false, message: 'mobile and otp are required' });
+    }
 
-  if (!record) {
-    return res.status(400).json({ success: false, message: 'OTP not sent to this number' });
+    const record = await OtpStore.findOne({ mobile });
+    if (!record) {
+      return res.status(400).json({ success: false, message: 'OTP not found or already expired' });
+    }
+
+    if (record.otp !== String(otp).trim()) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+
+    const user_id = record.user_id;
+    await OtpStore.deleteOne({ _id: record._id });
+
+    res.json({ success: true, message: 'OTP verified', user_id });
+  } catch (err) {
+    console.error('Verify OTP error:', err);
+    res.status(500).json({ success: false, message: 'server_error' });
   }
-
-  if (Date.now() > record.expiresAt) {
-    delete otpStore[mobile];
-    return res.status(400).json({ success: false, message: 'OTP expired' });
-  }
-
-  if (record.otp !== otp) {
-    return res.status(400).json({ success: false, message: 'Invalid OTP' });
-  }
-
-  const user_id = record.user_id;
-  delete otpStore[mobile];
-  res.json({ success: true, message: 'OTP verified', user_id });
 });
 
 // ✅ Reset password
@@ -304,22 +309,27 @@ router.get('/GetUserList/:institute_id', authenticate, roleGuard('superadmin', '
   }
 });
 
-// ✅ Get user by ID
-router.get('/:id', async (req, res) => {
+// ✅ Get user by ID — requires authentication
+router.get('/:id', authenticate, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const user = await User.findById(req.params.id).select('-login_password');
     res.status(user ? 200 : 404).json(user ? { success: true, result: user } : { success: false, message: 'User not found' });
   } catch (err) {
     console.error('Error fetching user:', err);
-    res.status(500).json({ success: false, message: 'Error fetching user', error: err.message });
+    res.status(500).json({ success: false, message: 'Error fetching user' });
   }
 });
 
-// ✅ Delete user
-router.delete('/:id', async (req, res) => {
+// ✅ Delete user — owner or above only
+router.delete('/:id', authenticate, roleGuard('super_admin', 'owner', 'admin'), async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Prevent deleting users from a different institute (non-super_admin)
+    if (req.user?.role !== 'super_admin' && user.institute_uuid !== req.user?.institute_uuid) {
+      return res.status(403).json({ message: 'Cannot delete users from another institute' });
+    }
 
     await User.findByIdAndDelete(req.params.id);
     res.json({ message: 'User deleted successfully' });
@@ -329,28 +339,35 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// ✅ Update user
-router.put('/:id', async (req, res) => {
+// ✅ Update user — owner or above only
+router.put('/:id', authenticate, roleGuard('super_admin', 'owner', 'admin'), async (req, res) => {
   const { name, mobile, role, password } = req.body;
 
   try {
+    const target = await User.findById(req.params.id);
+    if (!target) return res.status(404).json({ success: false, message: 'User not found' });
+
+    // Prevent updating users from a different institute (non-super_admin)
+    if (req.user?.role !== 'super_admin' && target.institute_uuid !== req.user?.institute_uuid) {
+      return res.status(403).json({ success: false, message: 'Cannot update users from another institute' });
+    }
+
     const update = { name, mobile, role };
     if (password) {
       update.login_password = await bcrypt.hash(password, 10);
+      update.last_password_change = new Date();
     }
 
     const updatedUser = await User.findOneAndUpdate(
       { _id: req.params.id },
       update,
       { new: true }
-    );
-
-    if (!updatedUser) return res.status(404).json({ success: false, message: 'User not found' });
+    ).select('-login_password');
 
     res.status(200).json({ success: true, message: 'User updated successfully', result: updatedUser });
   } catch (err) {
     console.error('Error updating user:', err);
-    res.status(500).json({ success: false, message: 'Error updating user', error: err.message });
+    res.status(500).json({ success: false, message: 'Error updating user' });
   }
 });
 
