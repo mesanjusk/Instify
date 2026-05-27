@@ -68,6 +68,9 @@ import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import FitScreenIcon from '@mui/icons-material/FitScreen';
 import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import SchoolIcon from '@mui/icons-material/School';
+import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
 import jsPDF from 'jspdf';
 import JSZip from 'jszip';
 import apiClient from '../apiClient';
@@ -122,6 +125,33 @@ const TEMPLATES = {
     { id: 'dark',   label: 'Dark',      thumb: '#0a1a0f', headerColor: '#0a1a0f', bg: '#f8fafc' },
   ],
 };
+
+/* ─── Explore template catalogue ─────────────────────────────── */
+const EXPLORE_ITEMS = [
+  { key: 'id_card',     label: 'ID Card',       thumbUrl: 'https://images.unsplash.com/photo-1586282391129-76a6df230234?w=200&q=60', category: 'education' },
+  { key: 'certificate', label: 'Certificate',   thumbUrl: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=200&q=60', category: 'education' },
+  { key: 'result',      label: 'Result Sheet',  thumbUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=200&q=60', category: 'education' },
+  { key: 'admit_card',  label: 'Admit Card',    thumbUrl: 'https://images.unsplash.com/photo-1606761568499-6d2451b23c66?w=200&q=60', category: 'education' },
+  { key: 'id_card',     label: 'Poster',        thumbUrl: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&q=60', category: 'poster'    },
+  { key: 'certificate', label: 'Letter Head',   thumbUrl: 'https://images.unsplash.com/photo-1586095951271-0b11b13a4612?w=200&q=60', category: 'business'  },
+  { key: 'result',      label: 'Notice',        thumbUrl: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=200&q=60', category: 'business'  },
+  { key: 'admit_card',  label: 'Hall Ticket',   thumbUrl: 'https://images.unsplash.com/photo-1551836022-deb4988cc6c0?w=200&q=60', category: 'education' },
+  { key: 'id_card',     label: 'ID Photo',      thumbUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=60', category: 'education' },
+  { key: 'certificate', label: 'Achievement',   thumbUrl: 'https://images.unsplash.com/photo-1589998059171-988d887df646?w=200&q=60', category: 'education' },
+  { key: 'result',      label: 'Report Card',   thumbUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=200&q=60', category: 'education' },
+  { key: 'admit_card',  label: 'Exam Slip',     thumbUrl: 'https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=200&q=60', category: 'education' },
+  { key: 'id_card',     label: 'Staff Card',    thumbUrl: 'https://images.unsplash.com/photo-1516534775068-ba3e7458af70?w=200&q=60', category: 'business'  },
+  { key: 'certificate', label: 'Participation', thumbUrl: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=200&q=60', category: 'education' },
+  { key: 'result',      label: 'Progress',      thumbUrl: 'https://images.unsplash.com/photo-1606761568499-6d2451b23c66?w=200&q=60', category: 'education' },
+  { key: 'admit_card',  label: 'Merit Card',    thumbUrl: 'https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=200&q=60', category: 'education' },
+];
+
+const CATEGORY_CHIPS = [
+  { id: 'all',       label: 'All'          },
+  { id: 'education', label: '📚 Education' },
+  { id: 'business',  label: '🏢 Business'  },
+  { id: 'poster',    label: '🖼️ Poster'    },
+];
 
 /* ─── Print / page-setup constants ───────────────────────────── */
 const MM_TO_PX = 3.7795275591; // 96 DPI
@@ -309,26 +339,44 @@ function CategoryCard({ dt, onClick }) {
 }
 
 /* ─── Home: recent design tile ─────────────────────────────────── */
-function RecentTile({ dt, tpl, onClick }) {
+function RecentTile({ dt, tpl, design, onClick }) {
+  const thumbSrc = design?.thumbnail || dt.thumb;
   return (
     <Box
       onClick={onClick}
       sx={{
-        width: 120, flexShrink: 0, cursor: 'pointer', borderRadius: 2, overflow: 'hidden',
-        border: '1px solid #e2e8f0', transition: 'transform 0.15s, box-shadow 0.15s',
+        width: 155, flexShrink: 0, cursor: 'pointer', borderRadius: 2.5, overflow: 'hidden',
+        bgcolor: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', border: '1px solid #f0f4f8',
+        transition: 'transform 0.15s, box-shadow 0.15s',
         '&:active': { transform: 'scale(0.97)' },
-        '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.1)' },
+        '&:hover': { boxShadow: '0 6px 18px rgba(0,0,0,0.12)', transform: 'translateY(-1px)' },
       }}
     >
-      <Box sx={{
-        height: 80, background: `linear-gradient(135deg, ${tpl.thumb}cc, ${tpl.thumb})`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <AutoAwesomeIcon sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 22 }} />
+      <Box sx={{ height: 115, overflow: 'hidden', position: 'relative' }}>
+        {thumbSrc ? (
+          <Box component="img" src={thumbSrc} alt={design?.name || dt.label}
+            sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
+          <Box sx={{
+            height: '100%', background: `linear-gradient(135deg, ${tpl.thumb}cc, ${tpl.thumb})`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <AutoAwesomeIcon sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 26 }} />
+          </Box>
+        )}
+        <IconButton
+          size="small"
+          onClick={e => e.stopPropagation()}
+          sx={{ position: 'absolute', top: 5, right: 5, width: 26, height: 26, bgcolor: 'rgba(255,255,255,0.88)', '&:hover': { bgcolor: '#fff' } }}
+        >
+          <MoreHorizIcon sx={{ fontSize: 14, color: '#475569' }} />
+        </IconButton>
       </Box>
-      <Box sx={{ bgcolor: '#ffffff', p: 1 }}>
-        <Typography sx={{ color: '#1e293b', fontSize: '0.7rem', fontWeight: 500 }} noWrap>{dt.label}</Typography>
-        <Typography sx={{ color: '#64748b', fontSize: '0.62rem' }}>{tpl.label}</Typography>
+      <Box sx={{ bgcolor: '#ffffff', px: 1.25, py: 1 }}>
+        <Typography sx={{ color: '#1e293b', fontSize: '0.74rem', fontWeight: 600 }} noWrap>
+          {design?.name || dt.label}
+        </Typography>
+        <Typography sx={{ color: '#94a3b8', fontSize: '0.62rem', mt: 0.2 }}>{tpl.label}</Typography>
       </Box>
     </Box>
   );
@@ -339,9 +387,9 @@ function HomeNavItem({ icon, label, active, onClick }) {
   return (
     <Box onClick={onClick} sx={{
       flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-      gap: 0.3, py: 1, cursor: 'pointer',
-      color: active ? '#d4a017' : '#64748b',
-      '&:hover': { color: '#1e293b' },
+      gap: 0.3, py: 1.1, cursor: 'pointer',
+      color: active ? '#7c3aed' : '#94a3b8',
+      '&:hover': { color: active ? '#7c3aed' : '#475569' },
       transition: 'color 0.15s',
     }}>
       {icon}
@@ -500,6 +548,8 @@ export default function DocumentMaker() {
   const [editingLayout,  setEditingLayout]  = useState(null);
   const [userLayouts,    setUserLayouts]    = useState([]);
   const [presetsOpen,    setPresetsOpen]    = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [explorePage,    setExplorePage]    = useState(0);
 
   function showAlert(type, text) { setAlert({ type, text }); setTimeout(() => setAlert(null), 4000); }
 
@@ -1475,22 +1525,51 @@ export default function DocumentMaker() {
      HOME VIEW
   ════════════════════════════════════════════════════════════ */
   if (view === 'home') {
-    return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#f8fafc' }}>
+    const visibleExplore = EXPLORE_ITEMS.filter(item =>
+      (selectedCategory === 'all' || item.category === selectedCategory) &&
+      (!searchTerm || item.label.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+    const itemsPerPage = 8;
+    const totalPages = Math.ceil(visibleExplore.length / itemsPerPage);
+    const pageItems = visibleExplore.slice(explorePage * itemsPerPage, (explorePage + 1) * itemsPerPage);
+    const userInitial = (localStorage.getItem('user_name') || localStorage.getItem('username') || 'U')[0].toUpperCase();
 
-        {/* Header */}
-        <Box sx={{ px: 1.5, pt: 1, pb: 1, bgcolor: '#ffffff', borderBottom: '1px solid #e2e8f0', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconButton size="small" onClick={() => navigate(`/${username}`)} sx={{ color: '#64748b' }}>
-            <ArrowBackIosNewIcon sx={{ fontSize: 16 }} />
-          </IconButton>
-          <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '1rem', flex: 1 }}>Document Maker</Typography>
-          <Chip size="small" label="Pro" sx={{ bgcolor: '#d4a01722', color: '#d4a017', fontSize: '0.65rem', height: 22, fontWeight: 600 }} />
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', bgcolor: '#f5f7fa' }}>
+
+        {/* ── Header ── */}
+        <Box sx={{ px: 2, pt: 1.5, pb: 1, bgcolor: '#ffffff', flexShrink: 0 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {/* Avatar */}
+            <Box
+              onClick={() => navigate(`/${username}`)}
+              sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, overflow: 'hidden', border: '2px solid #f0f4f8' }}
+            >
+              <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569', lineHeight: 1 }}>{userInitial}</Typography>
+            </Box>
+
+            {/* Title with dropdown */}
+            <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 0.25 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#1e293b' }}>Templates</Typography>
+              <KeyboardArrowDownIcon sx={{ fontSize: 20, color: '#64748b' }} />
+            </Box>
+
+            {/* Search icon */}
+            <IconButton
+              size="small"
+              onClick={() => {}}
+              sx={{ color: '#1e293b', '&:hover': { bgcolor: '#f1f5f9' } }}
+            >
+              <SearchIcon sx={{ fontSize: 22 }} />
+            </IconButton>
+          </Box>
         </Box>
-        <Box sx={{ px: 2, pt: 1.5, pb: 1, bgcolor: '#f8fafc', flexShrink: 0 }}>
-          {/* Search */}
+
+        {/* ── Search bar ── */}
+        <Box sx={{ px: 2, pt: 1.25, pb: 0.5, bgcolor: '#f5f7fa', flexShrink: 0 }}>
           <TextField
-            value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-            placeholder="Search templates…"
+            value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setExplorePage(0); }}
+            placeholder="Search templates"
             size="small" fullWidth
             InputProps={{
               startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: '#94a3b8', fontSize: 18 }} /></InputAdornment>,
@@ -1498,39 +1577,125 @@ export default function DocumentMaker() {
             sx={{
               '& .MuiOutlinedInput-root': {
                 bgcolor: '#ffffff', borderRadius: 3, color: '#1e293b',
-                '& fieldset': { borderColor: '#e2e8f0' },
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                '& fieldset': { borderColor: '#e8eef4' },
                 '&:hover fieldset': { borderColor: '#cbd5e1' },
-                '&.Mui-focused fieldset': { borderColor: '#d4a017' },
+                '&.Mui-focused fieldset': { borderColor: '#7c3aed44' },
               },
               '& .MuiInputBase-input::placeholder': { color: '#94a3b8', opacity: 1 },
             }}
           />
         </Box>
 
-        {/* Body */}
+        {/* ── Category chips ── */}
+        <Box sx={{
+          px: 2, py: 1, display: 'flex', gap: 1, overflowX: 'auto', flexShrink: 0,
+          scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' },
+        }}>
+          {CATEGORY_CHIPS.map(cat => {
+            const active = selectedCategory === cat.id;
+            return (
+              <Chip
+                key={cat.id}
+                label={cat.label}
+                onClick={() => { setSelectedCategory(cat.id); setExplorePage(0); }}
+                sx={{
+                  bgcolor: active ? '#1e293b' : '#ffffff',
+                  color: active ? '#ffffff' : '#475569',
+                  border: `1.5px solid ${active ? '#1e293b' : '#e2e8f0'}`,
+                  fontWeight: active ? 600 : 400,
+                  fontSize: '0.78rem',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  height: 32,
+                  boxShadow: active ? '0 2px 8px rgba(30,41,59,0.18)' : '0 1px 3px rgba(0,0,0,0.05)',
+                  '&:hover': { bgcolor: active ? '#0f172a' : '#f1f5f9', borderColor: active ? '#0f172a' : '#cbd5e1' },
+                  transition: 'all 0.15s',
+                }}
+              />
+            );
+          })}
+        </Box>
+
+        {/* ── Scrollable body ── */}
         <Box sx={{ flex: 1, overflowY: 'auto' }}>
 
-          {/* Explore templates */}
-          <Box sx={{ px: 2, pt: 1, pb: 2 }}>
-            <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '0.9rem', mb: 1.5 }}>Explore templates</Typography>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
-              {filteredDTs.map(dt => (
-                <CategoryCard key={dt.key} dt={dt} onClick={() => openEditor(dt.key, 0)} />
-              ))}
+          {/* Explore templates grid */}
+          <Box sx={{ px: 2, pt: 0.5, pb: 2 }}>
+            <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '1.1rem', mb: 1.5 }}>
+              Explore templates
+            </Typography>
+
+            <Box sx={{ position: 'relative', pr: totalPages > 1 ? 2 : 0 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1 }}>
+                {pageItems.map((item, idx) => {
+                  const dt = DOC_TYPES.find(d => d.key === item.key) || DOC_TYPES[0];
+                  return (
+                    <Box
+                      key={`${item.key}-${idx}`}
+                      onClick={() => openEditor(item.key, 0)}
+                      sx={{
+                        cursor: 'pointer', borderRadius: 2, overflow: 'hidden',
+                        bgcolor: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+                        '&:active': { transform: 'scale(0.95)' },
+                        transition: 'transform 0.12s',
+                      }}
+                    >
+                      <Box sx={{ height: 82, overflow: 'hidden', position: 'relative' }}>
+                        <Box
+                          component="img"
+                          src={item.thumbUrl}
+                          alt={item.label}
+                          sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                          onError={e => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                        />
+                        <Box sx={{
+                          display: 'none', width: '100%', height: '100%', position: 'absolute', top: 0, left: 0,
+                          background: `linear-gradient(135deg, ${dt.color}, ${dt.color2})`,
+                          alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <Box sx={{ color: 'rgba(255,255,255,0.85)' }}>{dt.icon}</Box>
+                        </Box>
+                      </Box>
+                      <Box sx={{ px: 0.5, py: 0.6, textAlign: 'center' }}>
+                        <Typography sx={{ fontSize: '0.67rem', color: '#1e293b', lineHeight: 1.3, fontWeight: 400 }}>
+                          {item.label}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+
+              {/* Next / prev page button */}
+              {totalPages > 1 && (
+                <IconButton
+                  onClick={() => setExplorePage(prev => (prev + 1) % totalPages)}
+                  sx={{
+                    position: 'absolute', right: -10, top: '45%', transform: 'translateY(-50%)',
+                    width: 30, height: 30,
+                    bgcolor: '#ffffff', boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                    border: '1px solid #e2e8f0', zIndex: 2,
+                    '&:hover': { bgcolor: '#f8fafc' },
+                  }}
+                >
+                  <ChevronRightIcon sx={{ fontSize: 17, color: '#475569' }} />
+                </IconButton>
+              )}
             </Box>
           </Box>
 
-          {/* Batch quick-actions — Create tab */}
+          {/* Generate for Batch — Create tab */}
           {homeNav === 0 && (
             <Box sx={{ px: 2, pb: 2 }}>
-              <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '0.9rem', mb: 0.5 }}>Generate for Batch</Typography>
+              <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '0.92rem', mb: 0.4 }}>Generate for Batch</Typography>
               <Typography sx={{ color: '#64748b', fontSize: '0.72rem', mb: 1.25 }}>Create documents for an entire batch in one click</Typography>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1 }}>
                 {[
-                  { label: 'ID Cards', icon: <BadgeIcon sx={{ color: '#fff', fontSize: 18 }} />, key: 'id_card', bg: 'linear-gradient(135deg, #1a7a4a, #d4a017)' },
+                  { label: 'ID Cards',    icon: <BadgeIcon sx={{ color: '#fff', fontSize: 18 }} />,            key: 'id_card',     bg: 'linear-gradient(135deg, #1a7a4a, #d4a017)' },
                   { label: 'Certificates', icon: <WorkspacePremiumIcon sx={{ color: '#fff', fontSize: 18 }} />, key: 'certificate', bg: 'linear-gradient(135deg, #d97706, #f59e0b)' },
-                  { label: 'Admit Cards', icon: <AssignmentIcon sx={{ color: '#fff', fontSize: 18 }} />, key: 'admit_card', bg: 'linear-gradient(135deg, #059669, #10b981)' },
-                  { label: 'Results', icon: <AutoAwesomeIcon sx={{ color: '#fff', fontSize: 18 }} />, key: 'result', bg: 'linear-gradient(135deg, #dc2626, #ef4444)' },
+                  { label: 'Admit Cards',  icon: <AssignmentIcon sx={{ color: '#fff', fontSize: 18 }} />,       key: 'admit_card',  bg: 'linear-gradient(135deg, #059669, #10b981)' },
+                  { label: 'Results',      icon: <AutoAwesomeIcon sx={{ color: '#fff', fontSize: 18 }} />,      key: 'result',      bg: 'linear-gradient(135deg, #dc2626, #ef4444)' },
                 ].map(item => (
                   <Box key={item.key} onClick={() => openEditor(item.key, 0)}
                     sx={{ borderRadius: 2, p: 1.5, cursor: 'pointer', background: item.bg, display: 'flex', alignItems: 'center', gap: 1,
@@ -1551,39 +1716,51 @@ export default function DocumentMaker() {
               <Box
                 onClick={() => navigate(`/${username}/idcard`)}
                 sx={{
-                  borderRadius: 2.5, p: 2, cursor: 'pointer',
-                  border: '1.5px solid #e2e8f0',
-                  background: 'linear-gradient(135deg, #fff8e1, #fff8e1)',
-                  display: 'flex', alignItems: 'center', gap: 2,
-                  '&:hover': { borderColor: '#d4a01755', boxShadow: '0 2px 12px rgba(212,160,23,0.12)' },
+                  borderRadius: 2.5, p: 1.75, cursor: 'pointer',
+                  border: '1.5px solid #ede9fe',
+                  background: 'linear-gradient(135deg, #faf5ff, #f5f3ff)',
+                  display: 'flex', alignItems: 'center', gap: 1.75,
+                  '&:hover': { borderColor: '#c4b5fd', boxShadow: '0 2px 12px rgba(124,58,237,0.1)' },
                   transition: 'all 0.15s',
                 }}
               >
-                <Box sx={{ width: 44, height: 44, borderRadius: 2, bgcolor: '#d4a01722', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <BadgeOutlinedIcon sx={{ color: '#d4a017', fontSize: 22 }} />
+                <Box sx={{ width: 42, height: 42, borderRadius: 2, bgcolor: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <BadgeOutlinedIcon sx={{ color: '#7c3aed', fontSize: 22 }} />
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                   <Typography sx={{ fontWeight: 700, fontSize: '0.875rem', color: '#1e293b' }}>ID Photo Manager</Typography>
-                  <Typography sx={{ fontSize: '0.72rem', color: '#64748b', mt: 0.25 }}>Collect & approve student photos · approve/reject · print</Typography>
+                  <Typography sx={{ fontSize: '0.7rem', color: '#64748b', mt: 0.2 }}>Collect & approve student photos · print</Typography>
                 </Box>
-                <ArrowForwardIosIcon sx={{ fontSize: 14, color: '#94a3b8', flexShrink: 0 }} />
+                <ArrowForwardIosIcon sx={{ fontSize: 13, color: '#94a3b8', flexShrink: 0 }} />
               </Box>
             </Box>
           )}
 
           {/* Inspired by your designs */}
           {homeNav === 0 && (
-            <Box sx={{ px: 2, pb: 3 }}>
-              <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '0.9rem', mb: 1.5 }}>
+            <Box sx={{ px: 2, pb: 4 }}>
+              <Typography sx={{ color: '#1e293b', fontWeight: 700, fontSize: '1rem', mb: 1.5 }}>
                 Inspired by your designs
               </Typography>
               <Box sx={{
                 display: 'flex', gap: 1.5, overflowX: 'auto', pb: 1,
                 scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' },
               }}>
-                {recentDesigns.map(({ dt, tpl, key }) => (
-                  <RecentTile key={key} dt={dt} tpl={tpl} onClick={() => openEditor(dt.key, TEMPLATES[dt.key].indexOf(tpl))} />
-                ))}
+                {/* Show saved designs first, then fall back to generated previews */}
+                {savedDesigns.length > 0
+                  ? savedDesigns.slice(0, 6).map(d => {
+                      const dt = DOC_TYPES.find(x => x.key === d.docType) || DOC_TYPES[0];
+                      const tpl = (TEMPLATES[d.docType] || [])[0] || TEMPLATES.id_card[0];
+                      return (
+                        <RecentTile key={d.design_uuid} dt={dt} tpl={tpl} design={d}
+                          onClick={() => { initParamsRef.current = { type: d.docType, tplIdx: null, pendingJSON: JSON.parse(d.canvas_json || '{}') }; setView('editor'); }} />
+                      );
+                    })
+                  : recentDesigns.map(({ dt, tpl, key }) => (
+                      <RecentTile key={key} dt={dt} tpl={tpl}
+                        onClick={() => openEditor(dt.key, TEMPLATES[dt.key].indexOf(tpl))} />
+                    ))
+                }
               </Box>
             </Box>
           )}
@@ -1592,25 +1769,25 @@ export default function DocumentMaker() {
           {homeNav === 1 && (
             <Box sx={{ px: 2, pb: 3 }}>
               {savedDesigns.length === 0 ? (
-                <Box sx={{ textAlign: 'center', py: 5 }}>
-                  <FolderOpenIcon sx={{ fontSize: 48, color: '#cbd5e1', mb: 1 }} />
-                  <Typography sx={{ color: '#64748b', fontSize: '0.875rem' }}>No saved designs yet</Typography>
-                  <Typography sx={{ color: '#94a3b8', fontSize: '0.75rem', mt: 0.5 }}>Create a design to see it here</Typography>
+                <Box sx={{ textAlign: 'center', py: 6 }}>
+                  <FolderOpenIcon sx={{ fontSize: 52, color: '#dde3ef', mb: 1.5 }} />
+                  <Typography sx={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 600 }}>No saved designs yet</Typography>
+                  <Typography sx={{ color: '#94a3b8', fontSize: '0.75rem', mt: 0.5 }}>Create a design and save it to see it here</Typography>
                 </Box>
               ) : (
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1.5 }}>
                   {savedDesigns.map(d => (
-                    <Box key={d.design_uuid} sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid #e2e8f0', cursor: 'pointer', '&:hover': { border: '1px solid #d4a01755', boxShadow: '0 2px 8px rgba(212,160,23,0.1)' } }}>
-                      <Box onClick={() => loadDesign(d)} sx={{ height: 80, bgcolor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                        {d.thumbnail ? <img src={d.thumbnail} alt={d.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} /> : <AutoAwesomeIcon sx={{ color: '#cbd5e1', fontSize: 28 }} />}
+                    <Box key={d.design_uuid} sx={{ borderRadius: 2.5, overflow: 'hidden', border: '1px solid #e8eef4', cursor: 'pointer', bgcolor: '#fff', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', '&:hover': { border: '1px solid #c4b5fd', boxShadow: '0 4px 12px rgba(124,58,237,0.1)' } }}>
+                      <Box onClick={() => loadDesign(d)} sx={{ height: 90, bgcolor: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                        {d.thumbnail ? <img src={d.thumbnail} alt={d.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} /> : <AutoAwesomeIcon sx={{ color: '#cbd5e1', fontSize: 30 }} />}
                       </Box>
-                      <Box sx={{ bgcolor: '#ffffff', p: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9' }}>
+                      <Box sx={{ bgcolor: '#ffffff', px: 1.25, py: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f0f4f8' }}>
                         <Box sx={{ minWidth: 0 }}>
-                          <Typography sx={{ color: '#1e293b', fontSize: '0.72rem', fontWeight: 500 }} noWrap>{d.name}</Typography>
-                          <Typography sx={{ color: '#64748b', fontSize: '0.62rem' }}>{DOC_TYPES.find(dt => dt.key === d.docType)?.label}</Typography>
+                          <Typography sx={{ color: '#1e293b', fontSize: '0.75rem', fontWeight: 600 }} noWrap>{d.name}</Typography>
+                          <Typography sx={{ color: '#94a3b8', fontSize: '0.63rem' }}>{DOC_TYPES.find(dt => dt.key === d.docType)?.label}</Typography>
                         </Box>
                         <IconButton size="small" onClick={e => { e.stopPropagation(); deleteDesign(d); }} sx={{ color: '#94a3b8', p: 0.25, '&:hover': { color: '#ef4444' } }}>
-                          <DeleteOutlineIcon sx={{ fontSize: 15 }} />
+                          <DeleteOutlineIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Box>
                     </Box>
@@ -1623,19 +1800,18 @@ export default function DocumentMaker() {
           {/* Templates tab */}
           {homeNav === 2 && (
             <Box sx={{ px: 2, pb: 3 }}>
-              {/* Upload CTA — prominent card for admins */}
               {isAdmin && (
                 <Box
                   onClick={() => setUploadDialog(true)}
-                  sx={{ mb: 2.5, borderRadius: 2.5, border: '2px dashed #d4a01766', bgcolor: '#d4a01708',
+                  sx={{ mb: 2.5, borderRadius: 2.5, border: '2px dashed #c4b5fd', bgcolor: '#faf5ff',
                     p: 2, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 2,
-                    '&:hover': { bgcolor: '#d4a01714', borderColor: '#d4a01799' } }}
+                    '&:hover': { bgcolor: '#f5f3ff', borderColor: '#a78bfa' } }}
                 >
-                  <Box sx={{ width: 44, height: 44, borderRadius: 2, bgcolor: '#d4a01722', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <AddPhotoAlternateIcon sx={{ color: '#d4a017', fontSize: 22 }} />
+                  <Box sx={{ width: 44, height: 44, borderRadius: 2, bgcolor: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <AddPhotoAlternateIcon sx={{ color: '#7c3aed', fontSize: 22 }} />
                   </Box>
                   <Box>
-                    <Typography sx={{ color: '#d4a017', fontWeight: 700, fontSize: '0.875rem' }}>Upload Custom Template</Typography>
+                    <Typography sx={{ color: '#7c3aed', fontWeight: 700, fontSize: '0.875rem' }}>Upload Custom Template</Typography>
                     <Typography sx={{ color: '#64748b', fontSize: '0.72rem', mt: 0.25 }}>Add your own Corel Draw / SVG / image templates</Typography>
                   </Box>
                 </Box>
@@ -1647,7 +1823,8 @@ export default function DocumentMaker() {
                     {(TEMPLATES[dt.key] || []).map((tpl, i) => (
                       <Box key={tpl.id} onClick={() => openEditor(dt.key, i)} sx={{
                         width: 96, flexShrink: 0, cursor: 'pointer', borderRadius: 2, overflow: 'hidden',
-                        border: '1px solid #e2e8f0', '&:hover': { border: '1px solid #d4a01755', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' },
+                        bgcolor: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.07)',
+                        border: '1px solid #e8eef4', '&:hover': { border: '1px solid #c4b5fd', boxShadow: '0 2px 8px rgba(124,58,237,0.1)' },
                       }}>
                         <Box sx={{ height: 64, background: `linear-gradient(135deg, ${tpl.thumb}cc, ${tpl.thumb})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <AutoAwesomeIcon sx={{ color: 'rgba(255,255,255,0.6)', fontSize: 20 }} />
@@ -1670,7 +1847,7 @@ export default function DocumentMaker() {
                       size="small"
                       startIcon={<AddPhotoAlternateIcon sx={{ fontSize: 14 }} />}
                       onClick={() => setUploadDialog(true)}
-                      sx={{ bgcolor: '#d4a01733', color: '#f0c040', textTransform: 'none', fontSize: '0.7rem', px: 1, py: 0.25, borderRadius: 1.5, '&:hover': { bgcolor: '#d4a01755' } }}
+                      sx={{ bgcolor: '#ede9fe', color: '#7c3aed', textTransform: 'none', fontSize: '0.7rem', px: 1, py: 0.25, borderRadius: 1.5, '&:hover': { bgcolor: '#ddd6fe' } }}
                     >
                       Upload
                     </Button>
@@ -1688,7 +1865,7 @@ export default function DocumentMaker() {
                       <Box key={ct.template_uuid} sx={{ position: 'relative', flexShrink: 0 }}>
                         <Box
                           onClick={() => handleUseCustomTemplate(ct.imageUrl)}
-                          sx={{ width: 96, cursor: 'pointer', borderRadius: 2, overflow: 'hidden', border: '1px solid #e2e8f0', '&:hover': { border: '1px solid #d4a01755', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' } }}
+                          sx={{ width: 96, cursor: 'pointer', borderRadius: 2, overflow: 'hidden', border: '1px solid #e2e8f0', '&:hover': { border: '1px solid #c4b5fd', boxShadow: '0 2px 8px rgba(124,58,237,0.1)' } }}
                         >
                           <Box sx={{ height: 64, overflow: 'hidden' }}>
                             <img src={ct.thumbUrl || ct.imageUrl} alt={ct.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -1741,18 +1918,18 @@ export default function DocumentMaker() {
             <Button onClick={() => setUploadDialog(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
             <Button variant="contained" onClick={handleUpload} disabled={uploading || !uploadFile || !uploadName.trim()}
               startIcon={uploading ? <CircularProgress size={14} color="inherit" /> : null}
-              sx={{ bgcolor: '#d4a017', '&:hover': { bgcolor: '#b8860b' }, textTransform: 'none' }}>
+              sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' }, textTransform: 'none' }}>
               {uploading ? 'Uploading…' : 'Upload'}
             </Button>
           </DialogActions>
         </Dialog>
 
-        {/* Bottom nav */}
-        <Box sx={{ bgcolor: '#ffffff', borderTop: '1px solid #e2e8f0', display: 'flex', flexShrink: 0, boxShadow: '0 -1px 8px rgba(0,0,0,0.06)' }}>
-          <HomeNavItem icon={<AddCircleOutlineIcon fontSize="small" />} label="Create" active={homeNav === 0} onClick={() => setHomeNav(0)} />
-          <HomeNavItem icon={<FolderOpenIcon fontSize="small" />} label="Your Designs" active={homeNav === 1} onClick={() => setHomeNav(1)} />
-          <HomeNavItem icon={<ViewModuleIcon fontSize="small" />} label="Templates" active={homeNav === 2} onClick={() => setHomeNav(2)} />
-          <HomeNavItem icon={<AppsIcon fontSize="small" />} label="More" active={homeNav === 3} onClick={() => setHomeNav(3)} />
+        {/* ── Bottom nav ── */}
+        <Box sx={{ bgcolor: '#ffffff', borderTop: '1px solid #e8eef4', display: 'flex', flexShrink: 0, boxShadow: '0 -1px 8px rgba(0,0,0,0.06)' }}>
+          <HomeNavItem icon={<AddCircleOutlineIcon fontSize="small" />} label="Create"       active={homeNav === 0} onClick={() => setHomeNav(0)} />
+          <HomeNavItem icon={<FolderOpenIcon fontSize="small" />}       label="Your Designs" active={homeNav === 1} onClick={() => setHomeNav(1)} />
+          <HomeNavItem icon={<ViewModuleIcon fontSize="small" />}       label="Templates"    active={homeNav === 2} onClick={() => setHomeNav(2)} />
+          <HomeNavItem icon={<AppsIcon fontSize="small" />}             label="More"         active={homeNav === 3} onClick={() => setHomeNav(3)} />
         </Box>
       </Box>
     );
