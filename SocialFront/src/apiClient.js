@@ -22,6 +22,15 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// ── Response: trigger Electron sync after successful writes ──────────────────
+apiClient.interceptors.response.use((res) => {
+  const method = res.config?.method?.toLowerCase();
+  if (['post', 'put', 'patch', 'delete'].includes(method) && window.electronAPI) {
+    window.electronAPI.syncNow().catch(() => {});
+  }
+  return res;
+});
+
 // ── Response: auto-refresh JWT on 401 ────────────────────────────────────────
 let _refreshing = false;
 let _waitQueue = [];

@@ -3,7 +3,7 @@ const Store = require('electron-store');
 const { SYNC_MODELS } = require('./modelRegistry');
 
 const store = new Store({ encryptionKey: 'instify-desktop-local-key' });
-const SYNC_INTERVAL_MS = 60_000;
+const SYNC_INTERVAL_MS = 15_000;
 
 class SyncEngine {
   constructor({ localUri, remoteUri, onStatus }) {

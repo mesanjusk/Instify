@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { FaWhatsapp } from 'react-icons/fa';
 
-const LeadCard = ({ lead, courseName, onSelect, onWhatsApp, onCall }) => (
+const LeadCard = memo(function LeadCard({ lead, courseName, onSelect, onWhatsApp, onCall }) {
+  return (
   <div
     onClick={() => onSelect(lead)}
     className="border rounded-lg p-4 shadow hover:shadow-md transition cursor-pointer flex flex-col justify-between"
@@ -44,6 +45,7 @@ const LeadCard = ({ lead, courseName, onSelect, onWhatsApp, onCall }) => (
       </button>
     </div>
   </div>
-);
+  );
+});
 
 export default LeadCard;
