@@ -117,6 +117,7 @@ router.post('/user/login',
       status: institute.status || 'trial',
       modulesEnabled: institute.modulesEnabled || [],
       trialExpiresAt: institute.trialExpiresAt || null,
+      storage_mode: institute.storage_mode || 'cloud_only',
       last_password_change: user.last_password_change || null
     });
   } catch (err) {

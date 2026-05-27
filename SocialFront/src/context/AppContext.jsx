@@ -54,11 +54,11 @@ export const AppProvider = ({ children }) => {
     };
   }, []);
 
-  // Helper: always get the right UUID
   const institute_uuid = institute?.institute_uuid || institute?.uuid || null;
+  const storage_mode = institute?.storage_mode || 'cloud_only';
 
   return (
-    <AppContext.Provider value={{ user, setUser, institute, setInstitute, institute_uuid, loading }}>
+    <AppContext.Provider value={{ user, setUser, institute, setInstitute, institute_uuid, storage_mode, loading }}>
       {children}
     </AppContext.Provider>
   );

@@ -20,7 +20,8 @@ router.post('/signup', async (req, res) => {
       institute_type,
       institute_call_number,
       theme_color = '6fa8dc',
-      plan_type = 'trial'
+      plan_type = 'trial',
+      storage_mode = 'cloud_only'
     } = req.body;
 
     const center_code = (req.body.center_code || '').trim();
@@ -86,7 +87,8 @@ router.post('/signup', async (req, res) => {
       },
       whiteLabel: false,
       modulesEnabled: [],
-      users: []
+      users: [],
+      storage_mode: ['cloud_only', 'local_only', 'hybrid'].includes(storage_mode) ? storage_mode : 'cloud_only'
     });
 
     await newInstitute.save();
@@ -151,6 +153,7 @@ router.post('/signup', async (req, res) => {
       center_code,
       theme_color,
       trialExpiresAt: trialExpiry,
+      storage_mode: newInstitute.storage_mode,
       token
     });
 
@@ -185,12 +188,15 @@ router.get('/GetOrganizList', authenticate, roleGuard('super_admin', 'owner', 'a
 // PUT manage institute plan/modules — super_admin only
 router.put('/manage/:uuid', authenticate, roleGuard('super_admin'), async (req, res) => {
   try {
-    const { plan_type, status, modulesEnabled, trialExpiresAt } = req.body;
+    const { plan_type, status, modulesEnabled, trialExpiresAt, storage_mode } = req.body;
     const allowed = {};
     if (plan_type !== undefined) allowed.plan_type = plan_type;
     if (status !== undefined) allowed.status = status;
     if (modulesEnabled !== undefined) allowed.modulesEnabled = modulesEnabled;
     if (trialExpiresAt !== undefined) allowed.trialExpiresAt = new Date(trialExpiresAt);
+    if (storage_mode !== undefined && ['cloud_only', 'local_only', 'hybrid'].includes(storage_mode)) {
+      allowed.storage_mode = storage_mode;
+    }
 
     const updated = await Institute.findOneAndUpdate(
       { institute_uuid: req.params.uuid },

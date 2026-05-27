@@ -11,9 +11,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('sync:status', handler);
   },
 
-  // Config (first-run setup)
+  // Config (first-run setup and storage mode)
   setConfig: (key, value) => ipcRenderer.invoke('config:set', { key, value }),
   getConfig: (key) => ipcRenderer.invoke('config:get', key),
+
+  // Storage mode helpers
+  setStorageMode: (mode) => ipcRenderer.invoke('config:set', { key: 'storageMode', value: mode }),
+  getStorageMode: () => ipcRenderer.invoke('config:get', 'storageMode'),
 
   // App info
   getAppVersion: () => ipcRenderer.invoke('app:version'),

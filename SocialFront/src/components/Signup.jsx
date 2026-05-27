@@ -31,7 +31,32 @@ const Signup = () => {
     institute_call_number: '',
     center_head_name: '',
     theme_color: '#059669',
+    storage_mode: 'cloud_only',
   });
+
+  const STORAGE_MODES = [
+    {
+      value: 'cloud_only',
+      icon: '☁️',
+      label: 'Cloud',
+      desc: 'Web & Mobile access from anywhere',
+      badge: 'Recommended',
+    },
+    {
+      value: 'hybrid',
+      icon: '🔄',
+      label: 'Hybrid',
+      desc: 'Desktop app + cloud sync backup',
+      badge: 'Best for Desktop',
+    },
+    {
+      value: 'local_only',
+      icon: '💻',
+      label: 'Local Only',
+      desc: 'Fully offline, data stays on device',
+      badge: 'Max Privacy',
+    },
+  ];
 
   const themeColor = branding?.theme?.color || form.theme_color || '#059669';
   const darkTheme = '#064e3b';
@@ -131,6 +156,7 @@ const Signup = () => {
           institute_name: form.institute_title,
           institute_id: data.institute_id,
           theme_color: data.theme_color || '#059669',
+          storage_mode: data.storage_mode || form.storage_mode || 'cloud_only',
         });
         if (data.trialExpiresAt) localStorage.setItem('trialExpiresAt', data.trialExpiresAt);
         document.documentElement.style.setProperty('--theme-color', data.theme_color || '#059669');
@@ -362,6 +388,62 @@ const Signup = () => {
                     placeholder="Full name of center head" required
                     onFocus={() => setFocusField('center_head_name')} onBlur={() => setFocusField(null)}
                     style={inputStyle('center_head_name')} />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: 8, fontSize: '0.825rem', fontWeight: 600, color: '#374151', letterSpacing: '-0.01em' }}>
+                    Data Storage Mode
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                    {STORAGE_MODES.map(mode => (
+                      <button
+                        key={mode.value}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, storage_mode: mode.value }))}
+                        style={{
+                          border: `2px solid ${form.storage_mode === mode.value ? themeColor : '#e2e8f0'}`,
+                          borderRadius: 10,
+                          padding: '10px 6px',
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                          background: form.storage_mode === mode.value ? `${themeColor}12` : '#f8fafc',
+                          transition: 'all 0.18s ease',
+                          fontFamily: 'inherit',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        <span style={{ fontSize: '1.3rem', lineHeight: 1 }}>{mode.icon}</span>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: form.storage_mode === mode.value ? themeColor : '#374151', lineHeight: 1.2 }}>
+                          {mode.label}
+                        </span>
+                        <span style={{ fontSize: '0.6rem', color: '#94a3b8', lineHeight: 1.3 }}>
+                          {mode.desc}
+                        </span>
+                        {form.storage_mode === mode.value && (
+                          <span style={{ fontSize: '0.58rem', fontWeight: 700, color: themeColor, background: `${themeColor}18`, borderRadius: 4, padding: '1px 5px' }}>
+                            {mode.badge}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                  {form.storage_mode === 'local_only' && (
+                    <div style={{ marginTop: 8, background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8, padding: '8px 12px' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#92400e', fontWeight: 500 }}>
+                        ⚠️ Local Only requires the Instify Desktop app. Web access will be unavailable.
+                      </span>
+                    </div>
+                  )}
+                  {form.storage_mode === 'hybrid' && (
+                    <div style={{ marginTop: 8, background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '8px 12px' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#1e40af', fontWeight: 500 }}>
+                        ℹ️ Hybrid mode needs the Desktop app. Cloud syncs automatically every 60 seconds.
+                      </span>
+                    </div>
+                  )}
                 </div>
               </>
             ) : (
