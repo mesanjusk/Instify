@@ -729,7 +729,7 @@ export default function DocumentMaker() {
   const pageSetupRef     = useRef(null);
   const suppressDirtyRef = useRef(false);
   const carouselStatesRef = useRef({});
-  const baseTemplateRef  = useRef(null);  // original canvas JSON before any student data is filled
+  const carouselBaseTemplateRef = useRef(null);
   const initParamsRef    = useRef(null);   // { type, tplIdx } set by openEditor/switchTemplate
   const frameInputRef    = useRef(null);
   const svgInputRef      = useRef(null);
@@ -1389,7 +1389,7 @@ export default function DocumentMaker() {
     setReady(false);
     setIsDirty(false);
     carouselStatesRef.current = {};
-    baseTemplateRef.current = null;
+    carouselBaseTemplateRef.current = null;
     setCarouselIdx(0);
     setView('editor');
     // initCanvas is triggered by the useEffect([view]) — never call it here directly
@@ -1477,11 +1477,10 @@ export default function DocumentMaker() {
       // Load this student's individually saved/adjusted canvas
       await new Promise(res => fc.loadFromJSON(JSON.parse(carouselStatesRef.current[nxtKey]), () => { fc.renderAll(); res(); }));
     } else {
-      // Use the base template (original canvas with {{placeholders}}) and fill in this student's data
-      const baseJSON = baseTemplateRef.current ? JSON.parse(baseTemplateRef.current) : fc.toJSON(CUSTOM_PROPS);
-      const hasPlaceholders = (baseJSON.objects || []).some(o => o.__placeholder);
+      const baseTemplate = carouselBaseTemplateRef.current;
+      const hasPlaceholders = baseTemplate && (baseTemplate.objects || []).some(o => o.__placeholder);
       if (hasPlaceholders) {
-        await renderRowToCanvas(fc, baseJSON, row);
+        await renderRowToCanvas(fc, baseTemplate, row);
       } else {
         const tpl = (TEMPLATES[docType] || [])[selectedTpl] || TEMPLATES[docType][0];
         await seedCanvas(fc, docType, tpl, { name: row.name, rollNo: row.roll_number, course: row.course, batch: row.batch }, instituteName);
@@ -2126,15 +2125,21 @@ export default function DocumentMaker() {
         const list = r.data?.data || r.data?.result || [];
         setBatchStudents(list);
         carouselStatesRef.current = {};
-        baseTemplateRef.current = null; // reset so new base is captured on first navigation
+        carouselBaseTemplateRef.current = null; // reset so new base is captured on first navigation
         setCarouselIdx(0);
+        // Capture current canvas as base template for placeholder-based carousel preview
+        const fc = fabricRef.current;
+        if (fc) {
+          const tJson = fc.toJSON(CUSTOM_PROPS);
+          carouselBaseTemplateRef.current = tJson;
+        }
         if (list.length > 0) {
-          const s = list[0];
+          const row = studentToRow(list[0], selBatch);
           setCarouselFields({
-            name:   `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.name || 'Student',
-            rollNo: s.rollNo || '—',
-            course: s.course || '—',
-            batch:  s.batch  || selBatch,
+            name:   row.name,
+            rollNo: row.roll_number,
+            course: row.course,
+            batch:  row.batch,
           });
         }
       })
@@ -2147,7 +2152,7 @@ export default function DocumentMaker() {
     if (editorMode !== 'bulk' || batchStudents.length === 0 || !fabricRef.current || view !== 'editor') return;
     const fc = fabricRef.current;
     const templateJSON = fc.toJSON(CUSTOM_PROPS);
-    baseTemplateRef.current = JSON.stringify(templateJSON);
+    carouselBaseTemplateRef.current = templateJSON;
     const s = batchStudents[0];
     const row = studentToRow(s, selBatch);
     const hasPlaceholders = (templateJSON.objects || []).some(o => o.__placeholder);
