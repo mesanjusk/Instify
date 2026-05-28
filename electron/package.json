@@ -65,7 +65,12 @@
       "createStartMenuShortcut": true,
       "shortcutName": "Instify"
     },
-    "afterPack": "scripts/afterPack.js"
+    "afterPack": "scripts/afterPack.js",
+    "publish": {
+      "provider": "github",
+      "owner": "mesanjusk",
+      "repo": "Instify"
+    }
   },
   "dependencies": {
     "electron-store": "^8.1.0",

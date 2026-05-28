@@ -47,8 +47,6 @@ jobs:
       - name: Build Windows installer
         run: npm run dist:win
         working-directory: electron
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # ── Release ───────────────────────────────────────────────────────────
       - name: Find installer path
