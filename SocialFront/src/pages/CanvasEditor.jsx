@@ -1275,16 +1275,19 @@ export default function DocumentMaker() {
   }
 
   async function handleUpload() {
-    if (!uploadFile || !uploadName.trim()) return showAlert('error', 'Name and image required');
+    if (!uploadFile || !uploadName.trim()) return showAlert('error', 'Name and file required');
     setUploading(true);
     try {
+      const ext = (uploadFile.name.split('.').pop() || '').toLowerCase();
+      const needsConvert = ['cdr', 'cdt', 'pdf', 'svg'].includes(ext);
+      const endpoint = needsConvert ? '/api/custom-templates/convert' : '/api/custom-templates/upload';
       const form = new FormData();
-      form.append('image', uploadFile);
+      form.append(needsConvert ? 'file' : 'image', uploadFile);
       form.append('institute_uuid', instituteId);
       form.append('name', uploadName.trim());
       form.append('docType', uploadDocType);
       form.append('created_by', localStorage.getItem('user_uuid') || '');
-      await apiClient.post('/api/custom-templates/upload', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await apiClient.post(endpoint, form, { headers: { 'Content-Type': 'multipart/form-data' } });
       showAlert('success', 'Template uploaded!');
       setUploadDialog(false);
       setUploadFile(null);
@@ -3124,7 +3127,7 @@ export default function DocumentMaker() {
         </Box>
 
         {/* Upload Template Dialog */}
-        <input ref={uploadInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setUploadFile(e.target.files?.[0] || null)} />
+        <input ref={uploadInputRef} type="file" accept="image/*,.svg,.cdr,.cdt,.pdf" style={{ display: 'none' }} onChange={e => setUploadFile(e.target.files?.[0] || null)} />
         <Dialog open={uploadDialog} onClose={() => setUploadDialog(false)} maxWidth="xs" fullWidth>
           <DialogTitle sx={{ fontWeight: 700, fontSize: '1rem' }}>Upload Custom Template</DialogTitle>
           <DialogContent>
@@ -3138,9 +3141,23 @@ export default function DocumentMaker() {
                 <MenuItem value="other">Other</MenuItem>
               </Select>
               <Button variant="outlined" fullWidth startIcon={<AddPhotoAlternateIcon />} onClick={() => uploadInputRef.current?.click()} sx={{ textTransform: 'none' }}>
-                {uploadFile ? uploadFile.name : 'Choose Image (max 10MB)'}
+                {uploadFile ? uploadFile.name : 'Choose file (Image / SVG / CDR / PDF)'}
               </Button>
-              {uploadFile && <Box component="img" src={URL.createObjectURL(uploadFile)} alt="preview" sx={{ width: '100%', maxHeight: 160, objectFit: 'contain', borderRadius: 1, border: '1px solid #e2e8f0' }} />}
+              {uploadFile && (() => {
+                const ext = (uploadFile.name.split('.').pop() || '').toLowerCase();
+                const isImg = uploadFile.type.startsWith('image/') || ext === 'svg';
+                return isImg
+                  ? <Box component="img" src={URL.createObjectURL(uploadFile)} alt="preview" sx={{ width: '100%', maxHeight: 160, objectFit: 'contain', borderRadius: 1, border: '1px solid #e2e8f0' }} />
+                  : <Box sx={{ bgcolor: '#f8f7ff', p: 1.5, borderRadius: 1, border: '1px dashed #c4b5fd', display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <PictureAsPdfIcon sx={{ color: '#7c3aed', fontSize: 28, flexShrink: 0 }} />
+                      <Box>
+                        <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#1e293b' }}>{uploadFile.name}</Typography>
+                        <Typography sx={{ fontSize: '0.68rem', color: '#64748b' }}>
+                          {ext === 'pdf' ? 'PDF will be converted to image on server' : 'CorelDRAW file will be converted to image on server'}
+                        </Typography>
+                      </Box>
+                    </Box>;
+              })()}
             </Stack>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -3148,7 +3165,7 @@ export default function DocumentMaker() {
             <Button variant="contained" onClick={handleUpload} disabled={uploading || !uploadFile || !uploadName.trim()}
               startIcon={uploading ? <CircularProgress size={14} color="inherit" /> : null}
               sx={{ bgcolor: '#7c3aed', '&:hover': { bgcolor: '#6d28d9' }, textTransform: 'none' }}>
-              {uploading ? 'Uploading…' : 'Upload'}
+              {uploading ? (['cdr','cdt','pdf','svg'].includes((uploadFile?.name.split('.').pop()||'').toLowerCase()) ? 'Converting…' : 'Uploading…') : 'Upload'}
             </Button>
           </DialogActions>
         </Dialog>
