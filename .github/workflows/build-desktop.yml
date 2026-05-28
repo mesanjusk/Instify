@@ -49,8 +49,8 @@ jobs:
         shell: bash
 
       - name: Build Windows installer
-        shell: cmd
-        run: electron\node_modules\.bin\electron-builder --win --projectDir electron
+        run: npm run dist:win
+        working-directory: electron
 
       # ── Release ───────────────────────────────────────────────────────────
       - name: Find installer path
