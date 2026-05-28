@@ -8,14 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YOUR_USERNAME/instify.git"
+    "url": "git+https://github.com/mesanjusk/Instify.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Instify",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/YOUR_USERNAME/instify/issues"
+    "url": "https://github.com/mesanjusk/Instify/issues"
   },
-  "homepage": "https://github.com/YOUR_USERNAME/instify#readme"
+  "homepage": "https://github.com/mesanjusk/Instify#readme"
 }

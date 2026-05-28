@@ -44,9 +44,13 @@ jobs:
         run: npm install
         working-directory: electron
 
+      - name: Show electron/package.json (debug)
+        run: cat electron/package.json
+        shell: bash
+
       - name: Build Windows installer
-        run: npm run dist:win
-        working-directory: electron
+        shell: cmd
+        run: electron\node_modules\.bin\electron-builder --win --projectDir electron
 
       # ── Release ───────────────────────────────────────────────────────────
       - name: Find installer path

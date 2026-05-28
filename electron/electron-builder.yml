@@ -1,0 +1,5 @@
+publish:
+  - provider: github
+    owner: mesanjusk
+    repo: Instify
+    releaseType: release
