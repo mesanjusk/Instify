@@ -156,6 +156,7 @@ app.use('/api', (req, res, next) => {
 app.use('/api', require('./routers/otpRoutes'));
 app.use('/api/auth', authLimiter, require('./routers/authRoutes'));
 app.use('/api/institute', require('./routers/instituteRoutes'));
+app.use('/api/admin/desktop-app', require('./routers/desktopAppRoutes'));
 app.use('/api/branding', require('./routers/brandingRoutes'));
 app.use('/api/metadata', require('./routers/metadataRoute'));
 app.use('/api/upload', require('./uploadRoute'));
