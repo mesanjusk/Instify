@@ -2,6 +2,11 @@
   "name": "instify-desktop",
   "version": "1.0.0",
   "description": "Instify — Institutions Simplified (Desktop)",
+  "author": "Instify",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mesanjusk/Instify.git"
+  },
   "main": "main.js",
   "scripts": {
     "start": "electron .",
