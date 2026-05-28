@@ -46,6 +46,22 @@ jobs:
         run: npm install
         working-directory: electron
 
+      - name: Download MongoDB 7.x for Windows x64
+        shell: pwsh
+        run: |
+          $url  = "https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-7.0.15.zip"
+          $zip  = "mongodb.zip"
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          Expand-Archive -Path $zip -DestinationPath "mongodb-extracted"
+          $mongoDir = Get-ChildItem -Path "mongodb-extracted" -Directory | Select-Object -First 1
+          $binSrc   = Join-Path $mongoDir.FullName "bin"
+          $binDest  = "electron/resources/mongodb/bin"
+          New-Item -ItemType Directory -Force -Path $binDest | Out-Null
+          Copy-Item -Path "$binSrc\*" -Destination $binDest -Recurse
+          Remove-Item $zip, "mongodb-extracted" -Recurse -Force
+          Write-Host "Copied MongoDB binaries:"
+          Get-ChildItem $binDest | ForEach-Object { Write-Host "  $($_.Name)" }
+
       - name: Show electron/package.json (debug)
         run: cat electron/package.json
         shell: bash
