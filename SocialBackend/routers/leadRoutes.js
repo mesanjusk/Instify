@@ -17,9 +17,11 @@ router.post('/',
 );
 
 router.get('/', leadController.getLeads);
+router.post('/bulk-delete', leadController.bulkDeleteLeads);
 router.get('/:uuid', leadController.getLead);
 router.put('/:uuid', leadController.updateLeadStatus);
 router.put('/:uuid/edit', leadController.editLead);
+router.delete('/:uuid', leadController.deleteLead);
 
 // Follow-up history for a lead
 router.get('/:uuid/followups', async (req, res) => {

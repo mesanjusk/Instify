@@ -39,10 +39,10 @@ const LeadStatusModal = ({ lead, onClose, refresh }) => {
     }
     setLoading(true);
     try {
-      await axios.put(`${BASE_URL}/api/leads/${lead.uuid || lead.Lead_uuid}`, {   // fallback to Lead_uuid if uuid missing
+      await axios.put(`${BASE_URL}/api/leads/${lead.uuid || lead.Lead_uuid}`, {
         leadStatus: status,
         remark: remark,
-        followupDate: status === 'follow-up' ? followUpDate : null, // backend expects followupDate
+        followupDate: status === 'follow-up' ? followUpDate : null,
         createdBy: 'System',
       });
       toast.success('Status updated successfully');
@@ -53,6 +53,19 @@ const LeadStatusModal = ({ lead, onClose, refresh }) => {
       toast.error('Error updating status');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm('Delete this lead?')) return;
+    try {
+      await axios.delete(`${BASE_URL}/api/leads/${lead.uuid || lead.Lead_uuid}`);
+      toast.success('Lead deleted');
+      refresh();
+      onClose();
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to delete lead');
     }
   };
 
@@ -135,6 +148,12 @@ const LeadStatusModal = ({ lead, onClose, refresh }) => {
             Edit
           </button>
           <button
+            onClick={handleDelete}
+            className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Delete
+          </button>
+          <button
             onClick={updateStatus}
             disabled={loading}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -156,9 +175,7 @@ const LeadStatusModal = ({ lead, onClose, refresh }) => {
           lead={lead}
           courses={courses}
           onClose={() => setShowEditModal(false)}
-          onSuccess={() => {
-            refresh();
-          }}
+          onSuccess={() => { refresh(); }}
         />
       )}
     </div>

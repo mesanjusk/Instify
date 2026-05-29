@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import BASE_URL from '../../config';
 
-const ManageExamModal = ({ admission, onClose, onUpdated }) => {
+const ManageExamModal = ({ admission, onClose, onUpdated, onDelete }) => {
   const [exams, setExams] = useState([]);
   const [selectedExam, setSelectedExam] = useState(admission?.examEvent || '');
   const [loading, setLoading] = useState(false);
@@ -51,6 +50,11 @@ const ManageExamModal = ({ admission, onClose, onUpdated }) => {
     }
   };
 
+  const handleDelete = () => {
+    if (!window.confirm('Delete this admission?')) return;
+    onDelete && onDelete(admission);
+  };
+
   return (
     <div
       className="fixed inset-0 flex items-center justify-center p-4 overflow-y-auto bg-black bg-opacity-40 z-[60]"
@@ -76,7 +80,15 @@ const ManageExamModal = ({ admission, onClose, onUpdated }) => {
             </option>
           ))}
         </select>
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 flex-wrap">
+          {onDelete && (
+            <button
+              onClick={handleDelete}
+              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+            >
+              Delete
+            </button>
+          )}
           <button
             onClick={onClose}
             className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"

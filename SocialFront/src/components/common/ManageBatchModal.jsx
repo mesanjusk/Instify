@@ -3,71 +3,75 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import BASE_URL from '../../config';
 
-const ManageBatchModal = ({ admission, onClose, onUpdated }) => {
+const ManageBatchModal = ({ admission, onClose, onUpdated, onDelete }) => {
   const [batches, setBatches] = useState([]);
- const [selectedBatch, setSelectedBatch] = useState(() => {
-  const batchObj = batches.find(
-    b => b.time === admission?.batchTime || b.name === admission?.batchTime
-  );
-  return batchObj?._id || '';
-});
+  const [selectedBatch, setSelectedBatch] = useState(() => {
+    const batchObj = batches.find(
+      b => b.time === admission?.batchTime || b.name === admission?.batchTime
+    );
+    return batchObj?._id || '';
+  });
 
   const [loading, setLoading] = useState(false);
   const modalRef = useRef();
   const institute_uuid = localStorage.getItem('institute_uuid');
 
-useEffect(() => {
-  const fetchBatches = async () => {
-    try {
-      const res = await axios.get(`${BASE_URL}/api/batches`, {
-        params: { institute_uuid },
-      });
-      const batchList = Array.isArray(res.data) ? res.data : [];
-      setBatches(batchList);
+  useEffect(() => {
+    const fetchBatches = async () => {
+      try {
+        const res = await axios.get(`${BASE_URL}/api/batches`, {
+          params: { institute_uuid },
+        });
+        const batchList = Array.isArray(res.data) ? res.data : [];
+        setBatches(batchList);
 
-      const matched = batchList.find(
-        b => b.time === admission?.batchTime || b.name === admission?.batchTime
-      );
-      if (matched) setSelectedBatch(matched._id);
-    } catch (err) {
-      toast.error('Failed to load batches');
-    }
-  };
-  fetchBatches();
-}, [admission?.batchTime, institute_uuid]);
-
+        const matched = batchList.find(
+          b => b.time === admission?.batchTime || b.name === admission?.batchTime
+        );
+        if (matched) setSelectedBatch(matched._id);
+      } catch (err) {
+        toast.error('Failed to load batches');
+      }
+    };
+    fetchBatches();
+  }, [admission?.batchTime, institute_uuid]);
 
   const handleBackdrop = (e) => {
     if (modalRef.current && !modalRef.current.contains(e.target)) onClose();
   };
 
   const handleSave = async () => {
-  if (!selectedBatch) return toast.error('Please select a batch');
-  setLoading(true);
+    if (!selectedBatch) return toast.error('Please select a batch');
+    setLoading(true);
 
-  const selected = batches.find(b => b._id === selectedBatch);
-  const batchTime = selected?.time || selected?.batchTime || selected?.name;
+    const selected = batches.find(b => b._id === selectedBatch);
+    const batchTime = selected?.time || selected?.batchTime || selected?.name;
 
-  if (!batchTime) {
-    toast.error('Invalid batch selected');
-    setLoading(false);
-    return;
-  }
+    if (!batchTime) {
+      toast.error('Invalid batch selected');
+      setLoading(false);
+      return;
+    }
 
-  try {
-    await axios.put(`${BASE_URL}/api/admissions/${admission.uuid}`, {
-      batchTime, 
-      institute_uuid,
-    });
-    toast.success('Batch updated');
-    onUpdated && onUpdated();
-    onClose();
-  } catch (err) {
-    toast.error('Failed to update batch');
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      await axios.put(`${BASE_URL}/api/admissions/${admission.uuid}`, {
+        batchTime,
+        institute_uuid,
+      });
+      toast.success('Batch updated');
+      onUpdated && onUpdated();
+      onClose();
+    } catch (err) {
+      toast.error('Failed to update batch');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = () => {
+    if (!window.confirm('Delete this admission?')) return;
+    onDelete && onDelete(admission);
+  };
 
   return (
     <div
@@ -94,7 +98,15 @@ useEffect(() => {
             </option>
           ))}
         </select>
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 flex-wrap">
+          {onDelete && (
+            <button
+              onClick={handleDelete}
+              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+            >
+              Delete
+            </button>
+          )}
           <button
             onClick={onClose}
             className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
