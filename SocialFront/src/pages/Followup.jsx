@@ -12,6 +12,8 @@ import {
   Phone,
   SwapHoriz,
   Close,
+  GridView,
+  ViewList,
 } from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -23,6 +25,7 @@ import {
   Card,
   CardContent,
   Chip,
+  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
@@ -73,6 +76,9 @@ const Followup = () => {
   const { courses, educations, exams, batches, paymentModes, refresh: refreshMeta } = useMetadata();
   const [search, setSearch] = useState('');
   const [actionModal, setActionModal] = useState(null);
+  const [viewMode, setViewMode] = useState('card');
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const institute_uuid = localStorage.getItem('institute_uuid');
   const today = new Date().toISOString().substring(0, 10);
 
@@ -236,6 +242,27 @@ const Followup = () => {
     e.studentData?.mobileSelf?.includes(search)
   );
 
+  const allSelected = filtered.length > 0 && selectedIds.size === filtered.length;
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  };
+
+  const clearSelection = () => { setSelectedIds(new Set()); setSelectionMode(false); };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`Delete ${selectedIds.size} lead(s)?`)) return;
+    try {
+      await axios.post(`${BASE_URL}/api/leads/bulk-delete`, { uuids: [...selectedIds] });
+      toast.success(`Deleted ${selectedIds.size} lead(s)`);
+      clearSelection();
+      fetchEnquiries();
+    } catch {
+      toast.error('Failed to delete');
+    }
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', p: { xs: 2, md: 3 }, bgcolor: '#f5f5f5' }}>
       {/* Header toolbar */}
@@ -283,15 +310,18 @@ const Followup = () => {
               Excel
             </Button>
           </Tooltip>
-          <Button
-            variant="contained"
-            size="small"
-            onClick={handleAdd}
-            startIcon={<Add />}
-            sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' } }}
-          >
-            Add Enquiry
-          </Button>
+          <Button variant="contained" size="small" onClick={handleAdd} startIcon={<Add />} sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' } }}>Add Enquiry</Button>
+          <Tooltip title="Card view"><IconButton size="small" onClick={() => setViewMode('card')} sx={{ bgcolor: viewMode === 'card' ? '#1a7a4a' : 'grey.200', color: viewMode === 'card' ? '#fff' : 'text.secondary', borderRadius: 1 }}><GridView fontSize="small" /></IconButton></Tooltip>
+          <Tooltip title="List view"><IconButton size="small" onClick={() => setViewMode('list')} sx={{ bgcolor: viewMode === 'list' ? '#1a7a4a' : 'grey.200', color: viewMode === 'list' ? '#fff' : 'text.secondary', borderRadius: 1 }}><ViewList fontSize="small" /></IconButton></Tooltip>
+          {!selectionMode ? (
+            <Button size="small" variant="outlined" onClick={() => setSelectionMode(true)} sx={{ textTransform: 'none' }}>Select</Button>
+          ) : (
+            <>
+              <Button size="small" variant="outlined" onClick={() => allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(filtered.map(e => e._id)))} sx={{ textTransform: 'none' }}>{allSelected ? 'Deselect All' : 'Select All'}</Button>
+              {selectedIds.size > 0 && <Button size="small" variant="contained" color="error" onClick={handleBulkDelete} sx={{ textTransform: 'none' }}>Delete ({selectedIds.size})</Button>}
+              <Button size="small" variant="outlined" color="inherit" onClick={clearSelection} sx={{ textTransform: 'none' }}>Cancel</Button>
+            </>
+          )}
         </Stack>
       </Stack>
 
@@ -304,68 +334,58 @@ const Followup = () => {
         </Alert>
       )}
 
-      {/* Cards grid */}
-      <Box
-        sx={{
-          display: 'grid',
-          gap: 2,
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            md: 'repeat(3, 1fr)',
-            lg: 'repeat(4, 1fr)',
-          }
-        }}
-      >
-        {todaysFollowups.map((e) => (
-          <Card
-            key={e._id}
-            sx={{
-              cursor: 'pointer',
-              transition: 'box-shadow 0.2s',
-              '&:hover': { boxShadow: 6 },
-              borderLeft: '4px solid #1a7a4a',
-            }}
-            onClick={() => setActionModal(e)}
-          >
-            <CardContent sx={{ pb: '12px !important' }}>
-              <Typography variant="subtitle1" fontWeight={700} noWrap>
-                {e.studentData?.firstName || ''} {e.studentData?.lastName || ''}
-              </Typography>
-              <Stack direction="row" alignItems="center" spacing={1} mt={0.5}>
-                <Typography
-                  component="a"
-                  href={`tel:${e.studentData?.mobileSelf || ''}`}
-                  onClick={ev => ev.stopPropagation()}
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ textDecoration: 'none', '&:hover': { color: '#1a7a4a' } }}
-                >
-                  {e.studentData?.mobileSelf}
-                </Typography>
-                <IconButton
-                  component="a"
-                  href={`https://wa.me/${e.studentData?.mobileSelf}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={ev => ev.stopPropagation()}
-                  size="small"
-                  sx={{ color: '#25d366', p: 0.5 }}
-                >
-                  <FaWhatsapp size={18} />
-                </IconButton>
-              </Stack>
-              {e.studentData?.course && (
-                <Chip label={e.studentData.course} size="small" sx={{ mt: 1 }} />
+      {/* Cards grid / list */}
+      {viewMode === 'card' ? (
+        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' } }}>
+          {filtered.map((e) => (
+            <Card key={e._id} onClick={() => selectionMode ? toggleSelect(e._id) : setActionModal(e)}
+              sx={{ cursor: 'pointer', position: 'relative', transition: 'box-shadow 0.2s', '&:hover': { boxShadow: 6 }, borderLeft: '4px solid #1a7a4a', outline: selectedIds.has(e._id) ? '2px solid #1a7a4a' : 'none', bgcolor: selectedIds.has(e._id) ? 'rgba(26,122,74,0.06)' : 'white' }}>
+              {selectionMode && (
+                <Box sx={{ position: 'absolute', top: 6, left: 6, zIndex: 1 }} onClick={ev => ev.stopPropagation()}>
+                  <Checkbox size="small" checked={selectedIds.has(e._id)} onChange={() => toggleSelect(e._id)} sx={{ p: 0 }} />
+                </Box>
               )}
-            </CardContent>
-          </Card>
-        ))}
-      </Box>
+              <CardContent sx={{ pb: '12px !important', pl: selectionMode ? 4.5 : 2 }}>
+                <Typography variant="subtitle1" fontWeight={700} noWrap>{e.studentData?.firstName || ''} {e.studentData?.lastName || ''}</Typography>
+                <Stack direction="row" alignItems="center" spacing={1} mt={0.5}>
+                  <Typography component="a" href={`tel:${e.studentData?.mobileSelf || ''}`} onClick={ev => ev.stopPropagation()} variant="body2" color="text.secondary" sx={{ textDecoration: 'none', '&:hover': { color: '#1a7a4a' } }}>{e.studentData?.mobileSelf}</Typography>
+                  <IconButton component="a" href={`https://wa.me/${e.studentData?.mobileSelf}`} target="_blank" rel="noopener noreferrer" onClick={ev => ev.stopPropagation()} size="small" sx={{ color: '#25d366', p: 0.5 }}><FaWhatsapp size={18} /></IconButton>
+                </Stack>
+                {e.studentData?.course && <Chip label={e.studentData.course} size="small" sx={{ mt: 1 }} />}
+              </CardContent>
+            </Card>
+          ))}
+        </Box>
+      ) : (
+        <Box sx={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white' }}>
+            <thead>
+              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                {selectionMode && <th style={{ padding: '10px 12px', width: 40 }}><Checkbox size="small" checked={allSelected} onChange={() => allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(filtered.map(e => e._id)))} sx={{ p: 0 }} /></th>}
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Name</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Mobile</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Course</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(e => (
+                <tr key={e._id} onClick={() => selectionMode ? toggleSelect(e._id) : setActionModal(e)} style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: selectedIds.has(e._id) ? 'rgba(26,122,74,0.06)' : 'white' }}
+                  onMouseEnter={ev => { if (!selectedIds.has(e._id)) ev.currentTarget.style.background = '#f9fafb'; }}
+                  onMouseLeave={ev => { ev.currentTarget.style.background = selectedIds.has(e._id) ? 'rgba(26,122,74,0.06)' : 'white'; }}>
+                  {selectionMode && <td style={{ padding: '8px 12px' }} onClick={ev => ev.stopPropagation()}><Checkbox size="small" checked={selectedIds.has(e._id)} onChange={() => toggleSelect(e._id)} sx={{ p: 0 }} /></td>}
+                  <td style={{ padding: '8px 12px', fontWeight: 500, fontSize: 14 }}>{e.studentData?.firstName} {e.studentData?.lastName}</td>
+                  <td style={{ padding: '8px 12px', fontSize: 13, color: '#6b7280' }}>{e.studentData?.mobileSelf}</td>
+                  <td style={{ padding: '8px 12px', fontSize: 13, color: '#6b7280' }}>{e.studentData?.course || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Box>
+      )}
 
-      {todaysFollowups.length === 0 && (
+      {filtered.length === 0 && (
         <Paper sx={{ p: 4, textAlign: 'center', mt: 2 }}>
-          <Typography color="text.secondary">No follow-ups scheduled for today.</Typography>
+          <Typography color="text.secondary">No follow-ups found.</Typography>
         </Paper>
       )}
 
