@@ -193,7 +193,6 @@ exports.editLead = async (req, res) => {
 
     lead.course = course;
 
-    // Also update the student data if needed
     if (lead.student_uuid && studentData) {
       await Student.findOneAndUpdate(
         { uuid: lead.student_uuid },
@@ -206,6 +205,31 @@ exports.editLead = async (req, res) => {
     res.json({ success: true, message: 'Lead updated successfully' });
   } catch (error) {
     console.error('Error updating lead:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+exports.deleteLead = async (req, res) => {
+  try {
+    const lead = await Lead.findOneAndDelete({ Lead_uuid: req.params.uuid });
+    if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+    res.json({ success: true, message: 'Lead deleted' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+exports.bulkDeleteLeads = async (req, res) => {
+  try {
+    const { uuids } = req.body;
+    if (!Array.isArray(uuids) || uuids.length === 0) {
+      return res.status(400).json({ success: false, message: 'uuids array required' });
+    }
+    const result = await Lead.deleteMany({ Lead_uuid: { $in: uuids } });
+    res.json({ success: true, deleted: result.deletedCount });
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };

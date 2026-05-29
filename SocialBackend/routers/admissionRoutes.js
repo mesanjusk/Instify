@@ -15,8 +15,10 @@ router.post('/',
 );
 
 router.get('/', admissionController.getAdmissions);
+router.post('/bulk-delete', admissionController.bulkDeleteAdmissions);
 router.get('/by-student/:student_uuid', admissionController.getAdmissionByStudentUUID);
 router.get('/:uuid', admissionController.getAdmission);
 router.put('/:uuid', admissionController.updateAdmission);
+router.delete('/:uuid', admissionController.deleteAdmission);
 
 module.exports = router;

@@ -114,3 +114,30 @@ exports.updateAdmission = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
+
+// Delete Admission
+exports.deleteAdmission = async (req, res) => {
+  try {
+    const admission = await Admission.findOneAndDelete({ uuid: req.params.uuid });
+    if (!admission) return res.status(404).json({ success: false, message: 'Admission not found' });
+    res.json({ success: true, message: 'Admission deleted' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// Bulk Delete Admissions
+exports.bulkDeleteAdmissions = async (req, res) => {
+  try {
+    const { uuids } = req.body;
+    if (!Array.isArray(uuids) || uuids.length === 0) {
+      return res.status(400).json({ success: false, message: 'uuids array required' });
+    }
+    const result = await Admission.deleteMany({ uuid: { $in: uuids } });
+    res.json({ success: true, deleted: result.deletedCount });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};

@@ -5,6 +5,7 @@ const LeadDetailsModal = ({
   receiptInfo,
   institute,
   onEdit,
+  onDelete,
   onManageBatch,
   onManageExam,
   onConfirm,
@@ -17,15 +18,13 @@ const LeadDetailsModal = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 overflow-y-auto z-[60]">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md mx-2 my-4 p-3 sm:p-6 overflow-y-auto max-h-screen">
-        {/* Header: Name */}
         <div className="flex flex-col items-start mb-2">
           <h2 className="text-xl font-bold text-gray-900">
             {(lead.student?.firstName || lead.studentData?.firstName) || ''}{' '}
             {(lead.student?.lastName || lead.studentData?.lastName) || ''}
           </h2>
         </div>
-        
-        {/* Institute Info */}
+
         <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-3">
           <div className="flex flex-col items-start w-full sm:w-auto">
             <img
@@ -37,29 +36,20 @@ const LeadDetailsModal = ({
             <div className="text-xs text-gray-500">{institute.website}</div>
           </div>
           <div className="flex flex-col items-start sm:items-end text-xs w-full sm:w-auto mt-2 sm:mt-0">
-            <div>
-              - <span className="font-bold uppercase">{institute.name}</span>
-            </div>
-            <div>
-              <span className="font-bold">{institute.contact}</span>
-            </div>
-            <div>
-              ALC Code - <span className="font-bold">{institute.code}</span>
-            </div>
+            <div>- <span className="font-bold uppercase">{institute.name}</span></div>
+            <div><span className="font-bold">{institute.contact}</span></div>
+            <div>ALC Code - <span className="font-bold">{institute.code}</span></div>
           </div>
         </div>
 
         <hr className="my-2 border-gray-200" />
 
-        {/* Receipt Info */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs mb-2">
           <div />
           <div className="mt-1 sm:mt-0">
-            <span className="font-semibold">Receipt Date: </span>
-            {receiptInfo.receiptDate}
+            <span className="font-semibold">Receipt Date: </span>{receiptInfo.receiptDate}
             <br />
-            <span className="font-semibold">Receipt Number: </span>
-            {receiptInfo.receiptNumber}
+            <span className="font-semibold">Receipt Number: </span>{receiptInfo.receiptNumber}
           </div>
         </div>
 
@@ -69,21 +59,11 @@ const LeadDetailsModal = ({
         </div>
 
         <div className="mb-3 space-y-1">
-          <div>
-            <span className="font-semibold">Name of the Learner: </span>
-            <span className="font-bold uppercase">{receiptInfo.learnerName}</span>
-          </div>
-          <div>
-            <span className="font-semibold">Learner Code: </span>
-            <span className="font-bold">{receiptInfo.learnerCode}</span>
-          </div>
-          <div>
-            <span className="font-semibold">Examination Event: </span>
-            <span className="font-bold">{receiptInfo.examEvent}</span>
-          </div>
+          <div><span className="font-semibold">Name of the Learner: </span><span className="font-bold uppercase">{receiptInfo.learnerName}</span></div>
+          <div><span className="font-semibold">Learner Code: </span><span className="font-bold">{receiptInfo.learnerCode}</span></div>
+          <div><span className="font-semibold">Examination Event: </span><span className="font-bold">{receiptInfo.examEvent}</span></div>
         </div>
 
-        {/* Amount Section */}
         <div className="bg-gray-100 rounded px-3 py-2 mb-2">
           <div className="font-medium">Amount Received:</div>
           <div className="mt-1 font-bold">{receiptInfo.amountWords}</div>
@@ -93,7 +73,6 @@ const LeadDetailsModal = ({
           <div className="mt-1 font-bold">{receiptInfo.amountWords}</div>
         </div>
 
-        {/* Installment Table */}
         <div className="bg-gray-100 rounded px-3 py-2 mb-2">
           <div className="font-medium mb-1">Installment:</div>
           <div className="overflow-x-auto">
@@ -118,9 +97,9 @@ const LeadDetailsModal = ({
           </div>
         </div>
 
-        {/* Actions - Stack on mobile */}
         <div className="flex flex-wrap gap-2 mt-3">
           <button onClick={() => onEdit(lead)} className="bg-yellow-500 text-white px-4 py-2 rounded text-sm w-full sm:w-auto">Edit</button>
+          <button onClick={() => onDelete && onDelete(lead)} className="bg-red-500 text-white px-4 py-2 rounded text-sm w-full sm:w-auto">Delete</button>
           <button onClick={() => onManageBatch(lead)} className="bg-purple-600 text-white px-4 py-2 rounded text-sm w-full sm:w-auto">Batch</button>
           <button onClick={() => onManageExam(lead)} className="bg-pink-600 text-white px-4 py-2 rounded text-sm w-full sm:w-auto">Exam</button>
           <button onClick={() => onConfirm(lead)} className="bg-green-600 text-white px-4 py-2 rounded text-sm w-full sm:w-auto">Confirm</button>
@@ -129,7 +108,6 @@ const LeadDetailsModal = ({
           <button onClick={onClose} className="bg-gray-400 text-white px-4 py-2 rounded text-sm w-full sm:w-auto">Close</button>
         </div>
       </div>
-      
     </div>
   );
 };
