@@ -19,6 +19,8 @@ import {
   Avatar,
   Chip,
   Divider,
+  Checkbox,
+  Tooltip,
 } from '@mui/material';
 import {
   Add,
@@ -29,6 +31,8 @@ import {
   EventNote,
   Phone,
   Search,
+  GridView,
+  ViewList,
 } from '@mui/icons-material';
 
 const Enquiry = () => {
@@ -50,6 +54,9 @@ const Enquiry = () => {
   const [followUpRemarks, setFollowUpRemarks] = useState('');
   const [search, setSearch] = useState('');
   const [actionModal, setActionModal] = useState(null);
+  const [viewMode, setViewMode] = useState('card');
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const institute_uuid = localStorage.getItem('institute_uuid');
 
   const fetchEnquiries = async () => {
@@ -160,6 +167,31 @@ const Enquiry = () => {
       e.mobileSelf?.includes(search)
   );
 
+  const allSelected = filtered.length > 0 && selectedIds.size === filtered.length;
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => { setSelectedIds(new Set()); setSelectionMode(false); };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`Delete ${selectedIds.size} enquiry(s)?`)) return;
+    try {
+      await axios.post(`${BASE_URL}/api/record/bulk-delete`, { ids: [...selectedIds] });
+      toast.success(`Deleted ${selectedIds.size} enquiry(s)`);
+      clearSelection();
+      fetchEnquiries();
+    } catch {
+      toast.error('Failed to delete');
+    }
+  };
+
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'grey.100', p: { xs: 2, sm: 3 } }}>
       {/* Page Header */}
@@ -176,83 +208,83 @@ const Enquiry = () => {
             Manage and track student enquiries
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={openAddModal}
-          sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' }, alignSelf: { xs: 'flex-start', sm: 'auto' } }}
-        >
-          Add Enquiry
-        </Button>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          <Button variant="contained" startIcon={<Add />} onClick={openAddModal} sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' }, alignSelf: { xs: 'flex-start', sm: 'auto' }, textTransform: 'none' }}>Add Enquiry</Button>
+        </Stack>
       </Stack>
 
-      {/* Search Bar */}
+      {/* Search + view toggle + selection */}
       <Box mb={3}>
-        <TextField
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name or mobile"
-          size="small"
-          fullWidth
-          sx={{ maxWidth: 400, bgcolor: 'white' }}
-          InputProps={{
-            startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />,
-          }}
-        />
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems={{ sm: 'center' }} flexWrap="wrap" useFlexGap>
+          <TextField value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search by name or mobile" size="small" sx={{ maxWidth: 400, bgcolor: 'white', flex: 1 }} InputProps={{ startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} /> }} />
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <Tooltip title="Card view"><IconButton onClick={() => setViewMode('card')} sx={{ bgcolor: viewMode === 'card' ? '#1a7a4a' : 'grey.200', color: viewMode === 'card' ? '#fff' : 'text.secondary', borderRadius: 1 }}><GridView fontSize="small" /></IconButton></Tooltip>
+            <Tooltip title="List view"><IconButton onClick={() => setViewMode('list')} sx={{ bgcolor: viewMode === 'list' ? '#1a7a4a' : 'grey.200', color: viewMode === 'list' ? '#fff' : 'text.secondary', borderRadius: 1 }}><ViewList fontSize="small" /></IconButton></Tooltip>
+            {!selectionMode ? (
+              <Button size="small" variant="outlined" onClick={() => setSelectionMode(true)} sx={{ textTransform: 'none' }}>Select</Button>
+            ) : (
+              <>
+                <Button size="small" variant="outlined" onClick={() => allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(filtered.map(e => e._id)))} sx={{ textTransform: 'none' }}>{allSelected ? 'Deselect All' : 'Select All'}</Button>
+                {selectedIds.size > 0 && <Button size="small" variant="contained" color="error" onClick={handleBulkDelete} sx={{ textTransform: 'none' }}>Delete ({selectedIds.size})</Button>}
+                <Button size="small" variant="outlined" color="inherit" onClick={clearSelection} sx={{ textTransform: 'none' }}>Cancel</Button>
+              </>
+            )}
+          </Stack>
+        </Stack>
       </Box>
 
-      {/* Enquiry Cards Grid */}
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' },
-          gap: 2,
-        }}
-      >
-        {filtered.map((e) => (
-          <Card
-            key={e._id}
-            sx={{
-              cursor: 'pointer',
-              transition: 'box-shadow 0.2s',
-              '&:hover': { boxShadow: 4 },
-            }}
-          >
-            <CardActionArea onClick={() => setActionModal(e)} sx={{ p: 0 }}>
-              <CardContent>
+      {/* Enquiry Cards Grid / List */}
+      {viewMode === 'card' ? (
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)' }, gap: 2 }}>
+          {filtered.map((e) => (
+            <Card key={e._id} onClick={() => selectionMode ? toggleSelect(e._id) : setActionModal(e)} sx={{ cursor: 'pointer', position: 'relative', transition: 'box-shadow 0.2s', outline: selectedIds.has(e._id) ? '2px solid #1a7a4a' : 'none', bgcolor: selectedIds.has(e._id) ? 'rgba(26,122,74,0.06)' : 'white', '&:hover': { boxShadow: 4 } }}>
+              {selectionMode && (
+                <Box sx={{ position: 'absolute', top: 6, left: 6, zIndex: 1 }} onClick={ev => ev.stopPropagation()}>
+                  <Checkbox size="small" checked={selectedIds.has(e._id)} onChange={() => toggleSelect(e._id)} sx={{ p: 0 }} />
+                </Box>
+              )}
+              <CardContent sx={{ pl: selectionMode ? 4.5 : 2 }}>
                 <Stack direction="row" spacing={1.5} alignItems="center" mb={1}>
-                  <Avatar sx={{ bgcolor: '#1a7a4a', width: 40, height: 40, fontSize: 16 }}>
-                    {(e.firstName?.[0] || '?').toUpperCase()}
-                  </Avatar>
+                  <Avatar sx={{ bgcolor: '#1a7a4a', width: 40, height: 40, fontSize: 16 }}>{(e.firstName?.[0] || '?').toUpperCase()}</Avatar>
                   <Box>
-                    <Typography variant="subtitle1" fontWeight={600} lineHeight={1.2}>
-                      {e.firstName} {e.lastName}
-                    </Typography>
-                    {e.course && (
-                      <Chip
-                        label={e.course}
-                        size="small"
-                        sx={{ fontSize: 10, height: 18, mt: 0.5 }}
-                      />
-                    )}
+                    <Typography variant="subtitle1" fontWeight={600} lineHeight={1.2}>{e.firstName} {e.lastName}</Typography>
+                    {e.course && <Chip label={e.course} size="small" sx={{ fontSize: 10, height: 18, mt: 0.5 }} />}
                   </Box>
                 </Stack>
                 <Stack direction="row" spacing={0.5} alignItems="center">
                   <Phone sx={{ fontSize: 14, color: 'text.secondary' }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {e.mobileSelf}
-                  </Typography>
+                  <Typography variant="body2" color="text.secondary">{e.mobileSelf}</Typography>
                 </Stack>
-                {!e.course && (
-                  <Typography variant="caption" color="text.disabled">
-                    No course selected
-                  </Typography>
-                )}
               </CardContent>
-            </CardActionArea>
-          </Card>
-        ))}
-      </Box>
+            </Card>
+          ))}
+        </Box>
+      ) : (
+        <Box sx={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white' }}>
+            <thead>
+              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                {selectionMode && <th style={{ padding: '10px 12px', width: 40 }}><Checkbox size="small" checked={allSelected} onChange={() => allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(filtered.map(e => e._id)))} sx={{ p: 0 }} /></th>}
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Name</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Mobile</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Course</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(e => (
+                <tr key={e._id} onClick={() => selectionMode ? toggleSelect(e._id) : setActionModal(e)} style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: selectedIds.has(e._id) ? 'rgba(26,122,74,0.06)' : 'white' }}
+                  onMouseEnter={ev => { if (!selectedIds.has(e._id)) ev.currentTarget.style.background = '#f9fafb'; }}
+                  onMouseLeave={ev => { ev.currentTarget.style.background = selectedIds.has(e._id) ? 'rgba(26,122,74,0.06)' : 'white'; }}>
+                  {selectionMode && <td style={{ padding: '8px 12px' }} onClick={ev => ev.stopPropagation()}><Checkbox size="small" checked={selectedIds.has(e._id)} onChange={() => toggleSelect(e._id)} sx={{ p: 0 }} /></td>}
+                  <td style={{ padding: '8px 12px', fontWeight: 500, fontSize: 14 }}>{e.firstName} {e.lastName}</td>
+                  <td style={{ padding: '8px 12px', fontSize: 13, color: '#6b7280' }}>{e.mobileSelf}</td>
+                  <td style={{ padding: '8px 12px', fontSize: 13, color: '#6b7280' }}>{e.course || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Box>
+      )}
 
       {/* Pagination Info */}
       <Typography variant="body2" color="text.secondary" mt={2}>

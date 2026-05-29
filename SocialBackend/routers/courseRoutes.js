@@ -48,6 +48,19 @@ router.post('/', async (req, res) => {
 });
 
 
+// Bulk delete courses
+router.post('/bulk-delete', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0)
+      return res.status(400).json({ error: 'ids array required' });
+    const result = await Course.deleteMany({ _id: { $in: ids } });
+    res.json({ success: true, deleted: result.deletedCount });
+  } catch (err) {
+    res.status(500).json({ error: 'Bulk delete failed' });
+  }
+});
+
 // ✅ PUT update course
 router.put('/:id', async (req, res) => {
   try {

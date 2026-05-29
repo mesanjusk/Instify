@@ -16,6 +16,18 @@ router.post('/',
 );
 
 router.get('/', studentController.getStudents);
+router.post('/bulk-delete', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0)
+      return res.status(400).json({ error: 'ids array required' });
+    const Student = require('../models/Student');
+    const result = await Student.deleteMany({ _id: { $in: ids } });
+    res.json({ success: true, deleted: result.deletedCount });
+  } catch (err) {
+    res.status(500).json({ error: 'Bulk delete failed' });
+  }
+});
 router.get('/:uuid', studentController.getStudent);
 router.put('/:uuid', studentController.updateStudent);
 router.delete('/:uuid', studentController.deleteStudent);

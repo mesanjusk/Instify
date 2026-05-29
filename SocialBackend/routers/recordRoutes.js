@@ -125,6 +125,19 @@ router.post('/convert/:uuid', async (req, res) => {
   }
 });
 
+// Bulk delete records
+router.post('/bulk-delete', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0)
+      return res.status(400).json({ error: 'ids array required' });
+    const result = await Record.deleteMany({ _id: { $in: ids } });
+    res.json({ success: true, deleted: result.deletedCount });
+  } catch (err) {
+    res.status(500).json({ error: 'Bulk delete failed' });
+  }
+});
+
 // ✅ Update record
 router.put('/:id', async (req, res) => {
   try {
