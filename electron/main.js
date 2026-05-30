@@ -45,7 +45,6 @@ try {
 let mainWindow = null;
 let tray = null;
 let mongodProcess = null;
-let backendProcess = null;
 let syncEngine = null;
 
 const IS_DEV = process.env.NODE_ENV === 'development';
@@ -276,36 +275,22 @@ async function startBackend() {
   const apiKey = store.get('cloudinary.apiKey', '');
   const apiSecret = store.get('cloudinary.apiSecret', '');
 
-  const env = {
-    ...process.env,
-    ELECTRON_RUN_AS_NODE: '1',
+  // Set env vars before requiring — backend reads process.env at load time.
+  // Running inline (no child process) avoids all binary compatibility issues
+  // that arise from using process.execPath (electron.exe) as a Node.js runner.
+  Object.assign(process.env, {
     NODE_ENV: 'production',
     PORT: String(BACKEND_PORT),
     MONGO_URI: `mongodb://127.0.0.1:${MONGO_PORT}/instify`,
     JWT_SECRET: getOrCreateJwtSecret(),
     ACCESS_TOKEN_SECRET: getOrCreateJwtSecret() + '_access',
     BAILEYS_SESSION_DIR: SESSION_DIR,
-    CLOUDINARY_CLOUD_NAME: cloudName,
-    CLOUDINARY_API_KEY: apiKey,
-    CLOUDINARY_API_SECRET: apiSecret,
-  };
-
-  const nodeBin = process.execPath;
-  const backendIndex = path.join(BACKEND_DIR, 'index.js');
-
-  backendProcess = spawn(nodeBin, [backendIndex], {
-    cwd: BACKEND_DIR,
-    env,
-    detached: false,
+    CLOUDINARY_CLOUD_NAME: cloudName || '',
+    CLOUDINARY_API_KEY: apiKey || '',
+    CLOUDINARY_API_SECRET: apiSecret || '',
   });
 
-  backendProcess.stdout?.on('data', (d) => console.log('[backend]', d.toString().trim()));
-  backendProcess.stderr?.on('data', (d) => console.error('[backend]', d.toString().trim()));
-  backendProcess.on('exit', (code) => {
-    if (code !== 0 && code !== null) {
-      console.error('[backend] exited with code', code);
-    }
-  });
+  require(path.join(BACKEND_DIR, 'index.js'));
 
   await waitForHttp(`http://127.0.0.1:${BACKEND_PORT}/health`, 60, 1000);
   console.log('[backend] ready on port', BACKEND_PORT);
@@ -428,10 +413,6 @@ async function shutdown() {
   console.log('[app] shutting down…');
   syncEngine?.stop();
 
-  if (backendProcess) {
-    backendProcess.kill('SIGTERM');
-    await new Promise(r => setTimeout(r, 1500));
-  }
   if (mongodProcess) {
     mongodProcess.kill('SIGTERM');
     await new Promise(r => setTimeout(r, 2000));
