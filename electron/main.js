@@ -439,6 +439,18 @@ async function shutdown() {
 }
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────
+// Prevent multiple instances — focus existing window instead of launching again
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+}
+
+app.on('second-instance', () => {
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+});
+
 app.whenReady().then(async () => {
   registerIPC();
 
