@@ -5,6 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 const isDesktop = process.env.VITE_IS_DESKTOP === 'true';
 
 export default defineConfig({
+  base: isDesktop ? './' : '/',
   plugins: [
     react(),
     VitePWA({
