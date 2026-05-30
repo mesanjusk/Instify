@@ -278,6 +278,7 @@ async function startBackend() {
 
   const env = {
     ...process.env,
+    ELECTRON_RUN_AS_NODE: '1',
     NODE_ENV: 'production',
     PORT: String(BACKEND_PORT),
     MONGO_URI: `mongodb://127.0.0.1:${MONGO_PORT}/instify`,
@@ -306,7 +307,7 @@ async function startBackend() {
     }
   });
 
-  await waitForHttp(`http://127.0.0.1:${BACKEND_PORT}/health`, 30, 1000);
+  await waitForHttp(`http://127.0.0.1:${BACKEND_PORT}/health`, 60, 1000);
   console.log('[backend] ready on port', BACKEND_PORT);
 }
 
