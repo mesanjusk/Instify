@@ -46,10 +46,10 @@ jobs:
         run: npm install
         working-directory: electron
 
-      - name: Download MongoDB 7.x for Windows x64
+      - name: Download MongoDB 6.0 for Windows x64
         shell: pwsh
         run: |
-          $url  = "https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-7.0.15.zip"
+          $url  = "https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-6.0.20.zip"
           $zip  = "mongodb.zip"
           Invoke-WebRequest -Uri $url -OutFile $zip
           Expand-Archive -Path $zip -DestinationPath "mongodb-extracted"
