@@ -36,6 +36,10 @@
         "filter": ["**/*"]
       },
       {
+        "from": "resources/vc_redist.x64.exe",
+        "to": "vc_redist.x64.exe"
+      },
+      {
         "from": "../SocialBackend/",
         "to": "backend/",
         "filter": ["**/*", "!.env", "!.git"]
@@ -60,7 +64,8 @@
       "allowElevation": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Instify"
+      "shortcutName": "Instify",
+      "include": "scripts/installer.nsh"
     },
     "afterPack": "scripts/afterPack.js",
     "publish": [

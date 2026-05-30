@@ -232,13 +232,18 @@ async function startMongoDB() {
   const fs = require('fs');
   if (!fs.existsSync(MONGO_DATA)) fs.mkdirSync(MONGO_DATA, { recursive: true });
 
+  // Electron does not auto-create the logs directory; mongod needs it to exist
+  // before it can open the log file, otherwise it exits immediately.
+  const logsDir = app.getPath('logs');
+  fs.mkdirSync(logsDir, { recursive: true });
+
   await ensureMongoBinary();
 
   mongodProcess = spawn(MONGO_BIN, [
     '--dbpath', MONGO_DATA,
     '--port', String(MONGO_PORT),
     '--bind_ip', '127.0.0.1',
-    '--logpath', path.join(app.getPath('logs'), 'mongod.log'),
+    '--logpath', path.join(logsDir, 'mongod.log'),
     '--logappend',
   ], { detached: false });
 
