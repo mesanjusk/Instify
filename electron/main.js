@@ -114,18 +114,125 @@ function waitForHttp(url, retries = 30, delayMs = 1000) {
   });
 }
 
+// ── Download MongoDB if missing ────────────────────────────────────────────────
+async function ensureMongoBinary() {
+  const fs = require('fs');
+  const https = require('https');
+  const { pipeline } = require('stream/promises');
+
+  if (fs.existsSync(MONGO_BIN)) return;
+
+  if (process.platform !== 'win32') {
+    throw new Error(`MongoDB binary not found at:\n${MONGO_BIN}`);
+  }
+
+  const MONGO_DOWNLOAD_URL =
+    'https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-7.0.14.zip';
+  const zipPath = path.join(app.getPath('temp'), 'mongod-download.zip');
+  const binDir = path.dirname(MONGO_BIN);
+
+  // Show progress window
+  let progressWin = new BrowserWindow({
+    width: 420, height: 160,
+    frame: false, resizable: false, alwaysOnTop: true,
+    webPreferences: { nodeIntegration: true, contextIsolation: false },
+  });
+  progressWin.loadURL('data:text/html,' + encodeURIComponent(`
+    <body style="margin:0;background:#1a1a2e;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#eee">
+      <div style="font-size:15px;margin-bottom:14px">Downloading MongoDB (first run)…</div>
+      <div id="bar" style="width:340px;height:8px;background:#333;border-radius:4px">
+        <div id="fill" style="width:0%;height:100%;background:#4ade80;border-radius:4px;transition:width .3s"></div>
+      </div>
+      <div id="pct" style="margin-top:10px;font-size:13px;color:#aaa">0%</div>
+    </body>
+  `));
+
+  const setProgress = (pct) => {
+    if (progressWin && !progressWin.isDestroyed()) {
+      progressWin.webContents.executeJavaScript(
+        `document.getElementById('fill').style.width='${pct}%';
+         document.getElementById('pct').textContent='${pct}%';`
+      ).catch(() => {});
+    }
+  };
+
+  try {
+    // Download with redirect following
+    await new Promise((resolve, reject) => {
+      const download = (url, redirects = 0) => {
+        if (redirects > 5) return reject(new Error('Too many redirects'));
+        https.get(url, { headers: { 'User-Agent': 'Instify-Setup/1.0' } }, (res) => {
+          if (res.statusCode === 301 || res.statusCode === 302) {
+            return download(res.headers.location, redirects + 1);
+          }
+          if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
+          const total = parseInt(res.headers['content-length'] || '0', 10);
+          let received = 0;
+          const out = fs.createWriteStream(zipPath);
+          res.on('data', (chunk) => {
+            received += chunk.length;
+            if (total) setProgress(Math.round((received / total) * 90));
+          });
+          res.pipe(out);
+          out.on('finish', resolve);
+          out.on('error', reject);
+          res.on('error', reject);
+        }).on('error', reject);
+      };
+      download(MONGO_DOWNLOAD_URL);
+    });
+
+    setProgress(92);
+
+    // Extract mongod.exe from zip using PowerShell (built into Windows)
+    fs.mkdirSync(binDir, { recursive: true });
+    const extractDir = path.join(app.getPath('temp'), 'mongod-extract');
+    if (fs.existsSync(extractDir)) fs.rmSync(extractDir, { recursive: true });
+
+    await new Promise((resolve, reject) => {
+      const ps = spawn('powershell.exe', [
+        '-NoProfile', '-NonInteractive', '-Command',
+        `Expand-Archive -Force -LiteralPath '${zipPath}' -DestinationPath '${extractDir}'`,
+      ]);
+      ps.on('close', (code) => code === 0 ? resolve() : reject(new Error(`PowerShell exit ${code}`)));
+      ps.on('error', reject);
+    });
+
+    setProgress(97);
+
+    // Find mongod.exe inside extracted folder and copy it
+    const findMongod = (dir) => {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) { const r = findMongod(full); if (r) return r; }
+        else if (entry.name === 'mongod.exe') return full;
+      }
+      return null;
+    };
+    const found = findMongod(extractDir);
+    if (!found) throw new Error('mongod.exe not found inside downloaded zip');
+    fs.copyFileSync(found, MONGO_BIN);
+
+    // Cleanup
+    fs.rmSync(extractDir, { recursive: true });
+    fs.unlinkSync(zipPath);
+
+    setProgress(100);
+  } finally {
+    if (progressWin && !progressWin.isDestroyed()) {
+      progressWin.close();
+      progressWin = null;
+    }
+  }
+}
+
 // ── Start MongoDB ──────────────────────────────────────────────────────────────
 async function startMongoDB() {
   const fs = require('fs');
   if (!fs.existsSync(MONGO_DATA)) fs.mkdirSync(MONGO_DATA, { recursive: true });
 
-  if (!fs.existsSync(MONGO_BIN)) {
-    throw new Error(
-      `MongoDB binary not found at:\n${MONGO_BIN}\n\n` +
-      'Please download MongoDB Community Server 7.x for Windows x64 and place mongod.exe in:\n' +
-      path.join(__dirname, 'resources/mongodb/bin/')
-    );
-  }
+  await ensureMongoBinary();
 
   mongodProcess = spawn(MONGO_BIN, [
     '--dbpath', MONGO_DATA,
