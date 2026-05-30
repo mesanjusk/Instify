@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import toast from 'react-hot-toast';
+import apiClient from '../apiClient';
 import BASE_URL from '../config';
+import toast from 'react-hot-toast';
 import {
   Box,
   Card,
@@ -55,7 +55,7 @@ export default function AddPayment() {
   useEffect(() => {
     const fetchGroupUUID = async () => {
       try {
-        const res = await axios.get(`${BASE_URL}/api/accountgroup/GetAccountgroupList`);
+        const res = await apiClient.get(`/api/accountgroup/GetAccountgroupList`);
         const group = res.data.result.find(g => g.Account_group === "ACCOUNT");
         if (group) setAccountGroupUUID(group.Account_group_uuid);
       } catch (err) {
@@ -69,7 +69,7 @@ export default function AddPayment() {
     if (!accountGroupUUID) return;
     const fetchAccounts = async () => {
       try {
-        const res = await axios.get(`${BASE_URL}/api/account/GetAccountList`);
+        const res = await apiClient.get(`/api/account/GetAccountList`);
         if (res.data.success) {
           const accounts = res.data.result.filter(
             item => item.Account_group === accountGroupUUID && item.institute_uuid === institute_uuid
@@ -86,7 +86,7 @@ export default function AddPayment() {
   useEffect(() => {
     const fetchPaymentModes = async () => {
       try {
-        const res = await axios.get(`${BASE_URL}/api/account/GetAccountList`);
+        const res = await apiClient.get(`/api/account/GetAccountList`);
         const options = (res.data?.result || []).filter(
           (item) =>
             (item.Account_name === 'Bank' || item.Account_name === 'Cash') &&
@@ -175,7 +175,7 @@ export default function AddPayment() {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${BASE_URL}/api/transaction/addTransaction`, payload);
+      const res = await apiClient.post(`/api/transaction/addTransaction`, payload);
       setLoading(false);
       if (res.data.success) {
         toast.success("Payment added successfully.");

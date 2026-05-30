@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast from 'react-hot-toast';
 import {
   Box, Card, CardContent, Stack, Typography, TextField, Button,
@@ -7,7 +7,6 @@ import {
   Tooltip, InputAdornment, CircularProgress
 } from '@mui/material';
 import { Edit, Delete, Add, Search } from '@mui/icons-material';
-import BASE_URL from '../config';
 
 const Exam = () => {
   const [list, setList] = useState([]);
@@ -24,7 +23,7 @@ const Exam = () => {
   const fetchData = async () => {
     try {
       setFetchLoading(true);
-      const res = await axios.get(`${BASE_URL}/api/exams`);
+      const res = await apiClient.get(`/api/exams`);
       setList(res.data || []);
     } catch {
       toast.error('Failed to fetch data');
@@ -64,10 +63,10 @@ const Exam = () => {
     try {
       if (editingId) {
         if (!window.confirm('Update this entry?')) return;
-        await axios.put(`${BASE_URL}/api/exams/${editingId}`, form);
+        await apiClient.put(`/api/exams/${editingId}`, form);
         toast.success('Updated');
       } else {
-        await axios.post(`${BASE_URL}/api/exams`, form);
+        await apiClient.post(`/api/exams`, form);
         toast.success('Added');
       }
       setForm({ exam: '', description: '' });
@@ -90,7 +89,7 @@ const Exam = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this entry?')) return;
     try {
-      await axios.delete(`${BASE_URL}/api/exams/${id}`);
+      await apiClient.delete(`/api/exams/${id}`);
       toast.success('Deleted');
       fetchData();
     } catch {

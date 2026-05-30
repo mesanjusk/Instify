@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast from 'react-hot-toast';
-import BASE_URL from '../config';
 import {
   Box,
   Card,
@@ -61,7 +60,7 @@ const Enquiry = () => {
 
   const fetchEnquiries = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/record/enquiry`, {
+      const res = await apiClient.get(`/api/record/enquiry`, {
         params: { institute_uuid, page, limit }
       });
       const { data, total: t, page: p, limit: l } = res.data;
@@ -82,14 +81,14 @@ const Enquiry = () => {
     }
     try {
       if (isEditMode && selectedEnquiry) {
-        await axios.put(`${BASE_URL}/api/record/${selectedEnquiry._id}`, {
+        await apiClient.put(`/api/record/${selectedEnquiry._id}`, {
           ...form,
           institute_uuid,
           type: 'enquiry',
         });
         toast.success('Enquiry updated');
       } else {
-        await axios.post(`${BASE_URL}/api/record`, {
+        await apiClient.post(`/api/record`, {
           ...form,
           institute_uuid,
           type: 'enquiry',
@@ -107,7 +106,7 @@ const Enquiry = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this enquiry?')) return;
     try {
-      await axios.delete(`${BASE_URL}/api/record/${id}`);
+      await apiClient.delete(`/api/record/${id}`);
       toast.success('Enquiry deleted');
       fetchEnquiries();
     } catch (err) {
@@ -118,7 +117,7 @@ const Enquiry = () => {
   const handleFollowUpSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${BASE_URL}/api/followup`, {
+      await apiClient.post(`/api/followup`, {
         enquiry_uuid: selectedEnquiry.uuid,
         followUpDate,
         remarks: followUpRemarks,
@@ -183,7 +182,7 @@ const Enquiry = () => {
     if (selectedIds.size === 0) return;
     if (!window.confirm(`Delete ${selectedIds.size} enquiry(s)?`)) return;
     try {
-      await axios.post(`${BASE_URL}/api/record/bulk-delete`, { ids: [...selectedIds] });
+      await apiClient.post(`/api/record/bulk-delete`, { ids: [...selectedIds] });
       toast.success(`Deleted ${selectedIds.size} enquiry(s)`);
       clearSelection();
       fetchEnquiries();

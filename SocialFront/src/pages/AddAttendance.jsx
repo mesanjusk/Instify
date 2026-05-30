@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import apiClient from '../apiClient';
 import { useNavigate } from "react-router-dom";
 import { formatDisplayDate } from '../utils/dateUtils';
-import BASE_URL from '../config';
 import {
   Box,
   Button,
@@ -53,7 +52,7 @@ export default function AddAttendance() {
         if (!userName) return;
 
         try {
-            const response = await axios.get(`${BASE_URL}/api/attendance/getTodayAttendance/${userName}`);
+            const response = await apiClient.get(`/api/attendance/getTodayAttendance/${userName}`);
             const data = response.data;
 
             if (!data.success || !Array.isArray(data.flow)) {
@@ -84,7 +83,7 @@ export default function AddAttendance() {
         try {
             const formattedTime = new Date().toLocaleTimeString();
 
-            const response = await axios.post(`${BASE_URL}/api/attendance/addAttendance/${institute_uuid}`, {
+            const response = await apiClient.post(`/api/attendance/addAttendance/${institute_uuid}`, {
                 User_name: userName,
                 Type: type,
                 Status: "Present",
@@ -106,7 +105,7 @@ export default function AddAttendance() {
 
     const fetchUserNames = async () => {
         try {
-            const response = await axios.get('/user/GetUserList');
+            const response = await apiClient.get('/api/user/GetUserList');
             const data = response.data;
             if (data.success) {
                 const userLookup = {};
@@ -127,7 +126,7 @@ export default function AddAttendance() {
     const fetchAttendanceData = async (loggedInUser) => {
         try {
             const userLookup = await fetchUserNames();
-            const attendanceResponse = await axios.get(`${BASE_URL}/api/attendance/GetAttendanceList`);
+            const attendanceResponse = await apiClient.get(`/api/attendance/GetAttendanceList`);
             const attendanceRecords = attendanceResponse.data.result || [];
 
             const formattedData = processAttendanceData(attendanceRecords, userLookup);

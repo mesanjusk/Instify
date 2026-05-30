@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast, { Toaster } from 'react-hot-toast';
-import BASE_URL from '../config';
 import ManageBatchModal from '../components/common/ManageBatchModal';
 
 const GridIcon = () => (
@@ -32,7 +31,7 @@ const AllBatches = () => {
   const fetchAdmissions = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`${BASE_URL}/api/admissions`, {
+      const { data } = await apiClient.get(`/api/admissions`, {
         params: { institute_uuid },
       });
       setAdmissions(Array.isArray(data?.data) ? data.data : []);
@@ -46,7 +45,7 @@ const AllBatches = () => {
 
   const fetchCourses = async () => {
     try {
-      const { data } = await axios.get(`${BASE_URL}/api/courses`, {
+      const { data } = await apiClient.get(`/api/courses`, {
         params: { institute_uuid },
       });
       setCourses(Array.isArray(data) ? data : []);
@@ -105,7 +104,7 @@ const AllBatches = () => {
     if (selectedUuids.size === 0) return;
     if (!window.confirm(`Delete ${selectedUuids.size} admission(s)?`)) return;
     try {
-      await axios.post(`${BASE_URL}/api/admissions/bulk-delete`, { uuids: [...selectedUuids] });
+      await apiClient.post(`/api/admissions/bulk-delete`, { uuids: [...selectedUuids] });
       toast.success(`Deleted ${selectedUuids.size} admission(s)`);
       clearSelection();
       fetchAdmissions();
@@ -116,7 +115,7 @@ const AllBatches = () => {
 
   const handleDeleteAdmission = async (admission) => {
     try {
-      await axios.delete(`${BASE_URL}/api/admissions/${admission.uuid}`);
+      await apiClient.delete(`/api/admissions/${admission.uuid}`);
       toast.success('Admission deleted');
       setSelectedAdmission(null);
       fetchAdmissions();

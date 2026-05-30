@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -11,7 +11,6 @@ import {
   FormControl, InputLabel, Pagination, Checkbox
 } from '@mui/material';
 import { Edit, Delete, Add, PictureAsPdf, FileDownload, Search, GridView, ViewList } from '@mui/icons-material';
-import BASE_URL from '../config';
 
 const PAGE_SIZE = 25;
 
@@ -40,7 +39,7 @@ const Students = () => {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${BASE_URL}/api/students`, { params: { institute_uuid } });
+      const res = await apiClient.get('/api/students');
       setStudents(Array.isArray(res.data?.data) ? res.data.data : []);
     } catch {
       toast.error('Failed to fetch students');
@@ -57,10 +56,10 @@ const Students = () => {
     e.preventDefault();
     try {
       if (editingId) {
-        await axios.put(`${BASE_URL}/api/students/${editingId}`, { ...form });
+        await apiClient.put(`/api/students/${editingId}`, { ...form });
         toast.success('Student updated');
       } else {
-        await axios.post(`${BASE_URL}/api/students`, { ...form });
+        await apiClient.post('/api/students', { ...form });
         toast.success('Student added');
       }
       setForm({ firstName: '', middleName: '', lastName: '', dob: '', gender: '', mobileSelf: '', institute_uuid });
@@ -73,7 +72,7 @@ const Students = () => {
   };
 
   const handleEdit = (student) => {
-    setForm({ firstName: student.firstName, middleName: student.middleName, lastName: student.lastName, dob: student.dob, gender: student.gender, mobileSelf: student.mobileSelf });
+    setForm({ firstName: student.firstName, middleName: student.middleName || '', lastName: student.lastName, dob: student.dob || '', gender: student.gender || '', mobileSelf: student.mobileSelf || '', institute_uuid });
     setEditingId(student._id);
     setDetailStudent(null);
     setShowModal(true);
@@ -82,7 +81,7 @@ const Students = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this student?')) return;
     try {
-      await axios.delete(`${BASE_URL}/api/students/${id}`);
+      await apiClient.delete(`/api/students/${id}`);
       toast.success('Deleted');
       setDetailStudent(null);
       fetchStudents();
@@ -95,7 +94,7 @@ const Students = () => {
     if (selectedIds.size === 0) return;
     if (!window.confirm(`Delete ${selectedIds.size} student(s)?`)) return;
     try {
-      await axios.post(`${BASE_URL}/api/students/bulk-delete`, { ids: [...selectedIds] });
+      await apiClient.post('/api/students/bulk-delete', { ids: [...selectedIds] });
       toast.success(`Deleted ${selectedIds.size} student(s)`);
       setSelectedIds(new Set());
       setSelectionMode(false);
@@ -171,7 +170,7 @@ const Students = () => {
               <Button size="small" variant="outlined" color="inherit" onClick={clearSelection} sx={{ textTransform: 'none' }}>Cancel</Button>
             </>
           )}
-          <Button variant="contained" startIcon={<Add />} onClick={() => { setForm({ firstName: '', middleName: '', lastName: '', dob: '', gender: '', mobileSelf: '' }); setEditingId(null); setShowModal(true); }} sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' }, textTransform: 'none', whiteSpace: 'nowrap' }}>Add</Button>
+          <Button variant="contained" startIcon={<Add />} onClick={() => { setForm({ firstName: '', middleName: '', lastName: '', dob: '', gender: '', mobileSelf: '', institute_uuid }); setEditingId(null); setShowModal(true); }} sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' }, textTransform: 'none', whiteSpace: 'nowrap' }}>Add</Button>
         </Stack>
       </Stack>
 

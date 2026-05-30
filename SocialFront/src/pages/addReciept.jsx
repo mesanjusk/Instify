@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import toast from 'react-hot-toast';
+import apiClient from '../apiClient';
 import BASE_URL from '../config';
+import toast from 'react-hot-toast';
 import {
   Box,
   Card,
@@ -54,7 +54,7 @@ export default function AddReceipt() {
     }, []);
 
     useEffect(() => {
-        axios.get(`${BASE_URL}/api/account/GetAccountList`)
+        apiClient.get(`/api/account/GetAccountList`)
             .then(res => {
                 if (res.data.success) {
                     setAllAccountOptions(res.data.result);
@@ -70,7 +70,7 @@ export default function AddReceipt() {
     useEffect(() => {
         const fetchPaymentModes = async () => {
             try {
-                const res = await axios.get(`${BASE_URL}/api/account/GetAccountList`);
+                const res = await apiClient.get(`/api/account/GetAccountList`);
                 const options = (res.data?.result || []).filter(
                     (item) =>
                         (item.Account_name === 'Bank' || item.Account_name === 'Cash') &&
@@ -154,7 +154,7 @@ export default function AddReceipt() {
                 institute_uuid,
             };
 
-            const response = await axios.post(`${BASE_URL}/api/transaction/addTransaction`, payload);
+            const response = await apiClient.post(`/api/transaction/addTransaction`, payload);
 
             if (response.data.success) {
                 toast.success("Receipt added successfully.");

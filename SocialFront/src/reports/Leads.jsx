@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast, { Toaster } from 'react-hot-toast';
 import { FaPhoneAlt, FaWhatsapp } from 'react-icons/fa';
-import BASE_URL from '../config';
 import LeadStatusModal from "../components/leads/LeadStatusModal";
 import { saveRecords, getAllRecords } from '../db/dbService';
 
@@ -35,7 +34,7 @@ const Leads = () => {
 
   const fetchCourses = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/courses`);
+      const res = await apiClient.get(`/api/courses`);
       setCourses(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Error fetching courses:', err);
@@ -46,7 +45,7 @@ const Leads = () => {
     try {
       setLoading(true);
       const institute_uuid = localStorage.getItem('institute_uuid');
-      const { data } = await axios.get(`${BASE_URL}/api/leads`, {
+      const { data } = await apiClient.get(`/api/leads`, {
         params: { institute_uuid },
       });
       const list = Array.isArray(data?.data) ? data.data : [];
@@ -128,7 +127,7 @@ const Leads = () => {
     if (selectedUuids.size === 0) return;
     if (!window.confirm(`Delete ${selectedUuids.size} lead(s)?`)) return;
     try {
-      await axios.post(`${BASE_URL}/api/leads/bulk-delete`, { uuids: [...selectedUuids] });
+      await apiClient.post(`/api/leads/bulk-delete`, { uuids: [...selectedUuids] });
       toast.success(`Deleted ${selectedUuids.size} lead(s)`);
       clearSelection();
       fetchLeads();

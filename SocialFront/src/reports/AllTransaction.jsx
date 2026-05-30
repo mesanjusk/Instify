@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import TopNavbar from '../Pages/topNavbar';
 import Footer from '../Pages/footer';
 import { FaWhatsapp, FaSortUp, FaSortDown } from 'react-icons/fa';
@@ -25,7 +25,7 @@ const AllTransaction = () => {
     useEffect(() => {
         const fetchTransactions = async () => {
             try {
-                const res = await axios.get(TRANSACTION_API);
+                const res = await apiClient.get(TRANSACTION_API);
                 setTransactions(res.data.result || []);
             } catch (err) {
                 console.error('Transaction fetch error:', err);
@@ -33,7 +33,7 @@ const AllTransaction = () => {
         };
         const fetchCustomers = async () => {
             try {
-                const res = await axios.get(CUSTOMER_API);
+                const res = await apiClient.get(CUSTOMER_API);
                 setCustomers(res.data.result || []);
             } catch (err) {
                 console.error('Customer fetch error:', err);

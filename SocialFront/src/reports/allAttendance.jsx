@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import apiClient from '../apiClient';
 import { format } from 'date-fns';
-import BASE_URL from '../config';
 
 export default function AllAttendance() {
   const [attendance, setAttendance] = useState([]);
@@ -17,7 +16,7 @@ export default function AllAttendance() {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(`${BASE_URL}/api/auth/GetUserList/${institute_uuid}`);
+      const response = await apiClient.get(`/api/auth/GetUserList/${institute_uuid}`);
       if (response.data.success) {
         const map = {};
         response.data.result.forEach(user => {
@@ -33,7 +32,7 @@ export default function AllAttendance() {
 
   const fetchAttendanceData = async (map) => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/attendance/GetAttendanceList`);
+      const res = await apiClient.get(`/api/attendance/GetAttendanceList`);
       const records = res.data.result || [];
 
       const todayDate = new Date().toISOString().split("T")[0];

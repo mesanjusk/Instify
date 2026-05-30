@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
-import BASE_URL from '../config';
 import { formatDisplayDate } from '../utils/dateUtils';
 import {
   Box,
@@ -54,7 +53,7 @@ const Owner = () => {
   }, [user, navigate]);
 
   useEffect(() => {
-    axios.get(`${BASE_URL}/api/org-categories`)
+    apiClient.get(`/api/org-categories`)
       .then(res => {
         setOrgTypes(res.data);
       })
@@ -70,7 +69,7 @@ const Owner = () => {
 
   const fetchOrgs = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/institute/GetOrganizList`);
+      const res = await apiClient.get(`/api/institute/GetOrganizList`);
       if (res.data?.success) {
         setOrgs(res.data.result);
       } else {
@@ -91,10 +90,10 @@ const Owner = () => {
 
     try {
       if (editingId) {
-        await axios.put(`${BASE_URL}/api/organize/update/${editingId}`, form);
+        await apiClient.put(`/api/organize/update/${editingId}`, form);
         toast.success('institute updated');
       } else {
-        const res = await axios.post(`${BASE_URL}/api/organize/add`, form);
+        const res = await apiClient.post(`/api/organize/add`, form);
         if (res.data === 'exist') toast.error('institute already exists');
         else if (res.data === 'notexist') toast.success('institute added');
         else toast.error('Unexpected error');
@@ -114,7 +113,7 @@ const Owner = () => {
     if (!window.confirm('Are you sure you want to delete this institute and all related data?')) return;
 
     try {
-      await axios.delete(`${BASE_URL}/api/institute/${uuid}`);
+      await apiClient.delete(`/api/institute/${uuid}`);
       toast.success('Institute deleted');
       fetchOrgs();
     } catch (error) {

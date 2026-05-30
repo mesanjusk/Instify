@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import { useNavigate } from 'react-router-dom';
-import BASE_URL from '../config';
 import {
   Box,
   Card,
@@ -20,7 +19,7 @@ export default function AddAccountGroup() {
   async function submit(e) {
     e.preventDefault();
     try {
-      await axios.post(`${BASE_URL}/api/accountgroup/addAccountgroup`, {
+      await apiClient.post(`/api/accountgroup/addAccountgroup`, {
         Account_group,
       })
         .then(res => {

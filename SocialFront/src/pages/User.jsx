@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import BASE_URL from '../config';
 import { useApp } from '../context/AppContext';
 import {
   Box,
@@ -74,7 +73,7 @@ const User = () => {
 
     try {
       setFetchLoading(true);
-      const res = await axios.get(`${BASE_URL}/api/auth/GetUserList/${orgId}`);
+      const res = await apiClient.get(`/api/auth/GetUserList/${orgId}`);
       if (res.data?.success) {
         setUsers(res.data.result);
       } else {
@@ -105,11 +104,11 @@ const User = () => {
 
     try {
       if (editingId) {
-        await axios.put(`${BASE_URL}/api/auth/${editingId}`, dataToSend);
+        await apiClient.put(`/api/auth/${editingId}`, dataToSend);
         toast.success('User updated');
       } else {
         // Step 1: Register user
-        const res = await axios.post(`${BASE_URL}/api/auth/register`, dataToSend);
+        const res = await apiClient.post(`/api/auth/register`, dataToSend);
 
         if (res.data === 'exist') {
           toast.error('User already exists');
@@ -118,7 +117,7 @@ const User = () => {
           toast.success('User added');
 
           // Step 2: Get "ACCOUNT" group UUID
-          const groupRes = await axios.get(`${BASE_URL}/api/accountgroup/GetAccountgroupList`);
+          const groupRes = await apiClient.get(`/api/accountgroup/GetAccountgroupList`);
           const accountGroup = groupRes.data.result.find(g => g.Account_group === "ACCOUNT");
 
           if (!accountGroup) {
@@ -127,7 +126,7 @@ const User = () => {
           }
 
           // Step 3: Create account linked to this user
-          await axios.post(`${BASE_URL}/api/account/addAccount`, {
+          await apiClient.post(`/api/account/addAccount`, {
             Account_name: form.name,
             Mobile_number: form.mobile,
             Account_group: accountGroup.Account_group_uuid,
@@ -153,7 +152,7 @@ const User = () => {
     if (!window.confirm('Are you sure you want to delete this User?')) return;
 
     try {
-      await axios.delete(`${BASE_URL}/api/auth/${id}`);
+      await apiClient.delete(`/api/auth/${id}`);
       toast.success('User deleted');
       fetchUsers();
     } catch (error) {

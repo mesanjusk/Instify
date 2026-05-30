@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast from 'react-hot-toast';
 import {
   Box, Card, CardContent, Stack, Typography, TextField, Button,
@@ -7,7 +7,6 @@ import {
   Tooltip, InputAdornment, CircularProgress
 } from '@mui/material';
 import { Edit, Delete, Add, Search } from '@mui/icons-material';
-import BASE_URL from '../config';
 
 const Batches = () => {
   const [batches, setBatches] = useState([]);
@@ -26,7 +25,7 @@ const Batches = () => {
   const fetchBatches = async () => {
     try {
       setFetchLoading(true);
-      const res = await axios.get(`${BASE_URL}/api/batches`);
+      const res = await apiClient.get(`/api/batches`);
       setBatches(res.data || []);
     } catch (err) {
       toast.error('Failed to fetch batches');
@@ -69,10 +68,10 @@ const Batches = () => {
     try {
       if (editingId) {
         if (!window.confirm('Update this batch?')) return;
-        await axios.put(`${BASE_URL}/api/batches/${editingId}`, payload);
+        await apiClient.put(`/api/batches/${editingId}`, payload);
         toast.success('Batch updated');
       } else {
-        await axios.post(`${BASE_URL}/api/batches`, payload);
+        await apiClient.post(`/api/batches`, payload);
         toast.success('Batch added');
       }
       setForm({ name: '', timing: '' });
@@ -95,7 +94,7 @@ const Batches = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this batch?')) return;
     try {
-      await axios.delete(`${BASE_URL}/api/batches/${id}`);
+      await apiClient.delete(`/api/batches/${id}`);
       toast.success('Deleted');
       fetchBatches();
     } catch {

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast from 'react-hot-toast';
-import BASE_URL from '../config';
 import {
   Box,
   Stack,
@@ -36,7 +35,7 @@ const PaymentMode = () => {
 
   const fetchData = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/paymentmode`);
+      const res = await apiClient.get(`/api/paymentmode`);
       setList(res.data || []);
     } catch {
       toast.error('Failed to fetch payment modes');
@@ -55,10 +54,10 @@ const PaymentMode = () => {
     try {
       if (editingId) {
         if (!window.confirm('Update this payment mode?')) return;
-        await axios.put(`${BASE_URL}/api/paymentmode/${editingId}`, form);
+        await apiClient.put(`/api/paymentmode/${editingId}`, form);
         toast.success('Updated');
       } else {
-        await axios.post(`${BASE_URL}/api/paymentmode`, form);
+        await apiClient.post(`/api/paymentmode`, form);
         toast.success('Added');
       }
       setForm({ mode: '', description: '' });
@@ -81,7 +80,7 @@ const PaymentMode = () => {
   const handleDelete = async (_id) => {
     if (!window.confirm('Delete this entry?')) return;
     try {
-      await axios.delete(`${BASE_URL}/api/paymentmode/${_id}`);
+      await apiClient.delete(`/api/paymentmode/${_id}`);
       toast.success('Deleted');
       fetchData();
     } catch {
