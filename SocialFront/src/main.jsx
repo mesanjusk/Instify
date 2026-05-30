@@ -4,7 +4,7 @@ import ReactDOM from 'react-dom/client';
 if (new URLSearchParams(window.location.search).get('debug') === '1') {
   import('eruda').then(m => m.default.init());
 }
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, HashRouter } from 'react-router-dom';
 import { ThemeProvider, CssBaseline, GlobalStyles } from '@mui/material';
 import App from './App';
 
@@ -15,6 +15,9 @@ import ErrorBoundary from './components/ErrorBoundary';
 import theme from './theme';
 import { utilityStyles } from './styles/utilityStyles';
 
+// Electron loads via file:// so BrowserRouter can't resolve routes — use HashRouter instead
+const Router = import.meta.env.VITE_IS_DESKTOP === 'true' ? HashRouter : BrowserRouter;
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
 root.render(
@@ -23,7 +26,7 @@ root.render(
       <CssBaseline />
       <GlobalStyles styles={utilityStyles} />
       <ErrorBoundary>
-        <BrowserRouter>
+        <Router>
           <BrandingProvider>
             <AppProvider>
               <MetadataProvider>
@@ -31,7 +34,7 @@ root.render(
               </MetadataProvider>
             </AppProvider>
           </BrandingProvider>
-        </BrowserRouter>
+        </Router>
       </ErrorBoundary>
     </ThemeProvider>
   </React.StrictMode>
