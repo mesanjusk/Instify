@@ -242,10 +242,25 @@ async function startMongoDB() {
     '--logappend',
   ], { detached: false });
 
+  let mongodExitCode = null;
   mongodProcess.on('error', (err) => console.error('[mongod] error:', err));
+  mongodProcess.on('exit', (code) => { mongodExitCode = code; });
   mongodProcess.stderr?.on('data', (d) => console.error('[mongod]', d.toString().trim()));
 
-  await waitForPort(MONGO_PORT, 30, 1000);
+  try {
+    await waitForPort(MONGO_PORT, 90, 1000);
+  } catch (err) {
+    const logPath = path.join(app.getPath('logs'), 'mongod.log');
+    const fs = require('fs');
+    const logTail = fs.existsSync(logPath)
+      ? fs.readFileSync(logPath, 'utf8').split('\n').slice(-10).join('\n')
+      : '(no log file)';
+    throw new Error(
+      `MongoDB did not start after 90 seconds.\n` +
+      (mongodExitCode !== null ? `mongod exited with code ${mongodExitCode}.\n` : '') +
+      `Log tail:\n${logTail}`
+    );
+  }
   console.log('[mongod] ready on port', MONGO_PORT);
 }
 
