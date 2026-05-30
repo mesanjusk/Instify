@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import { useNavigate } from 'react-router-dom';
-import BASE_URL from '../config';
 import {
   Box,
   Card,
@@ -26,7 +25,7 @@ export default function AddAccount() {
   const institute_uuid = localStorage.getItem('institute_uuid');
 
   useEffect(() => {
-    axios.get(`${BASE_URL}/api/accountgroup/GetAccountgroupList`)
+    apiClient.get(`/api/accountgroup/GetAccountgroupList`)
       .then(res => {
         if (res.data.success) {
           setAccount_group(res.data.result);
@@ -40,7 +39,7 @@ export default function AddAccount() {
   async function submit(e) {
     e.preventDefault();
     try {
-      await axios.post(`${BASE_URL}/api/account/addAccount`, {
+      await apiClient.post(`/api/account/addAccount`, {
         Account_name,
         Mobile_number,
         Account_group: selectedGroup,

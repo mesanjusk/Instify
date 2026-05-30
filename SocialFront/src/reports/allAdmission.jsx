@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast, { Toaster } from 'react-hot-toast';
 import { FaPhoneAlt, FaWhatsapp } from 'react-icons/fa';
 import { useNavigate, useParams } from 'react-router-dom';
-import BASE_URL from '../config';
 
 const GridIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
@@ -31,7 +30,7 @@ const AllAdmission = () => {
 
   const fetchCourses = async () => {
     try {
-      const { data } = await axios.get(`${BASE_URL}/api/courses`, { params: { institute_uuid } });
+      const { data } = await apiClient.get(`/api/courses`, { params: { institute_uuid } });
       setCourses(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('❌ Error fetching courses:', error);
@@ -42,7 +41,7 @@ const AllAdmission = () => {
   const fetchAdmissions = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`${BASE_URL}/api/admissions`, { params: { institute_uuid } });
+      const { data } = await apiClient.get(`/api/admissions`, { params: { institute_uuid } });
       setAdmissions(Array.isArray(data?.data) ? data.data : []);
     } catch (error) {
       console.error('❌ Error fetching admissions:', error.response?.data || error.message);
@@ -99,7 +98,7 @@ const AllAdmission = () => {
     if (selectedUuids.size === 0) return;
     if (!window.confirm(`Delete ${selectedUuids.size} admission(s)?`)) return;
     try {
-      await axios.post(`${BASE_URL}/api/admissions/bulk-delete`, { uuids: [...selectedUuids] });
+      await apiClient.post(`/api/admissions/bulk-delete`, { uuids: [...selectedUuids] });
       toast.success(`Deleted ${selectedUuids.size} admission(s)`);
       clearSelection();
       fetchAdmissions();
@@ -111,7 +110,7 @@ const AllAdmission = () => {
   const handleDelete = async (admission) => {
     if (!window.confirm('Delete this admission?')) return;
     try {
-      await axios.delete(`${BASE_URL}/api/admissions/${admission.uuid}`);
+      await apiClient.delete(`/api/admissions/${admission.uuid}`);
       toast.success('Admission deleted');
       setSelectedAdmission(null);
       fetchAdmissions();

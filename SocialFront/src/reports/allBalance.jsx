@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import { FaSortUp, FaSortDown } from 'react-icons/fa';
 import * as XLSX from 'xlsx';
 import { jsPDF } from "jspdf";
-import BASE_URL from '../config';
 import { FaFileExcel, FaFilePdf } from "react-icons/fa";
 
 
@@ -20,14 +19,10 @@ const AllBalance = () => {
     const institute_uuid = localStorage.getItem('institute_uuid');
     // ... rest as before
 
-    const TRANSACTION_API = `${BASE_URL}/api/transaction/GetTransactionList`;
-    const CUSTOMER_API = `${BASE_URL}/api/account/GetAccountList`;
-
-
     useEffect(() => {
         const fetchTransactions = async () => {
             try {
-                const res = await axios.get(TRANSACTION_API);
+                const res = await apiClient.get('/api/transaction/GetTransactionList');
                 setTransactions(
                     (res.data.result || []).filter(
                         t => t.institute_uuid === institute_uuid
@@ -39,7 +34,7 @@ const AllBalance = () => {
         };
         const fetchCustomers = async () => {
             try {
-                const res = await axios.get(CUSTOMER_API);
+                const res = await apiClient.get('/api/account/GetAccountList');
                 setCustomers(
                     (res.data.result || []).filter(
                         c => c.institute_uuid === institute_uuid

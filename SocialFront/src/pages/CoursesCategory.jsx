@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast from 'react-hot-toast';
 import {
   Box, Card, CardContent, Stack, Typography, TextField, Button,
@@ -7,7 +7,6 @@ import {
   Tooltip, InputAdornment, CircularProgress
 } from '@mui/material';
 import { Edit, Delete, Add, Search } from '@mui/icons-material';
-import BASE_URL from '../config';
 
 const CoursesCategory = () => {
   const [courses, setCourses] = useState([]);
@@ -22,7 +21,7 @@ const CoursesCategory = () => {
   const fetchCourses = async () => {
     try {
       setFetchLoading(true);
-      const res = await axios.get(`${BASE_URL}/api/courseCategory`);
+      const res = await apiClient.get(`/api/courseCategory`);
       setCourses(res.data || []);
     } catch (err) {
       toast.error('Failed to fetch courseCategory');
@@ -43,10 +42,10 @@ const CoursesCategory = () => {
     try {
       if (editingId) {
         if (!window.confirm('Update this courseCategory?')) return;
-        await axios.put(`${BASE_URL}/api/courseCategory/${editingId}`, payload);
+        await apiClient.put(`/api/courseCategory/${editingId}`, payload);
         toast.success('CourseCategory updated');
       } else {
-        await axios.post(`${BASE_URL}/api/courseCategory`, payload);
+        await apiClient.post(`/api/courseCategory`, payload);
         toast.success('CourseCategory added');
       }
       setForm({ name: '' });
@@ -69,7 +68,7 @@ const CoursesCategory = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this courseCategory?')) return;
     try {
-      await axios.delete(`${BASE_URL}/api/courseCategory/${id}`);
+      await apiClient.delete(`/api/courseCategory/${id}`);
       toast.success('Deleted');
       fetchCourses();
     } catch {

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast from 'react-hot-toast';
-import BASE_URL from '../config';
 import {
   Box,
   Stack,
@@ -36,7 +35,7 @@ const OrgCategories = () => {
 
   const fetchCategories = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/org-categories`);
+      const res = await apiClient.get(`/api/org-categories`);
       setCategories(res.data || []);
     } catch (err) {
       toast.error('Failed to fetch categories');
@@ -55,10 +54,10 @@ const OrgCategories = () => {
     try {
       if (editingId) {
         if (!window.confirm('Update this category?')) return;
-        await axios.put(`${BASE_URL}/api/org-categories/${editingId}`, form);
+        await apiClient.put(`/api/org-categories/${editingId}`, form);
         toast.success('Category updated');
       } else {
-        await axios.post(`${BASE_URL}/api/org-categories`, form);
+        await apiClient.post(`/api/org-categories`, form);
         toast.success('Category added');
       }
       setForm({ category: '', description: '' });
@@ -81,7 +80,7 @@ const OrgCategories = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this category?')) return;
     try {
-      await axios.delete(`${BASE_URL}/api/org-categories/${id}`);
+      await apiClient.delete(`/api/org-categories/${id}`);
       toast.success('Deleted');
       fetchCategories();
     } catch {

@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast from 'react-hot-toast';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import BASE_URL from '../config';
 import {
   Alert, Box, Button, Card, CardContent, Chip, CircularProgress,
   Dialog, DialogActions, DialogContent, DialogTitle,
@@ -84,7 +83,7 @@ export default function ToolsPanel() {
   const fetchDesktopApp = async () => {
     setDesktopLoading(true);
     try {
-      const res = await axios.get(`${BASE_URL}/api/admin/desktop-app`, { headers: AUTH_HEADER() });
+      const res = await apiClient.get(`/api/admin/desktop-app`, { headers: AUTH_HEADER() });
       setDesktopApp(res.data);
     } catch {
       setDesktopApp({ available: false });
@@ -106,7 +105,7 @@ export default function ToolsPanel() {
     if (!desktopForm.url.trim()) { toast.error('Download URL is required'); return; }
     setDesktopSaving(true);
     try {
-      await axios.put(`${BASE_URL}/api/admin/desktop-app`, desktopForm, { headers: AUTH_HEADER() });
+      await apiClient.put(`/api/admin/desktop-app`, desktopForm, { headers: AUTH_HEADER() });
       toast.success('Desktop app info updated');
       setDesktopDialog(false);
       fetchDesktopApp();
@@ -131,7 +130,7 @@ export default function ToolsPanel() {
   const fetchInstitutes = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${BASE_URL}/api/institute/GetOrganizList`, { headers: AUTH_HEADER() });
+      const res = await apiClient.get(`/api/institute/GetOrganizList`, { headers: AUTH_HEADER() });
       if (res.data?.success) setInstitutes(res.data.result);
       else toast.error('Failed to load institutes');
     } catch {
@@ -144,7 +143,7 @@ export default function ToolsPanel() {
   const handleDelete = async (uuid, name) => {
     if (!window.confirm(`Delete "${name}" and all its data? This cannot be undone.`)) return;
     try {
-      await axios.delete(`${BASE_URL}/api/institute/${uuid}`, { headers: AUTH_HEADER() });
+      await apiClient.delete(`/api/institute/${uuid}`, { headers: AUTH_HEADER() });
       toast.success('Institute deleted');
       fetchInstitutes();
     } catch {
@@ -182,10 +181,9 @@ export default function ToolsPanel() {
         trialExpiresAt: editTarget.trialExpiresAt || undefined,
         storage_mode: editTarget.storage_mode || 'cloud_only',
       };
-      const res = await axios.put(
-        `${BASE_URL}/api/institute/manage/${editTarget.institute_uuid}`,
-        payload,
-        { headers: AUTH_HEADER() }
+      const res = await apiClient.put(
+        `/api/institute/manage/${editTarget.institute_uuid}`,
+        payload
       );
       if (res.data?.success) {
         toast.success('Institute updated');

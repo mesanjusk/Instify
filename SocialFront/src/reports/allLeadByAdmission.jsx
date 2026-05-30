@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast, { Toaster } from 'react-hot-toast';
 import { FaWhatsapp } from 'react-icons/fa';
 import { useNavigate, useParams } from 'react-router-dom';
-import BASE_URL from '../config';
 import AdmissionFormModal from '../components/admissions/AdmissionFormModal';
 import ConfirmAdmissionModal from '../components/admissions/ConfirmAdmissionModal';
 import ManageBatchModal from '../components/common/ManageBatchModal';
@@ -49,7 +48,7 @@ const AllLeadByAdmission = () => {
 
   const fetchCourses = async () => {
     try {
-      const { data } = await axios.get(`${BASE_URL}/api/courses`, { params: { institute_uuid } });
+      const { data } = await apiClient.get(`/api/courses`, { params: { institute_uuid } });
       setCourses(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('❌ Error fetching courses:', error);
@@ -60,7 +59,7 @@ const AllLeadByAdmission = () => {
   const fetchLeads = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get(`${BASE_URL}/api/Leads`, { params: { institute_uuid } });
+      const { data } = await apiClient.get(`/api/Leads`, { params: { institute_uuid } });
       const allLeads = Array.isArray(data?.data) ? data.data : [];
       const leadsWithAdmission = allLeads.filter((lead) => !!lead.admission_uuid);
       setLeads(leadsWithAdmission);
@@ -75,7 +74,7 @@ const AllLeadByAdmission = () => {
 
   const fetchInstitute = async () => {
     try {
-      const { data } = await axios.get(`${BASE_URL}/api/institute/${institute_uuid}`);
+      const { data } = await apiClient.get(`/api/institute/${institute_uuid}`);
       const inst = data?.result || data;
       setInstitute({
         name: inst.institute_title,
@@ -134,7 +133,7 @@ const AllLeadByAdmission = () => {
     if (selectedUuids.size === 0) return;
     if (!window.confirm(`Delete ${selectedUuids.size} lead(s)?`)) return;
     try {
-      await axios.post(`${BASE_URL}/api/leads/bulk-delete`, { uuids: [...selectedUuids] });
+      await apiClient.post(`/api/leads/bulk-delete`, { uuids: [...selectedUuids] });
       toast.success(`Deleted ${selectedUuids.size} lead(s)`);
       clearSelection();
       fetchLeads();
@@ -146,7 +145,7 @@ const AllLeadByAdmission = () => {
   const handleDeleteLead = async (lead) => {
     if (!window.confirm('Delete this lead?')) return;
     try {
-      await axios.delete(`${BASE_URL}/api/leads/${getLeadUuid(lead)}`);
+      await apiClient.delete(`/api/leads/${getLeadUuid(lead)}`);
       toast.success('Lead deleted');
       setSelectedLead(null);
       fetchLeads();
@@ -157,7 +156,7 @@ const AllLeadByAdmission = () => {
 
   const handleEditClick = async (lead) => {
     try {
-      const { data } = await axios.get(`${BASE_URL}/api/admissions/${lead.admission_uuid}`);
+      const { data } = await apiClient.get(`/api/admissions/${lead.admission_uuid}`);
       const admission = data?.data || data;
       const enriched = { ...admission, studentData: lead.studentData || lead.student || {}, course: admission.course || lead.course };
       setEditLead(enriched);
@@ -170,7 +169,7 @@ const AllLeadByAdmission = () => {
 
   const handleCertificateClick = async (lead) => {
     try {
-      const { data } = await axios.get(`${BASE_URL}/api/admissions/${lead.admission_uuid}`);
+      const { data } = await apiClient.get(`/api/admissions/${lead.admission_uuid}`);
       const admission = data?.data || data;
       const enriched = { ...admission, studentData: lead.studentData || lead.student || {}, course: admission.course || lead.course };
       setCertificateData(enriched);
@@ -183,7 +182,7 @@ const AllLeadByAdmission = () => {
 
   const handleManageBatchClick = async (lead) => {
     try {
-      const { data } = await axios.get(`${BASE_URL}/api/admissions/${lead.admission_uuid}`);
+      const { data } = await apiClient.get(`/api/admissions/${lead.admission_uuid}`);
       const admission = data?.data || data;
       setBatchAdmission(admission);
       setSelectedLead(null);
@@ -195,7 +194,7 @@ const AllLeadByAdmission = () => {
 
   const handleManageExamClick = async (lead) => {
     try {
-      const { data } = await axios.get(`${BASE_URL}/api/admissions/${lead.admission_uuid}`);
+      const { data } = await apiClient.get(`/api/admissions/${lead.admission_uuid}`);
       const admission = data?.data || data;
       setExamAdmission(admission);
       setSelectedLead(null);
@@ -207,7 +206,7 @@ const AllLeadByAdmission = () => {
 
   const handleConfirmClick = async (lead) => {
     try {
-      const { data } = await axios.get(`${BASE_URL}/api/admissions/${lead.admission_uuid}`);
+      const { data } = await apiClient.get(`/api/admissions/${lead.admission_uuid}`);
       const admission = data?.data || data;
       const enriched = { ...admission, student: lead.student || lead.studentData || {}, course: lead.course };
       setConfirmLead(enriched);
@@ -239,10 +238,10 @@ const AllLeadByAdmission = () => {
 
   const handleSelectLead = async (lead) => {
     try {
-      const { data } = await axios.get(`${BASE_URL}/api/admissions/${lead.admission_uuid}`);
+      const { data } = await apiClient.get(`/api/admissions/${lead.admission_uuid}`);
       const admission = data?.data || data;
 
-      const { data: feesRes } = await axios.get(`${BASE_URL}/api/fees`, {
+      const { data: feesRes } = await apiClient.get(`/api/fees`, {
         params: { admission_uuid: lead.admission_uuid },
       });
 

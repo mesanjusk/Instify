@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -10,7 +10,6 @@ import {
   Tooltip, InputAdornment, CircularProgress, Chip, Checkbox
 } from '@mui/material';
 import { Edit, Delete, Add, PictureAsPdf, FileDownload, Search, GridView, ViewList } from '@mui/icons-material';
-import BASE_URL from '../config';
 
 const Courses = () => {
   const institute_uuid = localStorage.getItem('institute_uuid') || '';
@@ -36,7 +35,7 @@ const Courses = () => {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${BASE_URL}/api/courses`, { params: { institute_uuid } });
+      const res = await apiClient.get('/api/courses');
       setCourses(res.data || []);
     } catch {
       toast.error('Failed to fetch courses');
@@ -53,13 +52,13 @@ const Courses = () => {
     e.preventDefault();
     try {
       if (editingId) {
-        await axios.put(`${BASE_URL}/api/courses/${editingId}`, { ...form });
+        await apiClient.put(`/api/courses/${editingId}`, { ...form });
         toast.success('Course updated');
       } else {
-        await axios.post(`${BASE_URL}/api/courses`, { ...form });
+        await apiClient.post('/api/courses', { ...form });
         toast.success('Course added');
       }
-      setForm({ name: '', description: '', courseFees: '', examFees: '', duration: '' });
+      setForm({ name: '', description: '', courseFees: '', examFees: '', duration: '', institute_uuid });
       setEditingId(null);
       setShowModal(false);
       fetchCourses();
@@ -69,7 +68,7 @@ const Courses = () => {
   };
 
   const handleEdit = (course) => {
-    setForm({ name: course.name, description: course.description, courseFees: course.courseFees || '', examFees: course.examFees || '', duration: course.duration || '' });
+    setForm({ name: course.name, description: course.description || '', courseFees: course.courseFees || '', examFees: course.examFees || '', duration: course.duration || '', institute_uuid });
     setEditingId(course._id);
     setDetailCourse(null);
     setShowModal(true);
@@ -78,7 +77,7 @@ const Courses = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this course?')) return;
     try {
-      await axios.delete(`${BASE_URL}/api/courses/${id}`);
+      await apiClient.delete(`/api/courses/${id}`);
       toast.success('Deleted');
       setDetailCourse(null);
       fetchCourses();
@@ -91,7 +90,7 @@ const Courses = () => {
     if (selectedIds.size === 0) return;
     if (!window.confirm(`Delete ${selectedIds.size} course(s)?`)) return;
     try {
-      await axios.post(`${BASE_URL}/api/courses/bulk-delete`, { ids: [...selectedIds] });
+      await apiClient.post('/api/courses/bulk-delete', { ids: [...selectedIds] });
       toast.success(`Deleted ${selectedIds.size} course(s)`);
       setSelectedIds(new Set());
       setSelectionMode(false);
@@ -153,7 +152,7 @@ const Courses = () => {
               <Button size="small" variant="outlined" color="inherit" onClick={clearSelection} sx={{ textTransform: 'none' }}>Cancel</Button>
             </>
           )}
-          <Button variant="contained" startIcon={<Add />} onClick={() => { setForm({ name: '', description: '', courseFees: '', examFees: '', duration: '' }); setEditingId(null); setShowModal(true); }} sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' }, textTransform: 'none', whiteSpace: 'nowrap' }}>Add Course</Button>
+          <Button variant="contained" startIcon={<Add />} onClick={() => { setForm({ name: '', description: '', courseFees: '', examFees: '', duration: '', institute_uuid }); setEditingId(null); setShowModal(true); }} sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' }, textTransform: 'none', whiteSpace: 'nowrap' }}>Add Course</Button>
         </Stack>
       </Stack>
 

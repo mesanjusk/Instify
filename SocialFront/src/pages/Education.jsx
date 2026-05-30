@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast from 'react-hot-toast';
 import {
   Box, Card, CardContent, Stack, Typography, TextField, Button,
@@ -7,7 +7,6 @@ import {
   Tooltip, InputAdornment, CircularProgress
 } from '@mui/material';
 import { Edit, Delete, Add, Search } from '@mui/icons-material';
-import BASE_URL from '../config';
 
 const Education = () => {
   const [list, setList] = useState([]);
@@ -24,7 +23,7 @@ const Education = () => {
   const fetchData = async () => {
     try {
       setFetchLoading(true);
-      const res = await axios.get(`${BASE_URL}/api/education`);
+      const res = await apiClient.get(`/api/education`);
       setList(res.data || []);
     } catch {
       toast.error('Failed to fetch data');
@@ -72,10 +71,10 @@ const Education = () => {
     try {
       if (editingId) {
         if (!window.confirm('Update this entry?')) return;
-        await axios.put(`${BASE_URL}/api/education/${editingId}`, form);
+        await apiClient.put(`/api/education/${editingId}`, form);
         toast.success('Updated');
       } else {
-        await axios.post(`${BASE_URL}/api/education`, form);
+        await apiClient.post(`/api/education`, form);
         toast.success('Added');
       }
       setForm({ education: '', description: '' });
@@ -98,7 +97,7 @@ const Education = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this entry?')) return;
     try {
-      await axios.delete(`${BASE_URL}/api/education/${id}`);
+      await apiClient.delete(`/api/education/${id}`);
       toast.success('Deleted');
       fetchData();
     } catch {

@@ -1,11 +1,10 @@
 import { useSearchParams } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import BASE_URL from '../config';
 import {
   Box,
   Button,
@@ -94,7 +93,7 @@ const AddAdmission = () => {
 
   const fetchCourses = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/courses`);
+      const res = await apiClient.get(`/api/courses`);
       setCourses(Array.isArray(res.data) ? res.data : []);
     } catch {
       toast.error('Failed to load courses');
@@ -103,7 +102,7 @@ const AddAdmission = () => {
   useEffect(() => {
     const fetchLeadData = async () => {
       try {
-        const res = await axios.get(`${BASE_URL}/api/leads/${lead_uuid}`);
+        const res = await apiClient.get(`/api/leads/${lead_uuid}`);
         const lead = res.data;
 
         setForm(prev => ({
@@ -137,7 +136,7 @@ const AddAdmission = () => {
 
   const fetchEducations = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/education`);
+      const res = await apiClient.get(`/api/education`);
       setEducations(Array.isArray(res.data) ? res.data : []);
     } catch {
       toast.error('Failed to load education options');
@@ -146,7 +145,7 @@ const AddAdmission = () => {
 
   const fetchExams = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/exams`);
+      const res = await apiClient.get(`/api/exams`);
       setExams(Array.isArray(res.data) ? res.data : []);
     } catch {
       toast.error('Failed to load exam events');
@@ -155,7 +154,7 @@ const AddAdmission = () => {
 
   const fetchBatches = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/batches`);
+      const res = await apiClient.get(`/api/batches`);
       setBatches(res.data || []);
     } catch {
       toast.error('Failed to load batches');
@@ -164,7 +163,7 @@ const AddAdmission = () => {
 
   const fetchPaymentModes = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/paymentmode`);
+      const res = await apiClient.get(`/api/paymentmode`);
       setPaymentModes(Array.isArray(res.data) ? res.data : []);
     } catch {
       toast.error('Failed to load payment modes');
@@ -223,7 +222,7 @@ const AddAdmission = () => {
   const fetchAdmissions = async () => {
     if (!institute_uuid) return;
     try {
-      const res = await axios.get(`${BASE_URL}/api/admissions`, {
+      const res = await apiClient.get(`/api/admissions`, {
         params: { institute_uuid }
       });
       const { data } = res.data;
@@ -304,9 +303,9 @@ const AddAdmission = () => {
 
       let studentResponse;
       if (editingId && form.student_uuid) {
-        studentResponse = await axios.put(`${BASE_URL}/api/students/${form.student_uuid}`, studentPayload);
+        studentResponse = await apiClient.put(`/api/students/${form.student_uuid}`, studentPayload);
       } else {
-        studentResponse = await axios.post(`${BASE_URL}/api/students`, studentPayload);
+        studentResponse = await apiClient.post(`/api/students`, studentPayload);
       }
 
       const studentData = studentResponse.data.data;
@@ -333,10 +332,10 @@ const AddAdmission = () => {
 
       let admissionResponse;
       if (editingId) {
-        admissionResponse = await axios.put(`${BASE_URL}/api/admissions/${editingId}`, admissionPayload);
+        admissionResponse = await apiClient.put(`/api/admissions/${editingId}`, admissionPayload);
         toast.success('Admission updated successfully');
       } else {
-        admissionResponse = await axios.post(`${BASE_URL}/api/admissions`, admissionPayload);
+        admissionResponse = await apiClient.post(`/api/admissions`, admissionPayload);
         toast.success('Admission added successfully');
       }
 
@@ -360,7 +359,7 @@ const AddAdmission = () => {
         paidBy: form.paidBy,
       };
 
-      const feesResponse = await axios.post(`${BASE_URL}/api/fees`, feesPayload);
+      const feesResponse = await apiClient.post(`/api/fees`, feesPayload);
       console.log("Fees saved:", feesResponse.data.data);
 
       // Step 3: Create/Update lead record
@@ -380,7 +379,7 @@ const AddAdmission = () => {
         }],
       };
 
-      const leadResponse = await axios.post(`${BASE_URL}/api/leads`, leadPayload);
+      const leadResponse = await apiClient.post(`/api/leads`, leadPayload);
       console.log("Lead saved:", leadResponse.data.data);
 
       // Step 3: Create/Update account record
@@ -391,7 +390,7 @@ const AddAdmission = () => {
         Mobile_number: form.mobileSelf
       };
 
-      const accountResponse = await axios.post(`${BASE_URL}/api/account/addAccount`, accountPayload);
+      const accountResponse = await apiClient.post(`/api/account/addAccount`, accountPayload);
       console.log("Account saved:", accountResponse.data.data);
 
       toast.success('All records saved successfully');
@@ -431,7 +430,7 @@ const AddAdmission = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this admission?')) return;
     try {
-      await axios.delete(`${BASE_URL}/api/admission/${id}`);
+      await apiClient.delete(`/api/admission/${id}`);
       toast.success('Deleted');
       fetchAdmissions();
     } catch {

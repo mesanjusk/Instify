@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast from 'react-hot-toast';
-import BASE_URL from '../config';
 import { useApp } from '../context/AppContext';
 import {
   Box,
@@ -34,7 +33,7 @@ const InstituteProfile = () => {
 
   const fetchProfile = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/institute/${instituteUUID}`);
+      const res = await apiClient.get(`/api/institute/${instituteUUID}`);
       const result = res.data.result;
       setData(result);
       setLogoPreview(result.institute_logo || '');
@@ -54,7 +53,7 @@ const InstituteProfile = () => {
     const formData = new FormData();
     formData.append('file', logoFile);
     try {
-      const res = await axios.post(`${BASE_URL}/api/upload`, formData);
+      const res = await apiClient.post(`/api/upload`, formData);
       return res.data.url;
     } catch (err) {
       toast.error('Logo upload failed');
@@ -68,7 +67,7 @@ const InstituteProfile = () => {
     const formData = new FormData();
     formData.append('file', faviconFile);
     try {
-      const res = await axios.post(`${BASE_URL}/api/upload`, formData);
+      const res = await apiClient.post(`/api/upload`, formData);
       return res.data.url;
     } catch (err) {
       toast.error('Favicon upload failed');
@@ -105,7 +104,7 @@ const InstituteProfile = () => {
         theme_favicon: faviconUrl,
       };
 
-      await axios.put(`${BASE_URL}/api/institute/update/${instituteUUID}`, updated);
+      await apiClient.put(`/api/institute/update/${instituteUUID}`, updated);
       toast.success('Profile updated');
       fetchProfile();
 

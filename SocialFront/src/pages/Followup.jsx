@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import toast from 'react-hot-toast';
 import { FaWhatsapp } from 'react-icons/fa';
 
@@ -48,7 +48,6 @@ import {
   Paper,
 } from '@mui/material';
 
-import BASE_URL from '../config';
 import { useMetadata } from '../context/MetadataContext';
 
 const Followup = () => {
@@ -108,7 +107,7 @@ const Followup = () => {
 
   const fetchEnquiries = async () => {
     try {
-      const res = await axios.get(`${BASE_URL}/api/leads`, {
+      const res = await apiClient.get(`/api/leads`, {
         params: { institute_uuid }
       });
       const { data } = res.data;
@@ -129,10 +128,10 @@ const Followup = () => {
 
     try {
       if (editingId) {
-        await axios.put(`${BASE_URL}/api/leads/${editingId}`, payload);
+        await apiClient.put(`/api/leads/${editingId}`, payload);
         toast.success('Lead updated');
       } else {
-        await axios.post(`${BASE_URL}/api/leads`, payload);
+        await apiClient.post(`/api/leads`, payload);
         toast.success('Lead added');
       }
       setForm(initialForm);
@@ -147,7 +146,7 @@ const Followup = () => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this lead?')) return;
     try {
-      await axios.delete(`${BASE_URL}/api/leads/${id}`);
+      await apiClient.delete(`/api/leads/${id}`);
       toast.success('Deleted');
       fetchEnquiries();
     } catch {
@@ -222,7 +221,7 @@ const Followup = () => {
     };
 
     try {
-      await axios.post(`${BASE_URL}/api/record/convert/${enquiryToDeleteId}`, payload);
+      await apiClient.post(`/api/record/convert/${enquiryToDeleteId}`, payload);
       toast.success('Admission saved and enquiry updated');
       setAdmissionForm(admissionTemplate);
       setShowAdmission(false);
@@ -254,7 +253,7 @@ const Followup = () => {
     if (selectedIds.size === 0) return;
     if (!window.confirm(`Delete ${selectedIds.size} lead(s)?`)) return;
     try {
-      await axios.post(`${BASE_URL}/api/leads/bulk-delete`, { uuids: [...selectedIds] });
+      await apiClient.post(`/api/leads/bulk-delete`, { uuids: [...selectedIds] });
       toast.success(`Deleted ${selectedIds.size} lead(s)`);
       clearSelection();
       fetchEnquiries();

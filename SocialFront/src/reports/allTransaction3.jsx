@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 import { useLocation, useNavigate } from 'react-router-dom';
 import jsPDF from 'jspdf';
 import * as XLSX from 'xlsx';
@@ -34,8 +34,8 @@ const AllTransaction3 = () => {
             try {
                 setLoading(true);
                 const [transRes, custRes] = await Promise.all([
-                    axios.get('/transaction/GetFilteredTransactions'),
-                    axios.get('/customer/GetCustomersList')
+                    apiClient.get('/api/transaction/GetFilteredTransactions'),
+                    apiClient.get('/api/account/GetAccountList')
                 ]);
 
                 if (transRes.data.success) setTransactions(transRes.data.result);
