@@ -64,7 +64,12 @@ app.use(express.json({ limit: '10mb' }));
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'none'"],
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://cdnjs.cloudflare.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      connectSrc: ["'self'", "https:", "wss:"],
       frameAncestors: ["'none'"],
     },
   },

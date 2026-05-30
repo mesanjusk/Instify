@@ -29,7 +29,12 @@ const logoutUser = () => {
   // ✅ Notify and redirect
   toast.success('Logged out successfully');
   setTimeout(() => {
-    window.location.href = '/login'; // Update if your login route differs
+    // HashRouter (desktop) uses hash-based URLs; BrowserRouter (web) uses path
+    if (import.meta.env.VITE_IS_DESKTOP === 'true') {
+      window.location.hash = '/login';
+    } else {
+      window.location.href = '/login';
+    }
   }, 500);
 };
 

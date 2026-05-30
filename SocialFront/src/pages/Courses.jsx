@@ -13,8 +13,9 @@ import { Edit, Delete, Add, PictureAsPdf, FileDownload, Search, GridView, ViewLi
 import BASE_URL from '../config';
 
 const Courses = () => {
+  const institute_uuid = localStorage.getItem('institute_uuid') || '';
   const [courses, setCourses] = useState([]);
-  const [form, setForm] = useState({ name: '', description: '', courseFees: '', examFees: '', duration: '' });
+  const [form, setForm] = useState({ name: '', description: '', courseFees: '', examFees: '', duration: '', institute_uuid });
   const [editingId, setEditingId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [detailCourse, setDetailCourse] = useState(null);
@@ -35,7 +36,7 @@ const Courses = () => {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${BASE_URL}/api/courses`);
+      const res = await axios.get(`${BASE_URL}/api/courses`, { params: { institute_uuid } });
       setCourses(res.data || []);
     } catch {
       toast.error('Failed to fetch courses');

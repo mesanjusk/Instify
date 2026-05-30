@@ -16,8 +16,9 @@ import BASE_URL from '../config';
 const PAGE_SIZE = 25;
 
 const Students = () => {
+  const institute_uuid = localStorage.getItem('institute_uuid') || '';
   const [students, setStudents] = useState([]);
-  const [form, setForm] = useState({ firstName: '', middleName: '', lastName: '', dob: '', gender: '', mobileSelf: '', institute_uuid: '' });
+  const [form, setForm] = useState({ firstName: '', middleName: '', lastName: '', dob: '', gender: '', mobileSelf: '', institute_uuid });
   const [editingId, setEditingId] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [detailStudent, setDetailStudent] = useState(null);
@@ -29,7 +30,6 @@ const Students = () => {
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const searchTimeout = useRef();
-  const institute_uuid = localStorage.getItem('institute_uuid');
 
   useEffect(() => {
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
@@ -40,7 +40,7 @@ const Students = () => {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${BASE_URL}/api/students`);
+      const res = await axios.get(`${BASE_URL}/api/students`, { params: { institute_uuid } });
       setStudents(Array.isArray(res.data?.data) ? res.data.data : []);
     } catch {
       toast.error('Failed to fetch students');
