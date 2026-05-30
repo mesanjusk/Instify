@@ -7,6 +7,16 @@ const crypto = require('crypto');
 const os = require('os');
 const Store = require('electron-store');
 
+// If the backend port is already claimed by a previous instance still running
+// in the tray, swallow the EADDRINUSE error instead of crashing the app.
+process.on('uncaughtException', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.warn(`[backend] Port already in use — reusing existing instance`);
+    return;
+  }
+  throw err;
+});
+
 // Derive a machine-specific encryption key so the store is tied to this device.
 // Falls back to the legacy key on first run if the migrated flag is not set,
 // then re-encrypts with the new key — enabling a transparent migration.
@@ -275,9 +285,6 @@ async function startBackend() {
   const apiKey = store.get('cloudinary.apiKey', '');
   const apiSecret = store.get('cloudinary.apiSecret', '');
 
-  // Set env vars before requiring — backend reads process.env at load time.
-  // Running inline (no child process) avoids all binary compatibility issues
-  // that arise from using process.execPath (electron.exe) as a Node.js runner.
   Object.assign(process.env, {
     NODE_ENV: 'production',
     PORT: String(BACKEND_PORT),
@@ -290,7 +297,19 @@ async function startBackend() {
     CLOUDINARY_API_SECRET: apiSecret || '',
   });
 
-  require(path.join(BACKEND_DIR, 'index.js'));
+  // Skip requiring if a previous instance already holds the port (e.g. app still in tray)
+  const portInUse = await new Promise(resolve => {
+    const s = new net_module.Socket();
+    s.setTimeout(300);
+    s.on('connect', () => { s.destroy(); resolve(true); });
+    s.on('error', () => { s.destroy(); resolve(false); });
+    s.on('timeout', () => { s.destroy(); resolve(false); });
+    s.connect(BACKEND_PORT, '127.0.0.1');
+  });
+
+  if (!portInUse) {
+    require(path.join(BACKEND_DIR, 'index.js'));
+  }
 
   await waitForHttp(`http://127.0.0.1:${BACKEND_PORT}/health`, 60, 1000);
   console.log('[backend] ready on port', BACKEND_PORT);
