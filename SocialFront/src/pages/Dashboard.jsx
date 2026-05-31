@@ -232,18 +232,19 @@ export default function Dashboard() {
   useEffect(() => {
     const uuid = localStorage.getItem('institute_uuid');
     if (!uuid) { setLoading(false); return; }
-    apiClient.get('/api/dashboard-stats', { params: { institute_uuid: uuid } })
-      .then(({ data: d }) => setStats({ students: d.students ?? 0, admissions: d.admissions ?? 0, courses: d.courses ?? 0, enquiries: d.enquiries ?? 0, feesToday: d.feesToday ?? 0, followupToday: d.followupToday ?? 0 }))
-      .catch(() => setStats({ students: 0, admissions: 0, courses: 0, enquiries: 0, feesToday: 0, followupToday: 0 }))
+    Promise.all([
+      apiClient.get('/api/dashboard-stats', { params: { institute_uuid: uuid } }),
+      apiClient.get(`/api/baileys/session/${uuid}/status`),
+    ])
+      .then(([{ data: d }, waRes]) => {
+        setStats({ students: d.students ?? 0, admissions: d.admissions ?? 0, courses: d.courses ?? 0, enquiries: d.enquiries ?? 0, feesToday: d.feesToday ?? 0, followupToday: d.followupToday ?? 0 });
+        setWaStatus(waRes.data?.status || 'not_started');
+      })
+      .catch(() => {
+        setStats({ students: 0, admissions: 0, courses: 0, enquiries: 0, feesToday: 0, followupToday: 0 });
+        setWaStatus('not_started');
+      })
       .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    const uuid = localStorage.getItem('institute_uuid');
-    if (!uuid) return;
-    apiClient.get(`/api/baileys/session/${uuid}/status`)
-      .then(r => setWaStatus(r.data?.status || 'not_started'))
-      .catch(() => setWaStatus('not_started'));
   }, []);
 
   if (expired) {
