@@ -1,5 +1,5 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   AppBar, Avatar, Badge, Box, Breadcrumbs, Button, Card, IconButton,
   Stack, Toolbar, Tooltip, Typography, Link,
@@ -13,6 +13,7 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import Sidebar from '../components/Sidebar';
 import BottomNav from '../components/BottomNav';
 import FloatingButtons from './floatingButton';
+import CloudConnectDialog from '../components/CloudConnectDialog';
 import { useApp } from '../context/AppContext';
 
 const DRAWER_WIDTH = 256;
@@ -44,6 +45,24 @@ export default function DashboardLayout() {
   const location = useLocation();
   const { user, institute } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const [cloudDialogOpen, setCloudDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    // Show cloud connect dialog once if no token is stored
+    Promise.all([
+      window.electronAPI.getConfig('cloudAuthToken'),
+      window.electronAPI.getConfig('cloudConnectDismissed'),
+    ]).then(([token, dismissed]) => {
+      if (!token && !dismissed) setCloudDialogOpen(true);
+    }).catch(() => {});
+  }, []);
+
+  const handleCloudDialogClose = () => {
+    setCloudDialogOpen(false);
+    window.electronAPI?.setConfig('cloudConnectDismissed', true);
+  };
 
   const username = user?.username || location.pathname.split('/')[1] || 'admin';
   const instituteName = institute?.institute_name || localStorage.getItem('institute_title') || 'Instify';
@@ -263,6 +282,15 @@ export default function DashboardLayout() {
 
       {/* Mobile bottom navigation */}
       <BottomNav username={username} />
+
+      {/* Cloud connect dialog — shown on first desktop launch when no token */}
+      {window.electronAPI && (
+        <CloudConnectDialog
+          open={cloudDialogOpen}
+          onClose={handleCloudDialogClose}
+          onConnected={() => setCloudDialogOpen(false)}
+        />
+      )}
 
       {/* Floating quick-action */}
       <FloatingButtons

@@ -34,4 +34,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('app:update-downloaded', handler);
   },
   installUpdate: () => ipcRenderer.invoke('app:install-update'),
+
+  // License
+  getLicense: () => ipcRenderer.invoke('license:get'),
+  connectCloud: (creds) => ipcRenderer.invoke('license:connect-cloud', creds),
+  refreshLicense: () => ipcRenderer.invoke('license:refresh'),
+  onLicenseUpdate: (cb) => {
+    const handler = (_, data) => cb(data);
+    ipcRenderer.on('license:updated', handler);
+    return () => ipcRenderer.removeListener('license:updated', handler);
+  },
 });
