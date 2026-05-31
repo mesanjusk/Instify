@@ -6,6 +6,7 @@ const http = require('http');
 const crypto = require('crypto');
 const os = require('os');
 const Store = require('electron-store');
+const licenseManager = require('./license/licenseManager');
 
 // If the backend port is already claimed by a previous instance still running
 // in the tray, swallow the EADDRINUSE error instead of crashing the app.
@@ -399,6 +400,21 @@ function registerIPC() {
       autoUpdater.quitAndInstall();
     } catch { /* not available in dev */ }
   });
+
+  // License
+  ipcMain.handle('license:get', () => licenseManager.getLicense());
+  ipcMain.handle('license:connect-cloud', async (_, { email, password, cloudUrl }) => {
+    try {
+      const license = await licenseManager.connectCloud({ email, password, cloudUrl });
+      return { ok: true, license };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  });
+  ipcMain.handle('license:refresh', async () => {
+    const ok = await licenseManager.refresh();
+    return { ok };
+  });
 }
 
 // ── Auto-updater ──────────────────────────────────────────────────────────────
@@ -453,6 +469,7 @@ app.on('second-instance', () => {
 
 app.whenReady().then(async () => {
   registerIPC();
+  licenseManager.init(store);
 
   try {
     await startMongoDB();
@@ -466,6 +483,10 @@ app.whenReady().then(async () => {
   createWindow();
   createTray();
   setupAutoUpdater();
+  licenseManager.setWindow(mainWindow);
+  licenseManager.startAutoRefresh();
+  // Non-blocking background refresh on startup
+  licenseManager.refresh().catch(() => {});
 
   // Only start sync if institute is configured for hybrid or cloud_only mode
   const remoteUri = store.get('remoteMongoUri', '');
