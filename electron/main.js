@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Menu, Tray, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, Tray, dialog, shell, powerMonitor } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const net_module = require('net');
@@ -57,6 +57,7 @@ let mainWindow = null;
 let tray = null;
 let mongodProcess = null;
 let syncEngine = null;
+let httpSyncEngine = null;
 
 const IS_DEV = process.env.NODE_ENV === 'development';
 const MONGO_PORT = 27017;
@@ -390,8 +391,9 @@ function registerIPC() {
   });
 
   ipcMain.handle('sync:now', async () => {
-    if (!syncEngine) return { ok: false, message: 'Sync engine not started' };
-    return syncEngine.runCycle();
+    if (httpSyncEngine) return httpSyncEngine.runCycle();
+    if (syncEngine) return syncEngine.runCycle();
+    return { ok: false, message: 'Sync not configured' };
   });
 
   ipcMain.handle('app:install-update', () => {
@@ -406,6 +408,8 @@ function registerIPC() {
   ipcMain.handle('license:connect-cloud', async (_, { email, password, cloudUrl }) => {
     try {
       const license = await licenseManager.connectCloud({ email, password, cloudUrl });
+      // Kick off HTTP sync now that we have a valid token
+      startHttpSync().catch(() => {});
       return { ok: true, license };
     } catch (err) {
       return { ok: false, error: err.message };
@@ -415,6 +419,27 @@ function registerIPC() {
     const ok = await licenseManager.refresh();
     return { ok };
   });
+}
+
+// ── HTTP sync (cloud account) ─────────────────────────────────────────────────
+async function startHttpSync() {
+  const token = store.get('cloudAuthToken', '');
+  const cloudUrl = store.get('cloudUrl', '');
+  const cloudInstituteUuid = store.get('cloudInstituteUuid', '');
+  if (!token || !cloudUrl || !cloudInstituteUuid) return;
+
+  if (httpSyncEngine) { httpSyncEngine.stop(); httpSyncEngine = null; }
+
+  const { HttpSyncEngine } = require('./sync/httpSyncEngine');
+  httpSyncEngine = new HttpSyncEngine({
+    localUri: `mongodb://127.0.0.1:${MONGO_PORT}/instify`,
+    getCloudUrl: () => store.get('cloudUrl', ''),
+    getToken: () => store.get('cloudAuthToken', ''),
+    getCloudInstituteUuid: () => store.get('cloudInstituteUuid', ''),
+    onStatus: (data) => mainWindow?.webContents.send('sync:status', data),
+    store,
+  });
+  await httpSyncEngine.start();
 }
 
 // ── Auto-updater ──────────────────────────────────────────────────────────────
@@ -447,6 +472,7 @@ function setupAutoUpdater() {
 async function shutdown() {
   console.log('[app] shutting down…');
   syncEngine?.stop();
+  httpSyncEngine?.stop();
 
   if (mongodProcess) {
     mongodProcess.kill('SIGTERM');
@@ -485,8 +511,12 @@ app.whenReady().then(async () => {
   setupAutoUpdater();
   licenseManager.setWindow(mainWindow);
   licenseManager.startAutoRefresh();
-  // Non-blocking background refresh on startup
+  // Non-blocking background refresh on startup; start HTTP sync if token exists
   licenseManager.refresh().catch(() => {});
+  startHttpSync().catch(() => {});
+
+  // Re-sync after the machine wakes from sleep
+  powerMonitor.on('resume', () => { httpSyncEngine?.runCycle(); });
 
   // Only start sync if institute is configured for hybrid or cloud_only mode
   const remoteUri = store.get('remoteMongoUri', '');

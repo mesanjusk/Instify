@@ -90,7 +90,7 @@ async function connectCloud({ email, password, cloudUrl }) {
   const url = `${cloudUrl.replace(/\/$/, '')}/api/auth/user/login`;
   let res;
   try {
-    res = await httpPost(url, { login_username: email, login_password: password });
+    res = await httpPost(url, { username: email, password });
   } catch (err) {
     throw new Error(`Cannot reach cloud server: ${err.message}`);
   }
@@ -101,6 +101,7 @@ async function connectCloud({ email, password, cloudUrl }) {
   _store.set('cloudUrl', cloudUrl.replace(/\/$/, ''));
   _store.set('cloudAuthToken', res.data.token);
   if (res.data.refreshToken) _store.set('cloudRefreshToken', res.data.refreshToken);
+  if (res.data.institute_uuid) _store.set('cloudInstituteUuid', res.data.institute_uuid);
 
   // Immediately cache license from login response
   const now = new Date().toISOString();
@@ -139,6 +140,7 @@ async function refresh() {
     }
     if (res.status !== 200) return false;
 
+    if (res.data.institute_uuid) _store.set('cloudInstituteUuid', res.data.institute_uuid);
     _store.set('license', {
       ...res.data,
       lastValidatedAt: new Date().toISOString(),

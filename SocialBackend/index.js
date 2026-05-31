@@ -200,6 +200,7 @@ app.use('/api/forms', require('./routers/formRoutes'));
 app.use('/api/idcard', require('./routers/idCardRoutes'));
 app.use('/api/greetings', require('./routers/greetingsRoutes'));
 app.use('/api/license', require('./routers/licenseRoutes'));
+app.use('/api/sync', require('./routers/syncRoutes'));
 
 
 // ✅ 404 fallback

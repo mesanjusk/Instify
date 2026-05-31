@@ -1,14 +1,15 @@
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useMemo, useEffect } from 'react';
 import {
-  AppBar, Avatar, Badge, Box, Breadcrumbs, Button, Card, IconButton,
-  Stack, Toolbar, Tooltip, Typography, Link,
+  AppBar, Avatar, Badge, Box, Breadcrumbs, Button, Card, CircularProgress,
+  IconButton, Stack, Toolbar, Tooltip, Typography, Link,
 } from '@mui/material';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import CloudSyncIcon from '@mui/icons-material/CloudSync';
 
 import Sidebar from '../components/Sidebar';
 import BottomNav from '../components/BottomNav';
@@ -47,6 +48,13 @@ export default function DashboardLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const [cloudDialogOpen, setCloudDialogOpen] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(null); // { state, message, lastSyncAt }
+
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    const unsub = window.electronAPI.onSyncStatus(setSyncStatus);
+    return unsub;
+  }, []);
 
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -187,6 +195,29 @@ export default function DashboardLayout() {
 
             {/* Right actions */}
             <Stack direction="row" spacing={0.5} alignItems="center">
+              {/* Sync status — desktop only */}
+              {window.electronAPI && syncStatus && (
+                <Tooltip
+                  title={syncStatus.message || 'Sync status'}
+                  arrow
+                >
+                  <IconButton
+                    size="small"
+                    onClick={() => window.electronAPI.syncNow?.()}
+                    sx={{
+                      color: syncStatus.state === 'ok' ? 'primary.main'
+                        : syncStatus.state === 'error' || syncStatus.state === 'partial' ? 'warning.main'
+                        : 'text.secondary',
+                      '&:hover': { bgcolor: 'rgba(5,150,105,0.08)' },
+                    }}
+                  >
+                    {syncStatus.state === 'syncing'
+                      ? <CircularProgress size={16} color="inherit" />
+                      : <CloudSyncIcon fontSize="small" />}
+                  </IconButton>
+                </Tooltip>
+              )}
+
               <Tooltip title="Notifications" arrow>
                 <IconButton
                   size="small"
