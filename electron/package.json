@@ -1,6 +1,6 @@
 {
   "name": "instify-desktop",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "Instify — Institutions Simplified (Desktop)",
   "author": "Instify",
   "repository": {
@@ -27,6 +27,7 @@
       "main.js",
       "preload.js",
       "sync/**/*",
+      "license/**/*",
       "assets/**/*"
     ],
     "extraResources": [
