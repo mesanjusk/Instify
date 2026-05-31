@@ -331,13 +331,59 @@ function createWindow() {
     },
     title: 'Instify',
     show: false,
+    backgroundColor: '#0f2d1e',
   });
 
-  const indexHtml = path.join(FRONTEND_DIR, 'index.html');
-  mainWindow.loadFile(indexHtml);
+  // Show a loading screen immediately while MongoDB + backend start
+  mainWindow.loadURL('data:text/html,' + encodeURIComponent(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+          background: linear-gradient(160deg, #0f2d1e 0%, #1a4a2e 50%, #0a1a0f 100%);
+          display: flex; flex-direction: column;
+          align-items: center; justify-content: center;
+          height: 100vh; font-family: 'Segoe UI', sans-serif; color: #fff;
+        }
+        .logo {
+          width: 72px; height: 72px; border-radius: 20px;
+          background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 2.2rem; margin-bottom: 20px;
+          animation: float 2.5s ease-in-out infinite;
+        }
+        h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; margin-bottom: 6px; }
+        p  { color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-bottom: 36px; }
+        .spinner {
+          width: 36px; height: 36px; border-radius: 50%;
+          border: 3px solid rgba(255,255,255,0.15);
+          border-top-color: #34d399;
+          animation: spin 0.8s linear infinite;
+        }
+        .status { margin-top: 14px; font-size: 0.75rem; color: rgba(255,255,255,0.35); letter-spacing: 0.06em; text-transform: uppercase; }
+        @keyframes spin  { to { transform: rotate(360deg); } }
+        @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+      </style>
+    </head>
+    <body>
+      <div class="logo">🏫</div>
+      <h1>Instify</h1>
+      <p>Institutions Simplified</p>
+      <div class="spinner"></div>
+      <div class="status" id="s">Starting services…</div>
+      <script>
+        const msgs = ['Starting services…','Starting database…','Starting backend…','Almost ready…'];
+        let i = 0;
+        setInterval(() => { document.getElementById('s').textContent = msgs[Math.min(++i, msgs.length-1)]; }, 4000);
+      </script>
+    </body>
+    </html>
+  `));
 
   mainWindow.once('ready-to-show', () => mainWindow.show());
-
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
@@ -497,6 +543,10 @@ app.whenReady().then(async () => {
   registerIPC();
   licenseManager.init(store);
 
+  // Show window immediately with loading screen — don't make the user stare at nothing
+  createWindow();
+  createTray();
+
   try {
     await startMongoDB();
     await startBackend();
@@ -506,8 +556,11 @@ app.whenReady().then(async () => {
     return;
   }
 
-  createWindow();
-  createTray();
+  // Services ready — load the real app
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.loadFile(path.join(FRONTEND_DIR, 'index.html'));
+  }
+
   setupAutoUpdater();
   licenseManager.setWindow(mainWindow);
   licenseManager.startAutoRefresh();
