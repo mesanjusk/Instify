@@ -26,7 +26,9 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-          cache-dependency-path: SocialFront/package-lock.json
+          cache-dependency-path: |
+            SocialFront/package-lock.json
+            electron/package-lock.json
 
       # ── Frontend ──────────────────────────────────────────────────────────
       - name: Install frontend dependencies
@@ -46,7 +48,16 @@ jobs:
         run: npm install
         working-directory: electron
 
+      # Cache MongoDB binary — only re-download when version string changes
+      - name: Cache MongoDB binary
+        id: cache-mongo
+        uses: actions/cache@v4
+        with:
+          path: electron/resources/mongodb
+          key: mongodb-win-x64-6.0.20
+
       - name: Download MongoDB 6.0 for Windows x64
+        if: steps.cache-mongo.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $url  = "https://fastdl.mongodb.org/windows/mongodb-windows-x86_64-6.0.20.zip"
@@ -62,17 +73,22 @@ jobs:
           Write-Host "Copied MongoDB binaries:"
           Get-ChildItem $binDest | ForEach-Object { Write-Host "  $($_.Name)" }
 
+      # Cache VC++ redistributable
+      - name: Cache VC++ redistributable
+        id: cache-vcredist
+        uses: actions/cache@v4
+        with:
+          path: electron/resources/vc_redist.x64.exe
+          key: vc-redist-2022-x64
+
       - name: Download Visual C++ 2022 Redistributable
+        if: steps.cache-vcredist.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $dest = "electron/resources"
           New-Item -ItemType Directory -Force -Path $dest | Out-Null
           Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "$dest/vc_redist.x64.exe"
           Write-Host "Downloaded vc_redist.x64.exe: $((Get-Item "$dest/vc_redist.x64.exe").Length) bytes"
-
-      - name: Show electron/package.json (debug)
-        run: cat electron/package.json
-        shell: bash
 
       - name: Build Windows installer
         run: npm run dist:win
