@@ -16,6 +16,7 @@ import BottomNav from '../components/BottomNav';
 import FloatingButtons from './floatingButton';
 import CloudConnectDialog from '../components/CloudConnectDialog';
 import { useApp } from '../context/AppContext';
+import { clearUserAndInstituteData } from '../utils/storageUtils';
 
 const DRAWER_WIDTH = 256;
 
@@ -44,7 +45,7 @@ function getBreadcrumb(pathname, username) {
 export default function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, institute } = useApp();
+  const { user, institute, setUser, setInstitute } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const [cloudDialogOpen, setCloudDialogOpen] = useState(false);
@@ -94,8 +95,9 @@ export default function DashboardLayout() {
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to log out?')) {
-      localStorage.removeItem('user');
-      localStorage.removeItem('institute');
+      clearUserAndInstituteData();
+      setUser(null);
+      setInstitute(null);
       navigate('/');
     }
   };

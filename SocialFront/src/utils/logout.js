@@ -9,33 +9,28 @@ import toast from 'react-hot-toast';
  * resetting AppContext if available, and redirecting to login.
  */
 const logoutUser = () => {
-  // ✅ Clear user and institute data
   clearUserAndInstituteData();
-
-  // ✅ Purge IndexedDB data (async, non-blocking)
   purgeAllData().catch(console.error);
 
-  // ✅ Clear additional related values
   localStorage.removeItem('remember_me');
   localStorage.removeItem('last_password_change');
   sessionStorage.removeItem('remember_me');
   sessionStorage.removeItem('last_password_change');
 
-  // ✅ Reset AppContext if your app uses it
-  if (window.updateAppContext) {
-    window.updateAppContext({ user: null, institute: null });
-  }
+  // Clear React state — avoids the flicker caused by AppContext still
+  // holding the old user after localStorage is cleared
+  if (window.logoutHandler) window.logoutHandler();
 
-  // ✅ Notify and redirect
   toast.success('Logged out successfully');
-  setTimeout(() => {
-    // HashRouter (desktop) uses hash-based URLs; BrowserRouter (web) uses path
-    if (import.meta.env.VITE_IS_DESKTOP === 'true') {
-      window.location.hash = '/login';
-    } else {
-      window.location.href = '/login';
-    }
-  }, 500);
+
+  // Use the router's navigate if available (set in main.jsx), else hard redirect
+  if (window._navigateTo) {
+    window._navigateTo('/');
+  } else if (import.meta.env.VITE_IS_DESKTOP === 'true') {
+    window.location.hash = '#/';
+  } else {
+    window.location.replace('/');
+  }
 };
 
 export default logoutUser;

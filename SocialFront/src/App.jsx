@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import DesktopSetup from './components/DesktopSetup';
 import SyncStatusBar from './components/SyncStatusBar';
 import UpdateNotifier from './components/UpdateNotifier';
@@ -84,7 +84,14 @@ function PageLoader() {
 export default function App() {
   const isDesktop = !!window.electronAPI;
   const [setupDone, setSetupDone] = useState(true);
+  const navigate = useNavigate();
   useOfflineQueue();
+
+  useEffect(() => {
+    // Expose router navigate so utility functions outside React can do clean redirects
+    window._navigateTo = navigate;
+    return () => { window._navigateTo = null; };
+  }, [navigate]);
 
   useEffect(() => {
     if (!isDesktop) return;
