@@ -24,6 +24,7 @@ const FeaturePill = ({ emoji, label, delay = 0 }) => (
 const Signup = () => {
   const navigate = useNavigate();
   const { branding } = useBranding();
+  const isDesktop = !!window.electronAPI;
   const [form, setForm] = useState({
     institute_title: '',
     institute_type: '',
@@ -31,7 +32,7 @@ const Signup = () => {
     institute_call_number: '',
     center_head_name: '',
     theme_color: '#059669',
-    storage_mode: 'cloud_only',
+    storage_mode: isDesktop ? 'hybrid' : 'cloud_only',
   });
 
   const STORAGE_MODES = [
@@ -433,14 +434,18 @@ const Signup = () => {
                   {form.storage_mode === 'local_only' && (
                     <div style={{ marginTop: 8, background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 8, padding: '8px 12px' }}>
                       <span style={{ fontSize: '0.72rem', color: '#92400e', fontWeight: 500 }}>
-                        ⚠️ Local Only requires the Instify Desktop app. Web access will be unavailable.
+                        {isDesktop
+                          ? '⚠️ Data stays on this device only. No web or mobile access.'
+                          : '⚠️ Local Only requires the Instify Desktop app. Web access will be unavailable.'}
                       </span>
                     </div>
                   )}
                   {form.storage_mode === 'hybrid' && (
                     <div style={{ marginTop: 8, background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '8px 12px' }}>
                       <span style={{ fontSize: '0.72rem', color: '#1e40af', fontWeight: 500 }}>
-                        ℹ️ Hybrid mode needs the Desktop app. Cloud syncs automatically every 60 seconds.
+                        {isDesktop
+                          ? 'ℹ️ Data stored locally and synced to cloud. Access from any device.'
+                          : 'ℹ️ Hybrid mode needs the Desktop app. Cloud syncs automatically every 60 seconds.'}
                       </span>
                     </div>
                   )}
