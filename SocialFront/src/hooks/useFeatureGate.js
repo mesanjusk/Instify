@@ -63,4 +63,3 @@ export function useFeatureGate(moduleName) {
   return { enabled, plan, status, isTrialActive, isPaid, daysRemaining: null, source: 'web' };
 }
 
-export { TRIAL_MODULES };
