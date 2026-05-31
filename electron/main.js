@@ -264,7 +264,7 @@ async function startMongoDB() {
   mongodProcess.stderr?.on('data', (d) => console.error('[mongod]', d.toString().trim()));
 
   try {
-    await waitForPort(MONGO_PORT, 90, 1000);
+    await waitForPort(MONGO_PORT, 30, 1000);
   } catch (err) {
     const logPath = path.join(app.getPath('logs'), 'mongod.log');
     const fs = require('fs');
