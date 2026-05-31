@@ -101,6 +101,12 @@ const Signup = () => {
       toast.error('Enter a valid 10-digit mobile number');
       return;
     }
+
+    // On desktop the local backend has no WhatsApp credentials — skip OTP
+    if (isDesktop) {
+      return handleSignup(e);
+    }
+
     setLoading(true);
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
     setServerOtp(generatedOtp);
@@ -133,7 +139,8 @@ const Signup = () => {
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    if (!otp || otp !== serverOtp) {
+    // OTP verification is skipped on desktop (no WhatsApp credentials on local backend)
+    if (!isDesktop && (!otp || otp !== serverOtp)) {
       toast.error('Invalid OTP. Please check and try again.');
       return;
     }
@@ -484,10 +491,10 @@ const Signup = () => {
               {loading ? (
                 <>
                   <span style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-                  {otpSent ? 'Creating account…' : 'Sending OTP…'}
+                  {otpSent ? 'Creating account…' : isDesktop ? 'Creating account…' : 'Sending OTP…'}
                 </>
               ) : (
-                otpSent ? 'Verify & Create Account →' : 'Send OTP →'
+                otpSent ? 'Verify & Create Account →' : isDesktop ? 'Register →' : 'Send OTP →'
               )}
             </button>
           </form>
