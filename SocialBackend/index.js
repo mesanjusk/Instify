@@ -78,12 +78,29 @@ app.use(helmet({
 }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
+// ── Seed default data on first run ────────────────────────────────────────────
+async function seedDefaultData() {
+  const OrgCategory = require('./models/OrgCategory');
+  const count = await OrgCategory.countDocuments();
+  if (count > 0) return;
+
+  const defaults = [
+    'School', 'College', 'University', 'Coaching Center', 'Tuition Center',
+    'Skill Development Center', 'Computer Institute', 'Language Institute',
+    'Music / Dance Academy', 'Sports Academy', 'Vocational Training Center',
+    'Professional Training Institute',
+  ];
+  await OrgCategory.insertMany(defaults.map(category => ({ category })));
+  console.log(`✅ Seeded ${defaults.length} default org categories`);
+}
+
 // ✅ MongoDB connection
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 }).then(() => {
   console.log('✅ Connected to MongoDB');
+  seedDefaultData().catch(e => console.error('seedDefaultData:', e.message));
   initCronJobs();
   // Restore and reconnect any active WhatsApp sessions after every deploy/restart
   autoReconnectSessions().catch(e => console.error('autoReconnectSessions:', e.message));
