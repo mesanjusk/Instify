@@ -517,12 +517,21 @@ function setupAutoUpdater() {
 // ── Graceful shutdown ─────────────────────────────────────────────────────────
 async function shutdown() {
   console.log('[app] shutting down…');
-  syncEngine?.stop();
-  httpSyncEngine?.stop();
+
+  // Await sync engines before killing MongoDB to prevent data loss
+  await Promise.allSettled([
+    syncEngine?.stop(),
+    httpSyncEngine?.stop(),
+  ]);
 
   if (mongodProcess) {
     mongodProcess.kill('SIGTERM');
-    await new Promise(r => setTimeout(r, 2000));
+    // Give MongoDB 5 s to flush and exit cleanly before we force-quit
+    await new Promise(r => setTimeout(r, 5000));
+    if (mongodProcess && !mongodProcess.killed) {
+      console.warn('[app] MongoDB did not exit in time — sending SIGKILL');
+      mongodProcess.kill('SIGKILL');
+    }
   }
 }
 

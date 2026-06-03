@@ -25,4 +25,10 @@ const leadSchema = new mongoose.Schema({
   createdBy: String,
 }, { timestamps: true });
 
+leadSchema.index({ institute_uuid: 1, score: 1 });
+leadSchema.index({ institute_uuid: 1, source: 1 });
+leadSchema.index({ institute_uuid: 1, assignedTo: 1 });
+leadSchema.index({ institute_uuid: 1, enquiryDate: -1 });
+leadSchema.index({ institute_uuid: 1, followupDate: 1 });
+
 module.exports = mongoose.model('Lead', leadSchema);

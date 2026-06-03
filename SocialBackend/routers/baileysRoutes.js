@@ -83,16 +83,27 @@ router.post('/send-bulk', async (req, res) => {
     const { instituteId, numbers, message } = req.body;
     if (!instituteId || !Array.isArray(numbers) || !message)
       return res.status(400).json({ success: false, message: 'instituteId, numbers[], message required' });
-    const results = await baileysService.sendBulk(instituteId, numbers, message);
+
+    // Strip non-digits and validate 7–15 digit phone numbers
+    const phoneRegex = /^\d{7,15}$/;
+    const validNumbers = numbers.map(n => String(n).replace(/\D/g, '')).filter(n => phoneRegex.test(n));
+    if (validNumbers.length === 0)
+      return res.status(400).json({ success: false, message: 'No valid phone numbers provided (must be 7–15 digits)' });
+
+    const results = await baileysService.sendBulk(instituteId, validNumbers, message);
     const sent = results.filter(r => r.success).length;
-    res.json({ success: true, sent, failed: results.length - sent, results });
+    res.json({ success: true, sent, failed: results.length - sent, skipped: numbers.length - validNumbers.length, results });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
-// Chat list — unique contacts with last message + unread count
+// Chat list — unique contacts with last message + unread count (paginated)
 router.get('/chats/:instituteId', async (req, res) => {
   try {
     const { instituteId } = req.params;
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, parseInt(req.query.limit) || 50);
+    const skip = (page - 1) * limit;
+
     const chats = await Message.aggregate([
       { $match: { institute_uuid: instituteId } },
       { $sort: { createdAt: -1 } },
@@ -113,9 +124,10 @@ router.get('/chats/:instituteId', async (req, res) => {
         { $lte: [{ $strLenCP: '$_id' }, 15] },
       ] } } },
       { $sort: { lastTime: -1 } },
-      { $limit: 100 },
+      { $skip: skip },
+      { $limit: limit },
     ]);
-    res.json({ success: true, result: chats });
+    res.json({ success: true, result: chats, page, limit });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 

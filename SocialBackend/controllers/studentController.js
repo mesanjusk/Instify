@@ -20,7 +20,10 @@ exports.createStudent = async (req, res) => {
     await student.save();
     res.status(201).json({ success: true, data: student });
   } catch (error) {
-    console.error(error);
+    console.error('[studentController] createStudent:', error.message);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
@@ -32,24 +35,42 @@ exports.getStudents = async (req, res) => {
     const filter = institute_uuid ? { institute_uuid } : {};
 
     if (batchTime) {
-      // Find admissions matching this batch, then return enriched students
-      const admissions = await Admission.find({ institute_uuid, batchTime: { $regex: batchTime, $options: 'i' } }).lean();
-      const admMap = {};
-      admissions.forEach(a => { admMap[a.student_uuid] = a; });
-      const uuids = Object.keys(admMap);
-      const students = await Student.find({ ...filter, uuid: { $in: uuids } }).lean();
-      const enriched = students.map(s => ({
-        ...s,
-        course: admMap[s.uuid]?.course || '',
-        batch: admMap[s.uuid]?.batchTime || batchTime,
-      }));
+      // Single aggregation: join students with admissions for the given batch
+      const enriched = await Student.aggregate([
+        { $match: filter },
+        {
+          $lookup: {
+            from: 'admissions',
+            let: { uuid: '$uuid' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ['$student_uuid', '$$uuid'] },
+                  institute_uuid,
+                  batchTime: { $regex: batchTime, $options: 'i' },
+                },
+              },
+              { $limit: 1 },
+            ],
+            as: 'admission',
+          },
+        },
+        { $match: { 'admission.0': { $exists: true } } },
+        {
+          $addFields: {
+            course: { $ifNull: [{ $arrayElemAt: ['$admission.course', 0] }, ''] },
+            batch: { $ifNull: [{ $arrayElemAt: ['$admission.batchTime', 0] }, batchTime] },
+          },
+        },
+        { $project: { admission: 0 } },
+      ]);
       return res.json({ success: true, data: enriched, result: enriched });
     }
 
     const students = await Student.find(filter).lean();
     res.json({ success: true, data: students, result: students });
   } catch (error) {
-    console.error(error);
+    console.error('[studentController] getStudents:', error.message);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
@@ -61,7 +82,7 @@ exports.getStudent = async (req, res) => {
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
     res.json({ success: true, data: student });
   } catch (error) {
-    console.error(error);
+    console.error('[studentController] getStudent:', error.message);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
@@ -85,7 +106,10 @@ exports.updateStudent = async (req, res) => {
 
     res.json({ success: true, data: student });
   } catch (error) {
-    console.error(error);
+    console.error('[studentController] updateStudent:', error.message);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };

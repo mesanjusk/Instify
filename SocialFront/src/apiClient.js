@@ -88,6 +88,15 @@ apiClient.interceptors.response.use(
     } catch (refreshErr) {
       _waitQueue.forEach((p) => p.reject(refreshErr));
       _waitQueue = [];
+
+      // Network error (offline) — don't log out; let the app continue in offline mode
+      const isNetworkError = !refreshErr.response;
+      if (isNetworkError) {
+        console.warn('[apiClient] Token refresh failed (network offline) — staying in offline mode');
+        return Promise.reject(refreshErr);
+      }
+
+      // Server explicitly rejected the refresh token — session is invalid, force logout
       localStorage.clear();
       window.location.href = '/login';
       return Promise.reject(refreshErr);

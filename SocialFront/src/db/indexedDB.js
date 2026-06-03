@@ -3,6 +3,10 @@ import CryptoJS from 'crypto-js';
 
 const SECRET_KEY = import.meta.env.VITE_DB_SECRET_KEY || 'change_me';
 
+if (import.meta.env.DEV && SECRET_KEY === 'change_me') {
+  console.warn('[IndexedDB] VITE_DB_SECRET_KEY is not set — using insecure default key. Set it in .env.development.');
+}
+
 class AppDatabase extends Dexie {
   constructor() {
     super('appDB');
@@ -44,6 +48,24 @@ class AppDatabase extends Dexie {
       fees: '++id, fee_uuid, student_uuid, institute_uuid',
       employees: '++id, employee_uuid, institute_uuid',
       offlineMutations: '++id, timestamp, synced',
+    });
+
+    // v4 — add notifications table for session-expiry and system alerts
+    this.version(4).stores({
+      leads: '++id, lead_uuid, institute_uuid, status',
+      students: '++id, student_uuid, institute_uuid',
+      attendance: '++id, attendance_uuid, institute_uuid',
+      admissions: '++id, admission_uuid, institute_uuid, status',
+      courses: '++id, course_uuid, institute_uuid',
+      exams: '++id, exam_uuid, institute_uuid',
+      batches: '++id, batch_uuid, institute_uuid',
+      educations: '++id',
+      paymentModes: '++id',
+      transactions: '++id, institute_uuid, student_uuid',
+      fees: '++id, fee_uuid, student_uuid, institute_uuid',
+      employees: '++id, employee_uuid, institute_uuid',
+      offlineMutations: '++id, timestamp, synced',
+      notifications: '++id, type, institute_uuid, createdAt',
     });
   }
 

@@ -220,7 +220,13 @@ router.post('/institute/verify-forgot-otp', async (req, res) => {
 });
 
 // ✅ Reset password
-router.post('/institute/reset-password/:id', async (req, res) => {
+router.post('/institute/reset-password/:id',
+  [
+    body('old_password').notEmpty().withMessage('old_password is required'),
+    body('new_password').isLength({ min: 8 }).withMessage('new_password must be at least 8 characters'),
+  ],
+  validate,
+  async (req, res) => {
   try {
     const { id } = req.params;
     const { old_password, new_password } = req.body;
@@ -248,7 +254,8 @@ router.post('/institute/reset-password/:id', async (req, res) => {
     console.error('Reset password error:', err);
     res.status(500).json({ message: 'server_error' });
   }
-});
+  }
+);
 
 // ✅ Register new user under institute
 router.post('/register',

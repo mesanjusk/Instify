@@ -1,5 +1,5 @@
 import { useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Card,
@@ -15,8 +15,10 @@ import {
   Paper,
   CircularProgress,
   Chip,
+  Alert,
+  Button,
 } from '@mui/material';
-import { CurrencyRupee, CalendarToday } from '@mui/icons-material';
+import { CurrencyRupee, CalendarToday, Refresh } from '@mui/icons-material';
 import apiClient from '../apiClient';
 
 const Fees = () => {
@@ -25,26 +27,29 @@ const Fees = () => {
 
   const [fees, setFees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchFees = useCallback(async () => {
+    const institute_uuid = localStorage.getItem('institute_uuid');
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    setLoading(true);
+    setError(null);
+    try {
+      const { data } = await apiClient.get('/api/fees', {
+        params: { institute_uuid, date: todayStr },
+      });
+      setFees(data || []);
+    } catch (err) {
+      console.error('Error fetching fees:', err);
+      setError('Failed to load fee collections. Please check your connection and try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchFees = async () => {
-      const institute_uuid = localStorage.getItem('institute_uuid');
-      const todayStr = new Date().toLocaleDateString('en-CA');
-
-      try {
-        const { data } = await apiClient.get('/api/fees', {
-          params: { institute_uuid, date: todayStr },
-        });
-        setFees(data || []);
-      } catch (err) {
-        console.error('Error fetching fees:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchFees();
-  }, [filterBy]);
+  }, [fetchFees, filterBy]);
 
   const totalAmount = fees.reduce((sum, fee) => {
     return sum + (fee.installmentPlan || []).reduce((s, p) => s + (Number(p.amount) || 0), 0);
@@ -89,6 +94,17 @@ const Fees = () => {
             <Typography color="text.secondary">Loading fee collections...</Typography>
           </Stack>
         </Box>
+      ) : error ? (
+        <Alert
+          severity="error"
+          action={
+            <Button color="inherit" size="small" startIcon={<Refresh />} onClick={fetchFees}>
+              Retry
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
       ) : fees.length === 0 ? (
         <Card>
           <CardContent>

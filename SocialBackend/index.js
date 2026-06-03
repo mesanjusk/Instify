@@ -225,10 +225,25 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-// ✅ Optional global error handler
+// ✅ Global error handler — categorises client vs server errors
 app.use((err, req, res, next) => {
-  console.error('🔥 Error:', err.stack);
-  res.status(500).json({ error: 'Internal server error' });
+  const status = err.status || err.statusCode || 500;
+  const isClientError = status >= 400 && status < 500;
+
+  if (!isClientError) {
+    console.error('🔥 Server Error:', {
+      method: req.method,
+      path: req.path,
+      status,
+      message: err.message,
+      ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }),
+    });
+  }
+
+  res.status(status).json({
+    error: isClientError ? err.message : 'Internal server error',
+    ...(process.env.NODE_ENV !== 'production' && !isClientError && { stack: err.stack }),
+  });
 });
 
 // ✅ Start server

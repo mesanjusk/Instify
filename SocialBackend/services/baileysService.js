@@ -273,8 +273,12 @@ async function startSession(instituteId, onQR, onStatus) {
       onStatus && onStatus(loggedOut ? 'logged_out' : 'disconnected');
 
       if (loggedOut) {
-        // Clear MongoDB backup so we don't auto-reconnect a logged-out session
-        await WASession.updateOne({ institute_uuid: instituteId }, { $set: { active: false, files: {} } });
+        // Mark session as requiring QR re-scan so the dashboard can alert the admin
+        await WASession.updateOne(
+          { institute_uuid: instituteId },
+          { $set: { active: false, files: {}, requiresQRScan: true, loggedOutAt: new Date() } }
+        );
+        console.warn(`⚠️  [Baileys] ${instituteId} — session logged out. Admin must re-scan QR code.`);
       } else {
         console.log(`[Baileys] Reconnecting ${instituteId} in 5s…`);
         setTimeout(() => startSession(instituteId, onQR, onStatus), 5000);
@@ -452,8 +456,11 @@ async function autoReconnectSessions() {
           institute_uuid,
           () => {}, // suppress QR output during auto-reconnect
           (status) => {
-            if (status === 'connected') console.log(`✅ [Baileys] ${institute_uuid} auto-reconnected`);
-            else if (status === 'logged_out') console.log(`⚠️ [Baileys] ${institute_uuid} session expired — re-scan needed`);
+            if (status === 'connected') {
+              console.log(`✅ [Baileys] ${institute_uuid} auto-reconnected`);
+            } else if (status === 'logged_out') {
+              console.warn(`⚠️  [Baileys] ${institute_uuid} session expired — admin must re-scan QR code`);
+            }
           }
         );
         await new Promise(r => setTimeout(r, 1000)); // stagger reconnects
