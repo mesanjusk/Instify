@@ -22,7 +22,7 @@ export const utilityTokens = [
   'bg-opacity-40',
   'bg-opacity-50',
   'bg-pink-600',
-  'bg-purple-600',
+  'bg-emerald-600',
   'bg-red-100',
   'bg-red-50',
   'bg-red-500',
