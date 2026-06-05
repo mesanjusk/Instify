@@ -324,19 +324,6 @@ const Signup = () => {
             </p>
           </div>
 
-          {/* Hint */}
-          {!otpSent && (
-            <div style={{
-              background: '#f0fdf4', border: '1px solid #bbf7d0',
-              borderRadius: 10, padding: '10px 14px', marginBottom: 24,
-              display: 'flex', alignItems: 'center', gap: 8,
-            }}>
-              <span style={{ fontSize: '0.85rem' }}>💡</span>
-              <span style={{ fontSize: '0.78rem', color: '#065f46', fontWeight: 500 }}>
-                Free 14-day trial · No credit card required
-              </span>
-            </div>
-          )}
 
 
           <form onSubmit={otpSent ? handleSignup : handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

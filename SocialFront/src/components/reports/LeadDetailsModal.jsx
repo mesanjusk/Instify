@@ -100,7 +100,7 @@ const LeadDetailsModal = ({
         <div className="flex flex-wrap gap-2 mt-3">
           <button onClick={() => onEdit(lead)} className="bg-yellow-500 text-white px-4 py-2 rounded text-sm w-full sm:w-auto">Edit</button>
           <button onClick={() => onDelete && onDelete(lead)} className="bg-red-500 text-white px-4 py-2 rounded text-sm w-full sm:w-auto">Delete</button>
-          <button onClick={() => onManageBatch(lead)} className="bg-purple-600 text-white px-4 py-2 rounded text-sm w-full sm:w-auto">Batch</button>
+          <button onClick={() => onManageBatch(lead)} className="bg-emerald-600 text-white px-4 py-2 rounded text-sm w-full sm:w-auto">Batch</button>
           <button onClick={() => onManageExam(lead)} className="bg-pink-600 text-white px-4 py-2 rounded text-sm w-full sm:w-auto">Exam</button>
           <button onClick={() => onConfirm(lead)} className="bg-green-600 text-white px-4 py-2 rounded text-sm w-full sm:w-auto">Confirm</button>
           <button onClick={() => onReceipt(lead)} className="bg-blue-600 text-white px-4 py-2 rounded text-sm w-full sm:w-auto">Download Receipt</button>
