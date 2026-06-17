@@ -5,6 +5,7 @@
     "dev": "vite",
     "build": "npx vite build",
     "build:desktop": "npx vite build --mode desktop --outDir dist",
+    "build:mobile": "cross-env VITE_IS_MOBILE=true npx vite build --outDir dist",
     "preview": "vite preview",
     "sync:tokens": "node scripts/generateUtilityTokens.cjs",
     "prebuild": "npm run sync:tokens",
@@ -41,6 +42,9 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/cli": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
     "@resvg/resvg-js": "^2.6.2",
     "cross-env": "^7.0.3",
     "eruda": "^3.4.3"
