@@ -47,6 +47,7 @@
     "@capacitor/core": "^6.2.0",
     "@resvg/resvg-js": "^2.6.2",
     "cross-env": "^7.0.3",
-    "eruda": "^3.4.3"
+    "eruda": "^3.4.3",
+    "typescript": "^5.4.5"
   }
 }

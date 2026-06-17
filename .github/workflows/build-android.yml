@@ -124,6 +124,12 @@ jobs:
         run: npm install
         working-directory: SocialFront
 
+      # Capacitor requires TypeScript to parse .ts config; we use .js but
+      # guard against a stale .ts file being present (e.g. from an older merge).
+      - name: Remove stale capacitor.config.ts if present
+        run: rm -f capacitor.config.ts
+        working-directory: SocialFront
+
       - name: Generate utility tokens
         run: npm run sync:tokens
         working-directory: SocialFront
