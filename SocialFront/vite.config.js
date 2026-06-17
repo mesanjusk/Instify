@@ -5,13 +5,14 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const isDesktop = env.VITE_IS_DESKTOP === 'true';
+  const isMobile  = env.VITE_IS_MOBILE  === 'true';
 
   return {
-  base: isDesktop ? './' : '/',
+  base: (isDesktop || isMobile) ? './' : '/',
   plugins: [
     react(),
     VitePWA({
-      disabled: isDesktop,
+      disabled: isDesktop || isMobile,
       registerType: 'autoUpdate',
       // Use a distinct filename so public/sw.js (push handler) is not overwritten
       filename: 'workbox-sw.js',
