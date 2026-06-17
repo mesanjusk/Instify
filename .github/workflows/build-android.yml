@@ -172,7 +172,7 @@ jobs:
         working-directory: SocialFront
 
       - name: Sync web assets into Android project
-        run: npx cap sync android --no-prod
+        run: npx cap sync android
         working-directory: SocialFront
 
       # ── Android version patch ───────────────────────────────────────────────
