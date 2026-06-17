@@ -7,6 +7,11 @@ name: Build Android APK / Play Store AAB
 # ─────────────────────────────────────────────────────────────────────────────
 on:
   push:
+    branches:
+      - main
+    paths:
+      - 'SocialFront/**'
+      - '.github/workflows/build-android.yml'
     tags:
       - 'v*.*.*'
   workflow_dispatch:
@@ -48,25 +53,29 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── Detect available secrets ────────────────────────────────────────────
-      # secrets cannot be referenced in `if:` expressions, so we probe them
-      # here and expose boolean outputs that downstream steps can use.
-      - name: Detect available secrets
+      # ── Detect trigger type + available secrets ─────────────────────────────
+      # • secrets cannot be used in if: expressions → probe via env vars
+      # • push to main   → debug APK only (fast, no signing)
+      # • push tag/manual → signed APK + AAB (full release)
+      - name: Detect trigger and secrets
         id: secrets
         env:
           _KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           _PLAY:     ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
-          if [ -n "$_KEYSTORE" ]; then
-            echo "has_keystore=true"  >> "$GITHUB_OUTPUT"
+          # keystore / play-store presence
+          [ -n "$_KEYSTORE" ] && echo "has_keystore=true"  >> "$GITHUB_OUTPUT" \
+                              || echo "has_keystore=false" >> "$GITHUB_OUTPUT"
+          [ -n "$_PLAY"     ] && echo "has_play=true"  >> "$GITHUB_OUTPUT" \
+                              || echo "has_play=false" >> "$GITHUB_OUTPUT"
+
+          # is_release = tag push OR manual dispatch (anything but a plain branch push)
+          if [[ "$GITHUB_REF_TYPE" == "tag" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            echo "is_release=true"  >> "$GITHUB_OUTPUT"
+            echo "🚀 Release build triggered"
           else
-            echo "has_keystore=false" >> "$GITHUB_OUTPUT"
-            echo "⚠️  ANDROID_KEYSTORE_BASE64 not set — signed builds will be skipped"
-          fi
-          if [ -n "$_PLAY" ]; then
-            echo "has_play=true"  >> "$GITHUB_OUTPUT"
-          else
-            echo "has_play=false" >> "$GITHUB_OUTPUT"
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
+            echo "🔧 CI push detected — debug APK only"
           fi
 
       # ── Toolchain ───────────────────────────────────────────────────────────
@@ -162,16 +171,22 @@ jobs:
           restore-keys: gradle-
 
       # ── Build steps ─────────────────────────────────────────────────────────
+      # Push to main  → debug APK only (always runs, no signing required)
+      # Tag / manual  → signed APK + signed AAB for Play Store
 
       - name: Build debug APK
-        if: inputs.build_type == 'apk' || inputs.build_type == 'both'
+        if: >-
+          steps.secrets.outputs.is_release == 'false' ||
+          inputs.build_type == 'apk' ||
+          inputs.build_type == 'both'
         run: ./gradlew assembleDebug --no-daemon --stacktrace
         working-directory: SocialFront/android
 
       - name: Build signed release APK
         if: >-
-          (inputs.build_type == 'apk' || inputs.build_type == 'both') &&
-          steps.secrets.outputs.has_keystore == 'true'
+          steps.secrets.outputs.is_release == 'true' &&
+          steps.secrets.outputs.has_keystore == 'true' &&
+          (inputs.build_type == 'apk' || inputs.build_type == 'both' || github.ref_type == 'tag')
         run: >-
           ./gradlew assembleRelease
           --no-daemon
@@ -184,8 +199,9 @@ jobs:
 
       - name: Build signed release AAB (Play Store)
         if: >-
-          (inputs.build_type == 'aab' || inputs.build_type == 'both' || github.ref_type == 'tag') &&
-          steps.secrets.outputs.has_keystore == 'true'
+          steps.secrets.outputs.is_release == 'true' &&
+          steps.secrets.outputs.has_keystore == 'true' &&
+          (inputs.build_type == 'aab' || inputs.build_type == 'both' || github.ref_type == 'tag')
         run: >-
           ./gradlew bundleRelease
           --no-daemon
@@ -196,16 +212,20 @@ jobs:
           -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }}
         working-directory: SocialFront/android
 
-      - name: Build unsigned AAB (no keystore — review only)
+      - name: Build unsigned AAB (no keystore configured)
         if: >-
-          (inputs.build_type == 'aab' || inputs.build_type == 'both' || github.ref_type == 'tag') &&
-          steps.secrets.outputs.has_keystore == 'false'
+          steps.secrets.outputs.is_release == 'true' &&
+          steps.secrets.outputs.has_keystore == 'false' &&
+          (inputs.build_type == 'aab' || inputs.build_type == 'both' || github.ref_type == 'tag')
         run: ./gradlew bundleRelease --no-daemon --stacktrace
         working-directory: SocialFront/android
 
       # ── Upload Artifacts ────────────────────────────────────────────────────
       - name: Upload debug APK
-        if: inputs.build_type == 'apk' || inputs.build_type == 'both'
+        if: >-
+          steps.secrets.outputs.is_release == 'false' ||
+          inputs.build_type == 'apk' ||
+          inputs.build_type == 'both'
         uses: actions/upload-artifact@v4
         with:
           name: instify-debug-${{ steps.ver.outputs.name }}
@@ -213,7 +233,9 @@ jobs:
           retention-days: 14
 
       - name: Upload release APK
-        if: inputs.build_type == 'apk' || inputs.build_type == 'both'
+        if: >-
+          steps.secrets.outputs.is_release == 'true' &&
+          (inputs.build_type == 'apk' || inputs.build_type == 'both' || github.ref_type == 'tag')
         uses: actions/upload-artifact@v4
         with:
           name: instify-release-apk-${{ steps.ver.outputs.name }}
@@ -221,7 +243,9 @@ jobs:
           retention-days: 30
 
       - name: Upload AAB (Play Store bundle)
-        if: inputs.build_type == 'aab' || inputs.build_type == 'both' || github.ref_type == 'tag'
+        if: >-
+          steps.secrets.outputs.is_release == 'true' &&
+          (inputs.build_type == 'aab' || inputs.build_type == 'both' || github.ref_type == 'tag')
         uses: actions/upload-artifact@v4
         with:
           name: instify-playstore-aab-${{ steps.ver.outputs.name }}
