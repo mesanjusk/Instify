@@ -48,6 +48,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ── Detect available secrets ────────────────────────────────────────────
+      # secrets cannot be referenced in `if:` expressions, so we probe them
+      # here and expose boolean outputs that downstream steps can use.
+      - name: Detect available secrets
+        id: secrets
+        env:
+          _KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          _PLAY:     ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -n "$_KEYSTORE" ]; then
+            echo "has_keystore=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "has_keystore=false" >> "$GITHUB_OUTPUT"
+            echo "⚠️  ANDROID_KEYSTORE_BASE64 not set — signed builds will be skipped"
+          fi
+          if [ -n "$_PLAY" ]; then
+            echo "has_play=true"  >> "$GITHUB_OUTPUT"
+          else
+            echo "has_play=false" >> "$GITHUB_OUTPUT"
+          fi
+
       # ── Toolchain ───────────────────────────────────────────────────────────
       - name: Setup Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
@@ -65,27 +86,24 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          # Only install what Gradle actually needs — keeps the step fast
           packages: 'tools platform-tools platforms;android-34 build-tools;34.0.0'
 
       # ── Version resolution ──────────────────────────────────────────────────
       - name: Resolve version name and code
         id: ver
         run: |
-          # --- version name ---
           if [[ -n "${{ inputs.version_name }}" ]]; then
             VER="${{ inputs.version_name }}"
           elif [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
-            VER="${GITHUB_REF_NAME#v}"   # strip leading 'v'
+            VER="${GITHUB_REF_NAME#v}"
           else
             VER="1.0.0"
           fi
 
-          # --- version code (must be a monotonically increasing integer) ---
           if [[ -n "${{ inputs.version_code }}" ]]; then
             CODE="${{ inputs.version_code }}"
           else
-            CODE="$(date +%Y%m%d%H%M)"  # 12-digit timestamp — always increases
+            CODE="$(date +%Y%m%d%H%M)"
           fi
 
           echo "name=$VER"  >> "$GITHUB_OUTPUT"
@@ -105,18 +123,10 @@ jobs:
         run: npm run build:mobile
         working-directory: SocialFront
         env:
-          # VITE_BASE_URL is baked into the JS bundle at build time.
-          # Set this secret to your production backend URL, e.g.:
-          #   https://instify-api.onrender.com
           VITE_BASE_URL: ${{ secrets.VITE_BASE_URL }}
 
       # ── Capacitor ───────────────────────────────────────────────────────────
-      - name: Install Capacitor packages
-        run: npm install
-        working-directory: SocialFront
-
       - name: Init Capacitor Android project
-        # `cap add android` is idempotent — it skips if the folder already exists
         run: |
           npx cap add android 2>&1 | tail -5 || true
         working-directory: SocialFront
@@ -131,16 +141,15 @@ jobs:
           GRADLE=SocialFront/android/app/build.gradle
           sed -i "s/versionCode [0-9]*/versionCode ${{ steps.ver.outputs.code }}/" "$GRADLE"
           sed -i 's/versionName "[^"]*"/versionName "${{ steps.ver.outputs.name }}"/' "$GRADLE"
-          echo "📌 Patched build.gradle:"
           grep -E 'versionCode|versionName' "$GRADLE"
 
-      # ── Keystore setup (signed builds only) ────────────────────────────────
+      # ── Keystore setup ──────────────────────────────────────────────────────
       - name: Decode release keystore
-        # Skip if keystore secret is absent (e.g. first-time / forked PRs)
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: steps.secrets.outputs.has_keystore == 'true'
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > SocialFront/android/app/keystore.jks
-          echo "✅ Keystore decoded: $(wc -c < SocialFront/android/app/keystore.jks) bytes"
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode \
+            > SocialFront/android/app/keystore.jks
+          echo "✅ Keystore: $(wc -c < SocialFront/android/app/keystore.jks) bytes"
 
       # ── Cache Gradle ────────────────────────────────────────────────────────
       - name: Cache Gradle dependencies
@@ -152,19 +161,17 @@ jobs:
           key: gradle-${{ hashFiles('SocialFront/android/**/*.gradle*', 'SocialFront/android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: gradle-
 
-      # ── Build ───────────────────────────────────────────────────────────────
+      # ── Build steps ─────────────────────────────────────────────────────────
 
-      # Debug APK — no signing needed, for QA / internal testers
       - name: Build debug APK
-        if: ${{ inputs.build_type == 'apk' || inputs.build_type == 'both' }}
+        if: inputs.build_type == 'apk' || inputs.build_type == 'both'
         run: ./gradlew assembleDebug --no-daemon --stacktrace
         working-directory: SocialFront/android
 
-      # Signed release APK — can be distributed outside Play Store
       - name: Build signed release APK
         if: >-
-          ${{ (inputs.build_type == 'apk' || inputs.build_type == 'both') &&
-              secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+          (inputs.build_type == 'apk' || inputs.build_type == 'both') &&
+          steps.secrets.outputs.has_keystore == 'true'
         run: >-
           ./gradlew assembleRelease
           --no-daemon
@@ -175,11 +182,10 @@ jobs:
           -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }}
         working-directory: SocialFront/android
 
-      # Signed release AAB — required format for Google Play Store
       - name: Build signed release AAB (Play Store)
         if: >-
-          ${{ (inputs.build_type == 'aab' || inputs.build_type == 'both' || github.ref_type == 'tag') &&
-              secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+          (inputs.build_type == 'aab' || inputs.build_type == 'both' || github.ref_type == 'tag') &&
+          steps.secrets.outputs.has_keystore == 'true'
         run: >-
           ./gradlew bundleRelease
           --no-daemon
@@ -190,42 +196,41 @@ jobs:
           -Pandroid.injected.signing.key.password=${{ secrets.ANDROID_KEY_PASSWORD }}
         working-directory: SocialFront/android
 
-      # Unsigned AAB — when no keystore secret present, produce an unsigned bundle for review
-      - name: Build unsigned release AAB (no keystore)
+      - name: Build unsigned AAB (no keystore — review only)
         if: >-
-          ${{ (inputs.build_type == 'aab' || inputs.build_type == 'both' || github.ref_type == 'tag') &&
-              secrets.ANDROID_KEYSTORE_BASE64 == '' }}
+          (inputs.build_type == 'aab' || inputs.build_type == 'both' || github.ref_type == 'tag') &&
+          steps.secrets.outputs.has_keystore == 'false'
         run: ./gradlew bundleRelease --no-daemon --stacktrace
         working-directory: SocialFront/android
 
       # ── Upload Artifacts ────────────────────────────────────────────────────
       - name: Upload debug APK
-        if: ${{ inputs.build_type == 'apk' || inputs.build_type == 'both' }}
+        if: inputs.build_type == 'apk' || inputs.build_type == 'both'
         uses: actions/upload-artifact@v4
         with:
-          name: instify-debug-${{ steps.ver.outputs.name }}.apk
+          name: instify-debug-${{ steps.ver.outputs.name }}
           path: SocialFront/android/app/build/outputs/apk/debug/*.apk
           retention-days: 14
 
       - name: Upload release APK
-        if: ${{ inputs.build_type == 'apk' || inputs.build_type == 'both' }}
+        if: inputs.build_type == 'apk' || inputs.build_type == 'both'
         uses: actions/upload-artifact@v4
         with:
-          name: instify-release-${{ steps.ver.outputs.name }}.apk
+          name: instify-release-apk-${{ steps.ver.outputs.name }}
           path: SocialFront/android/app/build/outputs/apk/release/*.apk
           retention-days: 30
 
-      - name: Upload release AAB (Play Store bundle)
-        if: ${{ inputs.build_type == 'aab' || inputs.build_type == 'both' || github.ref_type == 'tag' }}
+      - name: Upload AAB (Play Store bundle)
+        if: inputs.build_type == 'aab' || inputs.build_type == 'both' || github.ref_type == 'tag'
         uses: actions/upload-artifact@v4
         with:
-          name: instify-playstore-${{ steps.ver.outputs.name }}.aab
+          name: instify-playstore-aab-${{ steps.ver.outputs.name }}
           path: SocialFront/android/app/build/outputs/bundle/release/*.aab
           retention-days: 30
 
       # ── GitHub Release (automatic on tag push) ──────────────────────────────
       - name: Create GitHub Release
-        if: ${{ github.ref_type == 'tag' }}
+        if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -240,13 +245,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # ── Play Store Upload (optional) ────────────────────────────────────────
-      # Requires GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret.
-      # Set up instructions:
-      #   1. Google Play Console → Setup → API access → Create service account
-      #   2. Grant "Release manager" role in Play Console
-      #   3. Download JSON key, paste contents as the secret
-      - name: Upload AAB to Play Store (Internal Testing track)
-        if: ${{ github.ref_type == 'tag' && secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}
+      # Requires GOOGLE_PLAY_SERVICE_ACCOUNT_JSON secret:
+      #   1. Play Console → Setup → API access → Create service account
+      #   2. Grant "Release manager" role
+      #   3. Download JSON key → paste as secret
+      - name: Upload AAB to Play Store (Internal Testing)
+        if: github.ref_type == 'tag' && steps.secrets.outputs.has_play == 'true'
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
@@ -254,4 +258,3 @@ jobs:
           releaseFiles: SocialFront/android/app/build/outputs/bundle/release/*.aab
           track: internal
           status: completed
-          # Promote to 'alpha' or 'production' track manually in Play Console after QA
