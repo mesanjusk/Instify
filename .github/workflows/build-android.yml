@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - main
+      - 'claude/**'
     paths:
       - 'SocialFront/**'
       - '.github/workflows/build-android.yml'
@@ -134,10 +135,40 @@ jobs:
         env:
           VITE_BASE_URL: ${{ secrets.VITE_BASE_URL }}
 
+      # ── Capacitor config ────────────────────────────────────────────────────
+      # Write config as JSON — Capacitor reads it natively without TypeScript.
+      # Wipe any .ts / .js first so Capacitor never tries to compile them.
+      - name: Write capacitor.config.json
+        run: |
+          rm -f capacitor.config.ts capacitor.config.js
+          cat > capacitor.config.json << 'EOF'
+          {
+            "appId": "in.instify.app",
+            "appName": "Instify",
+            "webDir": "dist",
+            "server": {
+              "androidScheme": "https",
+              "cleartext": false
+            },
+            "android": {
+              "backgroundColor": "#f4f9f6",
+              "captureInput": true,
+              "allowMixedContent": false
+            },
+            "plugins": {
+              "SplashScreen": {
+                "launchShowDuration": 1500,
+                "backgroundColor": "#1a7a4a",
+                "showSpinner": false
+              }
+            }
+          }
+          EOF
+        working-directory: SocialFront
+
       # ── Capacitor ───────────────────────────────────────────────────────────
       - name: Init Capacitor Android project
-        run: |
-          npx cap add android 2>&1 | tail -5 || true
+        run: npx cap add android 2>&1 | tail -5 || true
         working-directory: SocialFront
 
       - name: Sync web assets into Android project

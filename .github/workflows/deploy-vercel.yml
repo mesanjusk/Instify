@@ -19,6 +19,7 @@ on:
   push:
     branches:
       - main
+      - 'claude/**'
     paths:
       - 'SocialFront/**'
       - '.github/workflows/deploy-vercel.yml'

@@ -1,0 +1,56 @@
+name: Auto-merge to main
+
+# Merges any claude/* branch into main automatically after every push.
+# CI/CD workflows (build-android, deploy-vercel) already run on the branch
+# push itself, so the merge commit uses [skip ci] to avoid duplicate runs.
+#
+# ── Branch protection note ───────────────────────────────────────────────────
+# If your repo has "Require a pull request before merging" enabled on main,
+# GITHUB_TOKEN cannot push directly. Fix one of two ways:
+#   A) Repo Settings → Branches → main protection rule
+#      → enable "Allow specified actors to bypass required pull requests"
+#      → add "github-actions[bot]"
+#   B) Create a PAT (github.com/settings/tokens, classic, repo scope)
+#      and add it as repo secret GH_PAT — the workflow uses it automatically.
+# ─────────────────────────────────────────────────────────────────────────────
+on:
+  push:
+    branches:
+      - 'claude/**'
+
+jobs:
+  merge-to-main:
+    name: Merge ${{ github.ref_name }} → main
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # GH_PAT overrides GITHUB_TOKEN when branch protection blocks bots.
+          # Falls back to GITHUB_TOKEN if GH_PAT secret is not set.
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+
+      - name: Configure git bot identity
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge ${{ github.ref_name }} into main
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          git fetch origin main "$BRANCH"
+          git checkout main
+
+          if git merge --no-ff "origin/$BRANCH" \
+               --message "chore: auto-merge $BRANCH into main [skip ci]"; then
+            git push origin main
+            echo "✅ Merged $BRANCH → main"
+          else
+            echo "❌ Merge conflict — aborting. Resolve manually and re-push."
+            git merge --abort
+            exit 1
+          fi
