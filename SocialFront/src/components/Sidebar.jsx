@@ -33,6 +33,8 @@ import ShowChartIcon from '@mui/icons-material/ShowChart';
 import FunnelIcon from '@mui/icons-material/FilterAlt';
 import DynamicFormIcon from '@mui/icons-material/DynamicForm';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 
 const DRAWER_WIDTH = 256;
 
@@ -56,7 +58,7 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
   const { user } = useApp();
   const [expanded, setExpanded] = useState({
     academic: true, finance: false, crm: false, features: true,
-    hr: false, reports: false, settings: false,
+    hr: false, reports: false, settings: false, orders: false,
   });
 
   const toggle = (key) => setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
@@ -114,6 +116,13 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
         { label: 'Enquiries', icon: <ForumIcon fontSize="small" />, path: `/${username}/enquiry` },
         { label: 'Follow-ups', icon: <EventNoteIcon fontSize="small" />, path: `/${username}/followup` },
         { label: 'Funnel Report', icon: <FunnelIcon fontSize="small" />, path: `/${username}/funnel-report` },
+      ],
+    },
+    {
+      key: 'orders',
+      label: 'Orders',
+      items: [
+        { label: 'All Orders', icon: <ShoppingCartIcon fontSize="small" />, path: `/${username}/allOrders` },
       ],
     },
     {

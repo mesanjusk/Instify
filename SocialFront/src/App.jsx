@@ -50,6 +50,7 @@ const AllBatches = lazy(() => import('./reports/allBatches'));
 const AllBalance = lazy(() => import('./reports/allBalance'));
 const AddAccount = lazy(() => import('./pages/AddAccount'));
 const AllExams = lazy(() => import('./reports/allExams'));
+const AllOrders = lazy(() => import('./reports/allOrders'));
 const Institutes = lazy(() => import('./pages/Institutes'));
 const Students = lazy(() => import('./pages/Students'));
 const Fees = lazy(() => import('./pages/Fees'));
@@ -189,6 +190,7 @@ export default function App() {
         <Route path="whatsapp" element={<FeatureGate module="whatsapp"><WhatsAppAdminPage /></FeatureGate>} />
         <Route path="dashboard/centers/:centerId/whatsapp" element={<WhatsAppIntegrationSettingsPage />} />
         <Route path="allExams" element={<AllExams />} />
+        <Route path="allOrders" element={<AllOrders />} />
         <Route path="fees" element={<Fees />} />
         <Route path="tools" element={<ToolsPanel />} />
         <Route path="allTransaction3" element={<AllTransaction3 />} />
