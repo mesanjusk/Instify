@@ -113,7 +113,8 @@ jobs:
           if [[ -n "${{ inputs.version_code }}" ]]; then
             CODE="${{ inputs.version_code }}"
           else
-            CODE="$(date +%Y%m%d%H%M)"
+            # Unix epoch seconds — always < 2,147,483,647 (int max), always increases
+            CODE="$(date +%s)"
           fi
 
           echo "name=$VER"  >> "$GITHUB_OUTPUT"
