@@ -53,6 +53,7 @@ const AdmissionStudentInfoTab = ({ form, handleChange }) => (
         {' '}Female
       </label>
     </div>
+
     <input
       placeholder="Mobile (Self)"
       value={form.mobileSelf}
@@ -62,6 +63,16 @@ const AdmissionStudentInfoTab = ({ form, handleChange }) => (
       maxLength={10}
       className="border p-2"
     />
+    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: '#374151', cursor: 'pointer', marginTop: -6 }}>
+      <input
+        type="checkbox"
+        checked={!!form.mobileSelfWhatsapp}
+        onChange={(e) => handleChange('mobileSelfWhatsapp')({ target: { value: e.target.checked } })}
+        style={{ accentColor: '#059669', width: 15, height: 15 }}
+      />
+      Student consents to receive WhatsApp notifications on this number
+    </label>
+
     <input
       placeholder="Mobile (Parent)"
       value={form.mobileParent}
@@ -71,6 +82,16 @@ const AdmissionStudentInfoTab = ({ form, handleChange }) => (
       maxLength={10}
       className="border p-2"
     />
+    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: '#374151', cursor: 'pointer', marginTop: -6 }}>
+      <input
+        type="checkbox"
+        checked={!!form.mobileParentWhatsapp}
+        onChange={(e) => handleChange('mobileParentWhatsapp')({ target: { value: e.target.checked } })}
+        style={{ accentColor: '#059669', width: 15, height: 15 }}
+      />
+      Parent consents to receive WhatsApp notifications on this number
+    </label>
+
     <input
       placeholder="Address"
       value={form.address}

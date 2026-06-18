@@ -19,6 +19,7 @@ import ResetPassword from './components/ResetPassword';
 import Dashboard from './pages/Dashboard';
 import MagicLogin from './pages/MagicLogin';
 import PublicForm from './pages/PublicForm';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 // Lazy-load all heavy feature pages — split into separate chunks
 const AcademicHub = lazy(() => import('./pages/AcademicHub'));
@@ -108,6 +109,7 @@ export default function App() {
       <Route path="/access/:token" element={<MagicLogin />} />
       <Route path="/f/:slug" element={<PublicForm />} />
       <Route path="/idcard-preview/:token" element={<IDCardStudentSelfEdit />} />
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
       {/* ── Section routes (no sidebar / FAB / bottom nav) ── */}
       <Route

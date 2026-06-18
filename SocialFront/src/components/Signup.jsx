@@ -69,6 +69,7 @@ const Signup = () => {
   const [serverOtp, setServerOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [focusField, setFocusField] = useState(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -462,8 +463,28 @@ const Signup = () => {
               </div>
             )}
 
+            {/* Terms & Privacy consent */}
+            {!otpSent && (
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', marginTop: 4 }}>
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  style={{ marginTop: 3, accentColor: themeColor, width: 16, height: 16, flexShrink: 0 }}
+                />
+                <span style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
+                  I agree to Instify's{' '}
+                  <button type="button" onClick={() => window.open('/privacy-policy', '_blank')}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: themeColor, fontWeight: 600, padding: 0, fontSize: '0.78rem', fontFamily: 'inherit', textDecoration: 'underline' }}>
+                    Privacy Policy
+                  </button>
+                  {' '}and confirm that I have obtained necessary consent from students/parents for data collection and WhatsApp messaging.
+                </span>
+              </label>
+            )}
+
             {/* Submit button */}
-            <button type="submit" disabled={loading}
+            <button type="submit" disabled={loading || (!otpSent && !agreedToTerms)}
               style={{
                 width: '100%', padding: '14px', borderRadius: 12, border: 'none',
                 cursor: loading ? 'not-allowed' : 'pointer',
@@ -508,6 +529,10 @@ const Signup = () => {
                 textDecoration: 'underline', textDecorationColor: '#cbd5e1',
               }}>
               Forgot password?
+            </button>
+            <button onClick={() => window.open('/privacy-policy', '_blank')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', color: '#94a3b8', fontFamily: 'inherit', textDecoration: 'underline' }}>
+              Privacy Policy
             </button>
           </div>
         </div>
