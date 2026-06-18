@@ -10,6 +10,7 @@ import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import CloudSyncIcon from '@mui/icons-material/CloudSync';
+import ArrowBackIosNewRoundedIcon from '@mui/icons-material/ArrowBackIosNewRounded';
 
 import Sidebar from '../components/Sidebar';
 import BottomNav from '../components/BottomNav';
@@ -125,19 +126,21 @@ export default function DashboardLayout() {
             minHeight: { xs: 58, sm: 64 },
             px: { xs: 2, md: 3 },
           }}>
-            {/* Hamburger — mobile only */}
-            <IconButton
-              edge="start"
-              onClick={() => setMobileOpen(true)}
-              sx={{
-                display: { md: 'none' },
-                mr: 0.5,
-                color: 'text.secondary',
-                '&:hover': { bgcolor: 'rgba(5,150,105,0.08)', color: 'primary.main' },
-              }}
-            >
-              <MenuRoundedIcon />
-            </IconButton>
+            {/* Back button — mobile only, inner pages */}
+            {!isHome && (
+              <IconButton
+                edge="start"
+                onClick={() => navigate(-1)}
+                sx={{
+                  display: { md: 'none' },
+                  mr: 0.5,
+                  color: 'text.secondary',
+                  '&:hover': { bgcolor: 'rgba(5,150,105,0.08)', color: 'primary.main' },
+                }}
+              >
+                <ArrowBackIosNewRoundedIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            )}
 
             {/* Title / Breadcrumb */}
             <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -266,6 +269,19 @@ export default function DashboardLayout() {
                   <LogoutRoundedIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
+
+              {/* Hamburger — mobile only, right side */}
+              <IconButton
+                edge="end"
+                onClick={() => setMobileOpen(true)}
+                sx={{
+                  display: { md: 'none' },
+                  color: 'text.secondary',
+                  '&:hover': { bgcolor: 'rgba(5,150,105,0.08)', color: 'primary.main' },
+                }}
+              >
+                <MenuRoundedIcon />
+              </IconButton>
             </Stack>
           </Toolbar>
         </AppBar>

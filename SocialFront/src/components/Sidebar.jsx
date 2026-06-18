@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  Avatar, Box, Chip, Collapse, Drawer, List, ListItemButton,
+  Avatar, Box, Chip, Collapse, Drawer, IconButton, List, ListItemButton,
   ListItemIcon, ListItemText, Stack, Typography,
 } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -35,6 +35,7 @@ import ShowChartIcon from '@mui/icons-material/ShowChart';
 import FunnelIcon from '@mui/icons-material/FilterAlt';
 import DynamicFormIcon from '@mui/icons-material/DynamicForm';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 
 const DRAWER_WIDTH = 256;
 
@@ -187,6 +188,19 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
           transition: 'opacity 0.15s ease',
         }}
       >
+        {variant === 'temporary' && (
+          <IconButton
+            size="small"
+            onClick={onClose}
+            sx={{
+              position: 'absolute', top: 10, right: 10, zIndex: 2,
+              color: 'rgba(255,255,255,0.7)',
+              '&:hover': { bgcolor: 'rgba(255,255,255,0.15)', color: '#fff' },
+            }}
+          >
+            <CloseRoundedIcon fontSize="small" />
+          </IconButton>
+        )}
         <Box sx={{ position: 'relative', zIndex: 1 }}>
           <Stack direction="row" alignItems="center" spacing={1} mb={0.25}>
             <Box sx={{
