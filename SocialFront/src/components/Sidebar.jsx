@@ -19,6 +19,8 @@ import ForumIcon from '@mui/icons-material/Forum';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import BadgeIcon from '@mui/icons-material/Badge';
+import MenuBookIcon from '@mui/icons-material/MenuBook';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import DownloadIcon from '@mui/icons-material/Download';
 import CorporateFareIcon from '@mui/icons-material/CorporateFare';
@@ -243,6 +245,46 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
         '&::-webkit-scrollbar-thumb': { background: 'rgba(255,255,255,0.1)', borderRadius: 99 },
         '&::-webkit-scrollbar-track': { background: 'transparent' },
       }}>
+
+        {/* Quick Sections */}
+        <Box sx={{ mb: 1.5 }}>
+          <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: S.textMuted, textTransform: 'uppercase', letterSpacing: '0.12em', px: 1.5, pb: 0.875, display: 'block' }}>
+            Quick Sections
+          </Typography>
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 1 }}>
+            {[
+              { icon: <MenuBookIcon sx={{ fontSize: 18, color: '#fff' }} />, label: 'Academic', gradient: 'linear-gradient(135deg, #064e3b, #059669)', path: `/${username}/section/academic` },
+              { icon: <WhatsAppIcon sx={{ fontSize: 18, color: '#fff' }} />, label: 'WhatsApp', gradient: 'linear-gradient(135deg, #064e3b, #128C7E)', path: `/${username}/section/whatsapp` },
+              { icon: <BadgeIcon sx={{ fontSize: 18, color: '#fff' }} />, label: 'ID Cards', gradient: 'linear-gradient(135deg, #1e40af, #3b82f6)', path: `/${username}/idcard` },
+              { icon: <AdminPanelSettingsIcon sx={{ fontSize: 18, color: '#fff' }} />, label: 'Admin', gradient: 'linear-gradient(135deg, #1e293b, #475569)', path: `/${username}/section/admin` },
+            ].map((item) => (
+              <Box
+                key={item.label}
+                onClick={() => go(item.path)}
+                sx={{
+                  p: 1.25, borderRadius: 2, cursor: 'pointer', textAlign: 'center',
+                  background: item.gradient, position: 'relative', overflow: 'hidden',
+                  transition: 'all 0.15s ease',
+                  '&::before': {
+                    content: '""', position: 'absolute',
+                    top: -20, right: -20, width: 60, height: 60,
+                    borderRadius: '50%', background: 'rgba(255,255,255,0.08)',
+                  },
+                  '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 6px 16px rgba(0,0,0,0.4)' },
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5, position: 'relative', zIndex: 1 }}>
+                  {item.icon}
+                </Box>
+                <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, color: 'rgba(255,255,255,0.92)', lineHeight: 1.2, position: 'relative', zIndex: 1 }}>
+                  {item.label}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+        <Box sx={{ mx: 0.5, mb: 1.5, height: '1px', background: 'rgba(255,255,255,0.07)' }} />
+
         {groups.map((group) => (
           <Box key={group.key} sx={{ mb: 0.25 }}>
             {/* Group header */}
