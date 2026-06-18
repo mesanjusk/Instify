@@ -35,49 +35,52 @@ const StatCard = memo(function StatCard({ icon, label, value, color, onClick, lo
         } : {},
       }}
     >
-      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
-          <Box sx={{ minWidth: 0, flex: 1 }}>
+      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 }, position: 'relative' }}>
+        {/* Icon pinned to top-right so it never competes with label width */}
+        <Box sx={{
+          position: 'absolute', top: 10, right: 10,
+          width: 30, height: 30, borderRadius: 1.5,
+          bgcolor: `${color}15`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          {icon}
+        </Box>
+        <Typography
+          variant="caption"
+          sx={{
+            display: 'block',
+            fontSize: '0.66rem', fontWeight: 600, color: '#94a3b8',
+            textTransform: 'uppercase', letterSpacing: '0.06em',
+            pr: '42px',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}
+        >
+          {label}
+        </Typography>
+        {loading ? (
+          <Box sx={{ mt: 1 }}>
+            <CircularProgress size={20} sx={{ color }} />
+          </Box>
+        ) : (
+          <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mt: 0.5 }}>
             <Typography
-              variant="caption"
-              sx={{ fontSize: '0.68rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}
-              noWrap
+              variant="h5"
+              fontWeight={800}
+              sx={{
+                color,
+                lineHeight: 1.1,
+                fontSize: { xs: '1.3rem', md: '1.6rem' },
+                letterSpacing: '-0.03em',
+              }}
             >
-              {label}
+              {value}
             </Typography>
-            {loading ? (
-              <Box sx={{ mt: 1 }}>
-                <CircularProgress size={20} sx={{ color }} />
-              </Box>
-            ) : (
-              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mt: 0.5 }}>
-                <Typography
-                  variant="h5"
-                  fontWeight={800}
-                  sx={{
-                    color,
-                    lineHeight: 1.1,
-                    fontSize: { xs: '1.35rem', md: '1.65rem' },
-                    letterSpacing: '-0.03em',
-                  }}
-                >
-                  {value}
-                </Typography>
-                {!loading && value !== '—' && (
-                  <NorthRoundedIcon sx={{ fontSize: 11, color: '#10b981', mb: 0.25 }} />
-                )}
-              </Box>
+            {!loading && value !== '—' && (
+              <NorthRoundedIcon sx={{ fontSize: 11, color: '#10b981', mb: 0.25 }} />
             )}
           </Box>
-          <Box sx={{
-            width: { xs: 36, md: 42 }, height: { xs: 36, md: 42 },
-            borderRadius: 2, flexShrink: 0,
-            bgcolor: `${color}18`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            {icon}
-          </Box>
-        </Stack>
+        )}
       </CardContent>
     </Card>
   );
@@ -265,11 +268,45 @@ export default function Dashboard() {
             display: 'grid',
             gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', xl: 'repeat(3, 1fr)' },
             gap: { xs: 1.5, md: 2 },
-            mb: 3,
+            mb: 2.5,
           }}>
             {statCards.map((card, i) => (
               <StatCard key={i} {...card} loading={loading} delay={i * 0.06} />
             ))}
+          </Box>
+
+          {/* Quick Actions — mobile only (right panel hidden on small screens) */}
+          <Box sx={{ display: { xs: 'block', lg: 'none' } }}>
+            <Typography variant="caption" sx={{ display: 'block', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.65rem', mb: 1.25 }}>
+              Quick Actions
+            </Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>
+              {quickActions.map((a, i) => (
+                <Box
+                  key={i}
+                  onClick={() => navigate(a.path)}
+                  sx={{
+                    p: 1.5, borderRadius: 2.5, cursor: 'pointer', textAlign: 'center',
+                    border: '1px solid rgba(226,232,240,0.8)',
+                    bgcolor: '#fff',
+                    transition: 'all 0.15s ease',
+                    '&:hover': { bgcolor: `${a.color}08`, borderColor: `${a.color}30` },
+                    animation: `fadeUp 0.4s ease ${i * 0.05}s both`,
+                  }}
+                >
+                  <Box sx={{
+                    width: 32, height: 32, borderRadius: 2, mx: 'auto', mb: 0.75,
+                    bgcolor: `${a.color}15`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Box sx={{ color: a.color, display: 'flex' }}>{a.icon}</Box>
+                  </Box>
+                  <Typography sx={{ fontSize: '0.68rem', fontWeight: 600, color: '#374151', lineHeight: 1.3 }}>
+                    {a.label}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
           </Box>
 
         </Box>
