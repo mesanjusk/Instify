@@ -33,9 +33,7 @@ const Signup = () => {
   const [form, setForm] = useState({
     institute_title: '',
     institute_type: '',
-    center_code: '',
     institute_call_number: '',
-    center_head_name: '',
     theme_color: '#059669',
     storage_mode: isDesktop ? 'hybrid' : 'cloud_only',
   });
@@ -116,7 +114,7 @@ const Signup = () => {
         mobile: `91${form.institute_call_number}`,
         otp: generatedOtp,
         type: 'signup',
-        userName: form.center_head_name,
+        userName: form.institute_title,
       });
       if (res.data.success) {
         if (res.data.whatsappSent === false) {
@@ -149,8 +147,10 @@ const Signup = () => {
     try {
       const res = await axios.post(`${BASE_URL}/api/institute/signup`, {
         ...form,
+        center_code: form.institute_call_number,
+        center_head_name: form.institute_title,
         plan_type: 'trial',
-        passwordHash: form.center_code,
+        passwordHash: form.institute_call_number,
       });
       const data = res.data;
       if (data.message === 'exist') {
@@ -159,7 +159,7 @@ const Signup = () => {
         toast.error('Mobile number already registered');
       } else if (data.message === 'success') {
         toast.success('Registration successful! Welcome to Instify.');
-        storeUserData({ id: data.owner_id, name: form.center_head_name, role: 'admin', username: form.center_code });
+        storeUserData({ id: data.owner_id, name: form.institute_title, role: 'admin', username: form.institute_call_number });
         storeInstituteData({
           institute_uuid: data.institute_uuid,
           institute_name: form.institute_title,
@@ -174,7 +174,7 @@ const Signup = () => {
           const accountGroup = groupRes.data.result.find(g => g.Account_group === 'ACCOUNT');
           const accountBank = groupRes.data.result.find(g => g.Account_group === 'Bank');
           const accts = [
-            accountGroup && { name: form.center_head_name, group: accountGroup.Account_group_uuid },
+            accountGroup && { name: form.institute_title, group: accountGroup.Account_group_uuid },
             accountGroup && { name: 'Fees Receivable', group: accountGroup.Account_group_uuid },
             accountBank && { name: 'Bank', group: accountBank.Account_group_uuid },
             accountBank && { name: 'Cash', group: accountBank.Account_group_uuid },
@@ -342,32 +342,12 @@ const Signup = () => {
 
                 <div>
                   <label style={{ display: 'block', marginBottom: 6, fontSize: '0.825rem', fontWeight: 600, color: '#374151', letterSpacing: '-0.01em' }}>
-                    Center Code
-                  </label>
-                  <input type="text" value={form.center_code} onChange={handleChange('center_code')}
-                    placeholder="Your unique center code" required
-                    onFocus={() => setFocusField('center_code')} onBlur={() => setFocusField(null)}
-                    style={inputStyle('center_code')} />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: 6, fontSize: '0.825rem', fontWeight: 600, color: '#374151', letterSpacing: '-0.01em' }}>
                     Mobile Number
                   </label>
                   <input type="tel" value={form.institute_call_number} onChange={handleChange('institute_call_number')}
                     placeholder="10-digit mobile number" maxLength={10} pattern="[0-9]{10}" required
                     onFocus={() => setFocusField('institute_call_number')} onBlur={() => setFocusField(null)}
                     style={inputStyle('institute_call_number')} />
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: 6, fontSize: '0.825rem', fontWeight: 600, color: '#374151', letterSpacing: '-0.01em' }}>
-                    Center Head Name
-                  </label>
-                  <input type="text" value={form.center_head_name} onChange={handleChange('center_head_name')}
-                    placeholder="Full name of center head" required
-                    onFocus={() => setFocusField('center_head_name')} onBlur={() => setFocusField(null)}
-                    style={inputStyle('center_head_name')} />
                 </div>
 
                 <div>
@@ -513,10 +493,6 @@ const Signup = () => {
                 textDecoration: 'underline', textDecorationColor: '#cbd5e1',
               }}>
               Forgot password?
-            </button>
-            <button onClick={() => window.open('/privacy-policy', '_blank')}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', color: '#94a3b8', fontFamily: 'inherit', textDecoration: 'underline' }}>
-              Privacy Policy
             </button>
           </div>
         </div>
