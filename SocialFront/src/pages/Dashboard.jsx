@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Avatar, Box, Button, Card, CardContent, Chip, CircularProgress,
+  Box, Button, Card, CardContent, Chip, CircularProgress,
   Stack, Typography,
 } from '@mui/material';
 import PeopleIcon from '@mui/icons-material/People';
@@ -19,20 +19,14 @@ import NorthRoundedIcon from '@mui/icons-material/NorthRounded';
 import { useApp } from '../context/AppContext';
 import apiClient from '../apiClient';
 
-function getGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good Morning';
-  if (h < 17) return 'Good Afternoon';
-  return 'Good Evening';
-}
-
-const StatCard = memo(function StatCard({ icon, label, value, color, gradient, onClick, loading, delay = 0 }) {
+const StatCard = memo(function StatCard({ icon, label, value, color, onClick, loading, delay = 0 }) {
   return (
     <Card
       onClick={onClick}
       sx={{
         cursor: onClick ? 'pointer' : 'default',
         border: '1px solid rgba(226,232,240,0.8)',
+        overflow: 'hidden',
         animation: `fadeUp 0.4s ease ${delay}s both`,
         '&:hover': onClick ? {
           transform: 'translateY(-3px)',
@@ -41,12 +35,12 @@ const StatCard = memo(function StatCard({ icon, label, value, color, gradient, o
         } : {},
       }}
     >
-      <CardContent sx={{ p: 2.25, '&:last-child': { pb: 2.25 } }}>
-        <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={1.5}>
+      <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
           <Box sx={{ minWidth: 0, flex: 1 }}>
             <Typography
               variant="caption"
-              sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}
+              sx={{ fontSize: '0.68rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}
               noWrap
             >
               {label}
@@ -56,30 +50,30 @@ const StatCard = memo(function StatCard({ icon, label, value, color, gradient, o
                 <CircularProgress size={20} sx={{ color }} />
               </Box>
             ) : (
-              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, mt: 0.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mt: 0.5 }}>
                 <Typography
                   variant="h5"
                   fontWeight={800}
                   sx={{
                     color,
                     lineHeight: 1.1,
-                    fontSize: { xs: '1.5rem', md: '1.65rem' },
+                    fontSize: { xs: '1.35rem', md: '1.65rem' },
                     letterSpacing: '-0.03em',
                   }}
                 >
                   {value}
                 </Typography>
                 {!loading && value !== '—' && (
-                  <NorthRoundedIcon sx={{ fontSize: 12, color: '#10b981', mb: 0.25 }} />
+                  <NorthRoundedIcon sx={{ fontSize: 11, color: '#10b981', mb: 0.25 }} />
                 )}
               </Box>
             )}
           </Box>
           <Box sx={{
-            width: 44, height: 44, borderRadius: 2.5, flexShrink: 0,
-            background: gradient || `${color}15`,
+            width: { xs: 36, md: 42 }, height: { xs: 36, md: 42 },
+            borderRadius: 2, flexShrink: 0,
+            bgcolor: `${color}18`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: `0 4px 12px ${color}20`,
           }}>
             {icon}
           </Box>
@@ -198,38 +192,38 @@ export default function Dashboard() {
   const statCards = useMemo(() => [
     {
       label: 'Total Students', value: stats.students ?? '—',
-      icon: <PeopleIcon sx={{ fontSize: 20, color: '#059669' }} />,
-      color: '#059669', gradient: 'linear-gradient(135deg, #059669, #34d399)',
+      icon: <PeopleIcon sx={{ fontSize: 18, color: '#059669' }} />,
+      color: '#059669',
       onClick: () => navTo(`/${username}/students`),
     },
     {
       label: 'Admissions', value: stats.admissions ?? '—',
-      icon: <SchoolIcon sx={{ fontSize: 20, color: '#3b82f6' }} />,
-      color: '#3b82f6', gradient: 'linear-gradient(135deg, #3b82f6, #93c5fd)',
+      icon: <SchoolIcon sx={{ fontSize: 18, color: '#3b82f6' }} />,
+      color: '#3b82f6',
       onClick: () => navTo(`/${username}/allAdmission`),
     },
     {
       label: 'Enquiries', value: stats.enquiries ?? '—',
-      icon: <TrendingUpIcon sx={{ fontSize: 20, color: '#f59e0b' }} />,
-      color: '#f59e0b', gradient: 'linear-gradient(135deg, #f59e0b, #fcd34d)',
+      icon: <TrendingUpIcon sx={{ fontSize: 18, color: '#f59e0b' }} />,
+      color: '#f59e0b',
       onClick: () => navTo(`/${username}/leads`),
     },
     {
       label: "Today's Revenue", value: `₹${(stats.feesToday || 0).toLocaleString()}`,
-      icon: <AttachMoneyIcon sx={{ fontSize: 20, color: '#10b981' }} />,
-      color: '#10b981', gradient: 'linear-gradient(135deg, #10b981, #6ee7b7)',
+      icon: <AttachMoneyIcon sx={{ fontSize: 18, color: '#10b981' }} />,
+      color: '#10b981',
       onClick: () => navTo(`/${username}/fees`),
     },
     {
       label: 'Follow-ups Today', value: stats.followupToday ?? '—',
-      icon: <EventNoteIcon sx={{ fontSize: 20, color: '#ef4444' }} />,
-      color: '#ef4444', gradient: 'linear-gradient(135deg, #ef4444, #fca5a5)',
+      icon: <EventNoteIcon sx={{ fontSize: 18, color: '#ef4444' }} />,
+      color: '#ef4444',
       onClick: () => navTo(`/${username}/followup`),
     },
     {
       label: 'Active Courses', value: stats.courses ?? '—',
-      icon: <LibraryBooksIcon sx={{ fontSize: 20, color: '#8b5cf6' }} />,
-      color: '#8b5cf6', gradient: 'linear-gradient(135deg, #8b5cf6, #c4b5fd)',
+      icon: <LibraryBooksIcon sx={{ fontSize: 18, color: '#8b5cf6' }} />,
+      color: '#8b5cf6',
       onClick: () => navTo(`/${username}/courses`),
     },
   ], [stats, username, navTo]);
@@ -266,46 +260,6 @@ export default function Dashboard() {
 
         {/* Left / main column */}
         <Box>
-          {/* Greeting hero */}
-          <Box sx={{
-            mb: 3, p: { xs: 2.5, md: 3.5 },
-            background: 'linear-gradient(135deg, #064e3b 0%, #059669 60%, #34d399 100%)',
-            borderRadius: 4,
-            position: 'relative', overflow: 'hidden',
-            animation: 'fadeUp 0.4s ease',
-            boxShadow: '0 8px 32px rgba(5,150,105,0.3)',
-          }}>
-            {/* Decorative circles */}
-            <Box sx={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.07)' }} />
-            <Box sx={{ position: 'absolute', bottom: -60, right: 80, width: 140, height: 140, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.05)' }} />
-            <Box sx={{ position: 'relative', zIndex: 1 }}>
-              <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
-                <Box>
-                  <Typography variant="h5" fontWeight={800} sx={{ color: '#fff', letterSpacing: '-0.025em', mb: 0.5 }}>
-                    {getGreeting()}, {user?.name?.split(' ')[0] || 'Admin'} 👋
-                  </Typography>
-                  <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.9rem', fontWeight: 500 }}>
-                    {instituteName}
-                  </Typography>
-                </Box>
-                <Stack direction="row" spacing={1.5} sx={{ display: { xs: 'none', sm: 'flex' } }}>
-                  {[['📚', 'Academic'], ['💳', 'Finance'], ['💬', 'WhatsApp']].map(([emoji, label]) => (
-                    <Box key={label} sx={{
-                      px: 1.5, py: 1, borderRadius: 2.5,
-                      bgcolor: 'rgba(255,255,255,0.15)',
-                      backdropFilter: 'blur(8px)',
-                      textAlign: 'center',
-                      minWidth: 64,
-                    }}>
-                      <Typography sx={{ fontSize: '1.2rem', lineHeight: 1.2 }}>{emoji}</Typography>
-                      <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.8)', fontWeight: 600, letterSpacing: '0.04em' }}>{label}</Typography>
-                    </Box>
-                  ))}
-                </Stack>
-              </Stack>
-            </Box>
-          </Box>
-
           {/* Stats grid */}
           <Box sx={{
             display: 'grid',
