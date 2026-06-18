@@ -252,6 +252,36 @@ jobs:
         run: ./gradlew bundleRelease --no-daemon --stacktrace
         working-directory: SocialFront/android
 
+      # ── Rename APK to friendly filename ─────────────────────────────────────
+      - name: Rename debug APK
+        if: steps.secrets.outputs.is_release == 'false'
+        run: |
+          mkdir -p /tmp/apk-out
+          cp SocialFront/android/app/build/outputs/apk/debug/*.apk \
+             /tmp/apk-out/Instify-debug-${{ steps.ver.outputs.name }}.apk
+          echo "APK ready: $(ls /tmp/apk-out/)"
+
+      # ── Publish debug APK as a rolling GitHub Release ───────────────────────
+      # Tag "debug-latest" is force-updated on every CI push so there is always
+      # one permanent, direct download URL for the latest debug build.
+      - name: Publish debug APK to rolling release
+        if: steps.secrets.outputs.is_release == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: debug-latest
+          name: 'Instify Debug (latest)'
+          body: |
+            **Auto-updated debug APK** — built from the latest commit on `${{ github.ref_name }}`.
+
+            Install on Android (enable "Install from unknown sources" in Settings).
+
+            Built: ${{ github.run_id }} · Commit: ${{ github.sha }}
+          draft: false
+          prerelease: true
+          files: /tmp/apk-out/Instify-debug-${{ steps.ver.outputs.name }}.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       # ── Upload Artifacts ────────────────────────────────────────────────────
       - name: Upload debug APK
         if: >-
