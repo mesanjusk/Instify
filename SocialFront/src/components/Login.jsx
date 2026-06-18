@@ -253,7 +253,7 @@ const Login = () => {
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#ffffff',
-        padding: '40px 32px',
+        padding: '24px 20px',
         minHeight: '100vh',
         boxShadow: '-4px 0 40px rgba(15,23,42,0.06)',
       }}>
@@ -281,29 +281,20 @@ const Login = () => {
 
         <div style={{ width: '100%', maxWidth: 360 }}>
           {/* Heading */}
-          <div style={{ marginBottom: 32 }}>
-            <div style={{
-              width: 48, height: 48, borderRadius: 14,
-              background: `linear-gradient(135deg, ${darkTheme}, ${themeColor})`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              marginBottom: 20,
-              boxShadow: `0 8px 20px ${themeColor}35`,
-            }}>
-              <span style={{ fontSize: '1.4rem' }}>⚡</span>
-            </div>
+          <div style={{ marginBottom: 22 }}>
             <h2 style={{
-              fontSize: '1.65rem', fontWeight: 800, margin: '0 0 6px',
+              fontSize: '1.55rem', fontWeight: 800, margin: '0 0 6px',
               letterSpacing: '-0.04em', color: '#0f172a',
             }}>
-              Welcome back
+              Sign In
             </h2>
-            <p style={{ fontSize: '0.9rem', color: '#64748b', margin: 0, lineHeight: 1.6 }}>
-              Sign in to {branding?.institute || 'your institute'}
+            <p style={{ fontSize: '0.88rem', color: '#64748b', margin: 0, lineHeight: 1.5 }}>
+              Sign in to {branding?.institute || 'Instify'}
             </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
               <label style={{
                 display: 'block', marginBottom: 6,
