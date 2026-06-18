@@ -1,19 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
-import toast, { Toaster } from 'react-hot-toast';
-import { FaPhoneAlt, FaWhatsapp } from 'react-icons/fa';
+import toast from 'react-hot-toast';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
+import PhoneIcon from '@mui/icons-material/Phone';
 import { useNavigate, useParams } from 'react-router-dom';
-
-const GridIcon = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-    <path d="M3 3h7v7H3V3zm11 0h7v7h-7V3zM3 14h7v7H3v-7zm11 0h7v7h-7v-7z"/>
-  </svg>
-);
-const ListIcon = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-    <path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"/>
-  </svg>
-);
+import {
+  Box, Card, CardContent, Stack, Typography, TextField, Button,
+  Dialog, DialogTitle, DialogContent, DialogActions, IconButton,
+  Tooltip, InputAdornment, CircularProgress, Checkbox,
+} from '@mui/material';
+import { Add, Search, GridView, ViewList } from '@mui/icons-material';
 
 const AllAdmission = () => {
   const [admissions, setAdmissions] = useState([]);
@@ -32,8 +28,7 @@ const AllAdmission = () => {
     try {
       const { data } = await apiClient.get(`/api/courses`, { params: { institute_uuid } });
       setCourses(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('❌ Error fetching courses:', error);
+    } catch {
       toast.error('Failed to load courses');
     }
   };
@@ -43,8 +38,7 @@ const AllAdmission = () => {
       setLoading(true);
       const { data } = await apiClient.get(`/api/admissions`, { params: { institute_uuid } });
       setAdmissions(Array.isArray(data?.data) ? data.data : []);
-    } catch (error) {
-      console.error('❌ Error fetching admissions:', error.response?.data || error.message);
+    } catch {
       toast.error('Error fetching admissions');
     } finally {
       setLoading(false);
@@ -81,8 +75,7 @@ const AllAdmission = () => {
   const toggleSelect = (uuid) => {
     setSelectedUuids(prev => {
       const next = new Set(prev);
-      if (next.has(uuid)) next.delete(uuid);
-      else next.add(uuid);
+      if (next.has(uuid)) next.delete(uuid); else next.add(uuid);
       return next;
     });
   };
@@ -122,218 +115,193 @@ const AllAdmission = () => {
   const allSelected = filteredAdmissions.length > 0 && selectedUuids.size === filteredAdmissions.length;
 
   return (
-    <div className="p-4">
-      <Toaster />
-
-      {selectedAdmission && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center p-4 overflow-y-auto z-[60]">
-          <div className="bg-white p-6 rounded shadow max-w-md w-full">
-            <h2 className="text-lg font-bold mb-4">
-              {selectedAdmission.student?.firstName} {selectedAdmission.student?.lastName}
-            </h2>
-            <p className="text-gray-700 mb-4">Course: {getCourseName(selectedAdmission.course)}</p>
-            <div className="flex gap-2 flex-wrap">
-              <button
-                onClick={() => handleDelete(selectedAdmission)}
-                className="bg-red-500 text-white px-4 py-2 rounded text-sm hover:bg-red-600"
-              >
-                Delete
-              </button>
-              <button
-                onClick={() => navigate(`/${username}/edit-admission/${selectedAdmission._id}`)}
-                className="bg-yellow-500 text-white px-4 py-2 rounded text-sm hover:bg-yellow-600"
-              >
-                Edit
-              </button>
-              <button
-                onClick={() => setSelectedAdmission(null)}
-                className="bg-gray-400 text-white px-4 py-2 rounded text-sm hover:bg-gray-500 ml-auto"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Toolbar */}
-      <div className="flex items-center gap-2 mb-4 w-full flex-wrap">
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name or mobile"
-          className="border p-2 rounded flex-1 min-w-[150px]"
-        />
-        <button
-          onClick={() => navigate(`/${username}/addadmission`)}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 flex-shrink-0"
-        >
-          + New
-        </button>
-        <div className="flex border rounded overflow-hidden flex-shrink-0">
-          <button
-            onClick={() => setViewMode('card')}
-            className={`px-2 py-2 ${viewMode === 'card' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-            title="Card view"
-          >
-            <GridIcon />
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`px-2 py-2 ${viewMode === 'list' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-            title="List view"
-          >
-            <ListIcon />
-          </button>
-        </div>
-        {!selectionMode ? (
-          <button
-            onClick={() => setSelectionMode(true)}
-            className="px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 flex-shrink-0 text-sm"
-          >
-            Select
-          </button>
-        ) : (
+    <Box>
+      {/* Detail Dialog */}
+      <Dialog open={!!selectedAdmission} onClose={() => setSelectedAdmission(null)} fullWidth maxWidth="xs">
+        {selectedAdmission && (
           <>
-            <button
-              onClick={() => allSelected ? setSelectedUuids(new Set()) : selectAll()}
-              className="px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 flex-shrink-0 text-sm"
-            >
-              {allSelected ? 'Deselect All' : 'Select All'}
-            </button>
-            {selectedUuids.size > 0 && (
-              <button
-                onClick={handleBulkDelete}
-                className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 flex-shrink-0 text-sm"
-              >
-                Delete ({selectedUuids.size})
-              </button>
-            )}
-            <button
-              onClick={clearSelection}
-              className="px-3 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 flex-shrink-0 text-sm"
-            >
-              Cancel
-            </button>
+            <DialogTitle sx={{ pb: 1 }}>
+              {selectedAdmission.student?.firstName} {selectedAdmission.student?.lastName}
+            </DialogTitle>
+            <DialogContent>
+              <Typography variant="body2" color="text.secondary">
+                Course: {getCourseName(selectedAdmission.course)}
+              </Typography>
+            </DialogContent>
+            <DialogActions sx={{ px: 2, pb: 2, gap: 1, flexWrap: 'wrap' }}>
+              <Button variant="contained" color="error" onClick={() => handleDelete(selectedAdmission)} sx={{ textTransform: 'none' }}>Delete</Button>
+              <Button variant="contained" onClick={() => navigate(`/${username}/edit-admission/${selectedAdmission._id}`)} sx={{ bgcolor: '#f59e0b', '&:hover': { bgcolor: '#d97706' }, textTransform: 'none' }}>Edit</Button>
+              <Button variant="outlined" onClick={() => setSelectedAdmission(null)} sx={{ textTransform: 'none', ml: 'auto' }}>Close</Button>
+            </DialogActions>
           </>
         )}
-      </div>
+      </Dialog>
 
-      {loading && <div>Loading admissions...</div>}
-      {!loading && filteredAdmissions.length === 0 && <div>No admissions found.</div>}
+      {/* Toolbar */}
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1} sx={{ mb: 3 }}>
+        <TextField
+          placeholder="Search by name or mobile"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          size="small"
+          sx={{ width: { xs: '100%', sm: 280 } }}
+          InputProps={{ startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> }}
+        />
+        <Stack direction="row" spacing={1} flexWrap="wrap" justifyContent={{ xs: 'flex-end' }} useFlexGap>
+          <Tooltip title="Card view">
+            <IconButton onClick={() => setViewMode('card')} sx={{ bgcolor: viewMode === 'card' ? '#1a7a4a' : 'grey.200', color: viewMode === 'card' ? '#fff' : 'text.secondary', borderRadius: 1 }}>
+              <GridView fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="List view">
+            <IconButton onClick={() => setViewMode('list')} sx={{ bgcolor: viewMode === 'list' ? '#1a7a4a' : 'grey.200', color: viewMode === 'list' ? '#fff' : 'text.secondary', borderRadius: 1 }}>
+              <ViewList fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          {!selectionMode ? (
+            <Button size="small" variant="outlined" onClick={() => setSelectionMode(true)} sx={{ textTransform: 'none' }}>Select</Button>
+          ) : (
+            <>
+              <Button size="small" variant="outlined" onClick={() => allSelected ? setSelectedUuids(new Set()) : selectAll()} sx={{ textTransform: 'none' }}>
+                {allSelected ? 'Deselect All' : 'Select All'}
+              </Button>
+              {selectedUuids.size > 0 && (
+                <Button size="small" variant="contained" color="error" onClick={handleBulkDelete} sx={{ textTransform: 'none' }}>
+                  Delete ({selectedUuids.size})
+                </Button>
+              )}
+              <Button size="small" variant="outlined" color="inherit" onClick={clearSelection} sx={{ textTransform: 'none' }}>Cancel</Button>
+            </>
+          )}
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => navigate(`/${username}/addadmission`)}
+            sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' }, textTransform: 'none', whiteSpace: 'nowrap' }}
+          >
+            New Admission
+          </Button>
+        </Stack>
+      </Stack>
 
-      {!loading && filteredAdmissions.length > 0 && viewMode === 'card' && (
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-4">
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
+          <CircularProgress sx={{ color: '#1a7a4a' }} />
+        </Box>
+      ) : filteredAdmissions.length === 0 ? (
+        <Box sx={{ textAlign: 'center', p: 6 }}>
+          <Typography color="text.secondary">No admissions found.</Typography>
+        </Box>
+      ) : viewMode === 'card' ? (
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(5, 1fr)' }, gap: 1.5 }}>
           {filteredAdmissions.map((admission) => (
-            <div
+            <Card
               key={admission._id}
-              className={`relative border rounded-lg p-4 shadow hover:shadow-md transition cursor-pointer flex flex-col justify-between ${selectedUuids.has(admission.uuid) ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}
               onClick={() => selectionMode ? toggleSelect(admission.uuid) : setSelectedAdmission(admission)}
+              sx={{ cursor: 'pointer', position: 'relative', outline: selectedUuids.has(admission.uuid) ? '2px solid #1a7a4a' : 'none', bgcolor: selectedUuids.has(admission.uuid) ? 'rgba(26,122,74,0.06)' : 'white', '&:hover': { boxShadow: '0 4px 16px rgba(26,122,74,0.12)' } }}
             >
               {selectionMode && (
-                <div className="absolute top-2 left-2" onClick={e => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    checked={selectedUuids.has(admission.uuid)}
-                    onChange={() => toggleSelect(admission.uuid)}
-                    className="w-4 h-4 cursor-pointer"
-                  />
-                </div>
+                <Box sx={{ position: 'absolute', top: 4, left: 4 }} onClick={e => e.stopPropagation()}>
+                  <Checkbox size="small" checked={selectedUuids.has(admission.uuid)} onChange={() => toggleSelect(admission.uuid)} sx={{ p: 0 }} />
+                </Box>
               )}
-              <div className={selectionMode ? 'ml-5' : ''}>
-                <h2 className="font-semibold text-lg text-gray-800">
+              <CardContent sx={{ p: 2, '&:last-child': { pb: 2 }, pl: selectionMode ? 4 : 2 }}>
+                <Typography variant="subtitle2" fontWeight={700} noWrap>
                   {admission.student?.firstName} {admission.student?.lastName}
-                </h2>
-                <p className="text-sm text-gray-600 mt-1">{getCourseName(admission.course)}</p>
-              </div>
-              {!selectionMode && (
-                <div className="flex justify-end items-center gap-3 mt-4">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleWhatsApp(admission.student?.mobileSelf, admission.student?.firstName); }}
-                    className="p-2 rounded-full bg-green-500 text-white hover:bg-green-600"
-                    title="WhatsApp"
-                  >
-                    <FaWhatsapp />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleCall(admission.student?.mobileSelf); }}
-                    className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600"
-                    title="Call"
-                  >
-                    <FaPhoneAlt />
-                  </button>
-                </div>
-              )}
-            </div>
+                </Typography>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                  {getCourseName(admission.course)}
+                </Typography>
+                {!selectionMode && (
+                  <Stack direction="row" spacing={0.5} sx={{ mt: 1 }}>
+                    <Tooltip title="WhatsApp">
+                      <IconButton
+                        size="small"
+                        onClick={(e) => { e.stopPropagation(); handleWhatsApp(admission.student?.mobileSelf, admission.student?.firstName); }}
+                        sx={{ bgcolor: '#25d366', color: '#fff', '&:hover': { bgcolor: '#128c7e' }, width: 28, height: 28 }}
+                      >
+                        <WhatsAppIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Call">
+                      <IconButton
+                        size="small"
+                        onClick={(e) => { e.stopPropagation(); handleCall(admission.student?.mobileSelf); }}
+                        sx={{ bgcolor: '#1a7a4a', color: '#fff', '&:hover': { bgcolor: '#25a066' }, width: 28, height: 28 }}
+                      >
+                        <PhoneIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
+                )}
+              </CardContent>
+            </Card>
           ))}
-        </div>
-      )}
-
-      {!loading && filteredAdmissions.length > 0 && viewMode === 'list' && (
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse bg-white">
+        </Box>
+      ) : (
+        <Box sx={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white' }}>
             <thead>
-              <tr className="bg-gray-50 border-b">
+              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
                 {selectionMode && (
-                  <th className="px-4 py-3 w-10">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      onChange={() => allSelected ? setSelectedUuids(new Set()) : selectAll()}
-                      className="w-4 h-4 cursor-pointer"
-                    />
+                  <th style={{ padding: '10px 12px', width: 40 }}>
+                    <Checkbox size="small" checked={allSelected} onChange={() => allSelected ? setSelectedUuids(new Set()) : selectAll()} sx={{ p: 0 }} />
                   </th>
                 )}
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Name</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Course</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Actions</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Name</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Course</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredAdmissions.map((admission) => (
                 <tr
                   key={admission._id}
-                  className={`border-b hover:bg-gray-50 cursor-pointer ${selectedUuids.has(admission.uuid) ? 'bg-blue-50' : ''}`}
                   onClick={() => selectionMode ? toggleSelect(admission.uuid) : setSelectedAdmission(admission)}
+                  style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: selectedUuids.has(admission.uuid) ? 'rgba(26,122,74,0.06)' : 'white' }}
+                  onMouseEnter={e => { if (!selectedUuids.has(admission.uuid)) e.currentTarget.style.background = '#f9fafb'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = selectedUuids.has(admission.uuid) ? 'rgba(26,122,74,0.06)' : 'white'; }}
                 >
                   {selectionMode && (
-                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selectedUuids.has(admission.uuid)}
-                        onChange={() => toggleSelect(admission.uuid)}
-                        className="w-4 h-4 cursor-pointer"
-                      />
+                    <td style={{ padding: '8px 12px' }} onClick={e => e.stopPropagation()}>
+                      <Checkbox size="small" checked={selectedUuids.has(admission.uuid)} onChange={() => toggleSelect(admission.uuid)} sx={{ p: 0 }} />
                     </td>
                   )}
-                  <td className="px-4 py-3 font-medium">{admission.student?.firstName} {admission.student?.lastName}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{getCourseName(admission.course)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleWhatsApp(admission.student?.mobileSelf, admission.student?.firstName); }}
-                        className="p-1.5 rounded-full bg-green-500 text-white hover:bg-green-600"
-                        title="WhatsApp"
-                      >
-                        <FaWhatsapp size={12} />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleCall(admission.student?.mobileSelf); }}
-                        className="p-1.5 rounded-full bg-blue-500 text-white hover:bg-blue-600"
-                        title="Call"
-                      >
-                        <FaPhoneAlt size={12} />
-                      </button>
-                    </div>
+                  <td style={{ padding: '8px 12px', fontWeight: 500, fontSize: 14 }}>
+                    {admission.student?.firstName} {admission.student?.lastName}
+                  </td>
+                  <td style={{ padding: '8px 12px', fontSize: 13, color: '#6b7280' }}>
+                    {getCourseName(admission.course)}
+                  </td>
+                  <td style={{ padding: '8px 12px' }}>
+                    <Stack direction="row" spacing={0.5}>
+                      <Tooltip title="WhatsApp">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => { e.stopPropagation(); handleWhatsApp(admission.student?.mobileSelf, admission.student?.firstName); }}
+                          sx={{ bgcolor: '#25d366', color: '#fff', '&:hover': { bgcolor: '#128c7e' }, width: 26, height: 26 }}
+                        >
+                          <WhatsAppIcon sx={{ fontSize: 13 }} />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Call">
+                        <IconButton
+                          size="small"
+                          onClick={(e) => { e.stopPropagation(); handleCall(admission.student?.mobileSelf); }}
+                          sx={{ bgcolor: '#1a7a4a', color: '#fff', '&:hover': { bgcolor: '#25a066' }, width: 26, height: 26 }}
+                        >
+                          <PhoneIcon sx={{ fontSize: 13 }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Stack>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </Box>
       )}
-    </div>
+    </Box>
   );
 };
 

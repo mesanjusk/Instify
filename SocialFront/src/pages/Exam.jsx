@@ -98,7 +98,7 @@ const Exam = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', p: { xs: 1, sm: 2 }, bgcolor: 'background.default' }}>
+    <Box>
       {/* Header bar */}
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
