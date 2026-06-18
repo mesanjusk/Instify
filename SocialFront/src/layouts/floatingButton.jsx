@@ -27,8 +27,8 @@ const FloatingButtons = ({ buttonsList = [] }) => {
       <Box
         sx={{
           position: 'fixed',
-          bottom: { xs: 80, md: 28 },
-          right: { xs: 16, md: 28 },
+          bottom: { xs: 100, md: 28 },
+          right: { xs: 20, md: 28 },
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'flex-end',
