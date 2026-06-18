@@ -127,7 +127,7 @@ const Courses = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', p: { xs: 1, sm: 2 }, bgcolor: 'background.default' }}>
+    <Box>
       {/* Toolbar */}
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} spacing={1} sx={{ mb: 3 }}>
         <TextField

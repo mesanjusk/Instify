@@ -208,9 +208,7 @@ export default function AddAttendance() {
     };
 
     return (
-        <Box sx={{ bgcolor: '#e5ddd5', pt: 2.5, minHeight: '100vh' }}>
-            <Box sx={{ maxWidth: '100%', mx: 'auto', px: { xs: 1, md: 2 } }}>
-                <Paper elevation={3} sx={{ overflow: 'hidden' }}>
+        <Paper elevation={1} sx={{ overflow: 'hidden', borderRadius: 2 }}>
                     <Stack
                         direction={{ xs: 'column', md: 'row' }}
                         alignItems={{ xs: 'stretch', md: 'flex-end' }}
@@ -294,8 +292,6 @@ export default function AddAttendance() {
                             </Box>
                         )}
                     </Stack>
-                </Paper>
-            </Box>
-        </Box>
+        </Paper>
     );
 }
