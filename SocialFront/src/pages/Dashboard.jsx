@@ -9,11 +9,8 @@ import SchoolIcon from '@mui/icons-material/School';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
-import BadgeIcon from '@mui/icons-material/Badge';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
-import MenuBookIcon from '@mui/icons-material/MenuBook';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import ReceiptIcon from '@mui/icons-material/Receipt';
@@ -92,84 +89,6 @@ const StatCard = memo(function StatCard({ icon, label, value, color, gradient, o
   );
 });
 
-const FeatureCard = memo(function FeatureCard({ icon, iconGlow, title, desc, badge, badgeColor, gradient, onClick, delay = 0 }) {
-  return (
-    <Card
-      onClick={onClick}
-      sx={{
-        cursor: 'pointer',
-        background: gradient,
-        border: 'none',
-        animation: `fadeUp 0.4s ease ${delay}s both`,
-        position: 'relative',
-        overflow: 'hidden',
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: -40, right: -40,
-          width: 120, height: 120,
-          borderRadius: '50%',
-          background: 'rgba(255,255,255,0.1)',
-        },
-        '&::after': {
-          content: '""',
-          position: 'absolute',
-          bottom: -30, left: -20,
-          width: 80, height: 80,
-          borderRadius: '50%',
-          background: 'rgba(255,255,255,0.07)',
-        },
-        '&:hover': {
-          transform: 'translateY(-4px) scale(1.01)',
-          boxShadow: '0 16px 40px rgba(0,0,0,0.3)',
-        },
-      }}
-    >
-      <CardContent sx={{ p: { xs: 2.25, md: 2.5 }, '&:last-child': { pb: { xs: 2.25, md: 2.5 } }, position: 'relative', zIndex: 1 }}>
-        <Stack direction="row" alignItems="flex-start" justifyContent="space-between" mb={1.75}>
-          <Box sx={{
-            width: 48, height: 48, borderRadius: 3,
-            bgcolor: 'rgba(255,255,255,0.2)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: iconGlow ? `0 0 20px ${iconGlow}` : 'none',
-          }}>
-            {icon}
-          </Box>
-          {badge && (
-            <Chip
-              label={badge}
-              size="small"
-              color={badgeColor || 'default'}
-              sx={{
-                height: 20, fontSize: '0.62rem', fontWeight: 700,
-                bgcolor: 'rgba(255,255,255,0.2)',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.3)',
-              }}
-            />
-          )}
-        </Stack>
-        <Typography variant="subtitle1" fontWeight={700} sx={{ color: '#fff', lineHeight: 1.25, mb: 0.5 }}>
-          {title}
-        </Typography>
-        <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.72)', lineHeight: 1.4 }}>
-            {desc}
-          </Typography>
-          <Box sx={{
-            width: 24, height: 24, borderRadius: '50%',
-            bgcolor: 'rgba(255,255,255,0.18)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            flexShrink: 0, ml: 1,
-          }}>
-            <ArrowForwardRoundedIcon sx={{ fontSize: 13, color: 'rgba(255,255,255,0.8)' }} />
-          </Box>
-        </Stack>
-      </CardContent>
-    </Card>
-  );
-});
 
 const QuickAction = memo(function QuickAction({ icon, label, color, gradient, onClick }) {
   return (
@@ -399,51 +318,6 @@ export default function Dashboard() {
             ))}
           </Box>
 
-          {/* Feature / Quick section cards */}
-          <Typography variant="subtitle1" fontWeight={700} mb={1.75} sx={{ color: 'text.primary', letterSpacing: '-0.01em' }}>
-            Quick Sections
-          </Typography>
-          <Box sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' },
-            gap: { xs: 1.5, md: 2 },
-          }}>
-            <FeatureCard
-              icon={<MenuBookIcon sx={{ color: '#fff', fontSize: 24 }} />}
-              title="Academic"
-              desc="Students, admissions, courses"
-              gradient="linear-gradient(135deg, #064e3b 0%, #059669 100%)"
-              onClick={() => navigate(`/${username}/section/academic`)}
-              delay={0.25}
-            />
-            <FeatureCard
-              icon={<WhatsAppIcon sx={{ color: '#fff', fontSize: 24 }} />}
-              iconGlow="rgba(37,211,102,0.5)"
-              title="WhatsApp"
-              desc="Automation & broadcasts"
-              gradient="linear-gradient(135deg, #064e3b 0%, #128C7E 100%)"
-              badge={waConnected ? '● Live' : undefined}
-              onClick={() => navigate(`/${username}/section/whatsapp`)}
-              delay={0.31}
-            />
-            <FeatureCard
-              icon={<BadgeIcon sx={{ color: '#fff', fontSize: 24 }} />}
-              title="ID Card Maker"
-              desc="Single, bulk, class-wise cards"
-              gradient="linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)"
-              badge="New"
-              onClick={() => navigate(`/${username}/idcard`)}
-              delay={0.37}
-            />
-            <FeatureCard
-              icon={<AdminPanelSettingsIcon sx={{ color: '#fff', fontSize: 24 }} />}
-              title="Admin"
-              desc="Settings & accounts"
-              gradient="linear-gradient(135deg, #1e293b 0%, #475569 100%)"
-              onClick={() => navigate(`/${username}/section/admin`)}
-              delay={0.43}
-            />
-          </Box>
         </Box>
 
         {/* Right column — desktop quick actions */}
