@@ -176,7 +176,7 @@ const AllAdmission = () => {
           <Button
             variant="contained"
             startIcon={<Add />}
-            onClick={() => navigate(`/${username}/addadmission`)}
+            onClick={() => navigate(`/${username}/addNewAdd`)}
             sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' }, textTransform: 'none', whiteSpace: 'nowrap' }}
           >
             New Admission
