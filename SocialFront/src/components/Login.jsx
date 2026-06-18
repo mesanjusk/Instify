@@ -447,6 +447,12 @@ const Login = () => {
               </button>
             </span>
           </div>
+          <div style={{ textAlign: 'center', marginTop: 16 }}>
+            <button onClick={() => navigate('/privacy-policy')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.75rem', color: '#94a3b8', fontFamily: 'inherit', textDecoration: 'underline' }}>
+              Privacy Policy
+            </button>
+          </div>
         </div>
 
         <style>{`

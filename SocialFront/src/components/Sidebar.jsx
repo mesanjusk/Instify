@@ -335,6 +335,19 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
         ))}
       </Box>
 
+      {/* Privacy Policy link */}
+      <Box sx={{ px: 2, pb: 1, flexShrink: 0, textAlign: 'center' }}>
+        <Typography
+          component="a"
+          href="/privacy-policy"
+          target="_blank"
+          rel="noopener noreferrer"
+          sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.25)', textDecoration: 'underline', cursor: 'pointer', '&:hover': { color: 'rgba(255,255,255,0.5)' } }}
+        >
+          Privacy Policy
+        </Typography>
+      </Box>
+
       {/* User info footer */}
       <Box sx={{
         p: 2, flexShrink: 0,
