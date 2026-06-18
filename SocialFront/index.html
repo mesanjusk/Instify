@@ -9,6 +9,20 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Instify</title>
+  <!-- GitHub Pages SPA: restore path encoded by 404.html before React boots -->
+  <script>
+    (function () {
+      var s = window.location.search;
+      if (s.startsWith('?p=')) {
+        var p = decodeURIComponent(s.slice(3).split('&')[0]);
+        var h = (s.match(/[&?]h=([^&]*)/) || [])[1];
+        window.history.replaceState(
+          null, null,
+          window.location.pathname.replace(/\/$/, '') + p + (h ? decodeURIComponent(h) : '')
+        );
+      }
+    })();
+  </script>
 </head>
 
   <body>

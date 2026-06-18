@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Instify</title>
+  <script>
+    // GitHub Pages SPA redirect: encode the current path into a query param
+    // so index.html can restore it before React Router initialises.
+    var l = window.location;
+    // basePath = first path segment (e.g. "/Instify" for repo-name pages)
+    var basePath = l.pathname.split('/').slice(0, 2).join('/');
+    var rest = l.pathname.slice(basePath.length) || '/';
+    l.replace(
+      l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+      basePath + '/?p=' + encodeURIComponent(rest + l.search) +
+      (l.hash ? '&h=' + encodeURIComponent(l.hash) : '')
+    );
+  </script>
+</head>
+<body></body>
+</html>

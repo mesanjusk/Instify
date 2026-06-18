@@ -25,7 +25,12 @@ import theme from './theme';
 import { utilityStyles } from './styles/utilityStyles';
 
 // Electron loads via file:// so BrowserRouter can't resolve routes — use HashRouter instead
-const Router = import.meta.env.VITE_IS_DESKTOP === 'true' ? HashRouter : BrowserRouter;
+const isDesktop = import.meta.env.VITE_IS_DESKTOP === 'true';
+const Router = isDesktop ? HashRouter : BrowserRouter;
+// Allow a custom basename for GitHub Pages (/Instify) without affecting other deploys
+const routerProps = !isDesktop && import.meta.env.VITE_ROUTER_BASENAME
+  ? { basename: import.meta.env.VITE_ROUTER_BASENAME }
+  : {};
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
@@ -35,7 +40,7 @@ root.render(
       <CssBaseline />
       <GlobalStyles styles={utilityStyles} />
       <ErrorBoundary>
-        <Router>
+        <Router {...routerProps}>
           <BrandingProvider>
             <AppProvider>
               <MetadataProvider>
