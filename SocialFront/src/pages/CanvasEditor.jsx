@@ -86,6 +86,7 @@ import FilterListIcon from '@mui/icons-material/FilterList';
 import TableChartIcon from '@mui/icons-material/TableChart';
 import GroupsIcon from '@mui/icons-material/Groups';
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import jsPDF from 'jspdf';
 import JSZip from 'jszip';
 import apiClient from '../apiClient';
@@ -2753,13 +2754,14 @@ export default function DocumentMaker() {
         {/* ── Header ── */}
         <Box sx={{ px: 2, pt: 1.5, pb: 1, bgcolor: '#ffffff', flexShrink: 0 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            {/* Avatar */}
-            <Box
+            {/* Back button */}
+            <IconButton
               onClick={() => navigate(`/${username}`)}
-              sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, overflow: 'hidden', border: '2px solid #f0f4f8' }}
+              size="small"
+              sx={{ bgcolor: '#f1f5f9', flexShrink: 0, '&:hover': { bgcolor: '#e2e8f0' } }}
             >
-              <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: '#475569', lineHeight: 1 }}>{userInitial}</Typography>
-            </Box>
+              <ArrowBackIcon sx={{ fontSize: 20, color: '#475569' }} />
+            </IconButton>
 
             {/* Title with dropdown */}
             <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', gap: 0.25 }}>
