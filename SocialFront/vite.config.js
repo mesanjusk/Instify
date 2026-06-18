@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
   const isMobile  = env.VITE_IS_MOBILE  === 'true';
 
   return {
-  base: (isDesktop || isMobile) ? './' : '/',
+  base: (isDesktop || isMobile) ? './' : (env.VITE_BASE_PATH || '/'),
   plugins: [
     react(),
     VitePWA({

@@ -1,0 +1,68 @@
+name: Deploy PWA to GitHub Pages
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Deploys the React frontend to GitHub Pages (mesanjusk.github.io/Instify/).
+# Runs automatically whenever main branch changes.
+# No extra secrets required — uses GITHUB_TOKEN only.
+#
+# One-time setup in the repo:
+#   Settings → Pages → Source → "Deploy from a branch" → branch: gh-pages / (root)
+# ─────────────────────────────────────────────────────────────────────────────
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'SocialFront/**'
+      - '.github/workflows/deploy-gh-pages.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: gh-pages
+  cancel-in-progress: true
+
+permissions:
+  contents: write   # needed to push to gh-pages branch
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: SocialFront/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: SocialFront
+
+      - name: Generate utility tokens
+        run: npm run sync:tokens
+        working-directory: SocialFront
+
+      # Build with GitHub Pages base path (/Instify = repo name)
+      # config.js falls back to https://instify-kfpm.onrender.com so no backend secret needed
+      - name: Build for GitHub Pages
+        run: npm run build
+        working-directory: SocialFront
+        env:
+          VITE_BASE_URL: ${{ secrets.VITE_BASE_URL }}
+          VITE_BASE_PATH: /Instify
+          VITE_ROUTER_BASENAME: /Instify
+
+      # Push built dist/ to the gh-pages branch
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: SocialFront/dist
+          force_orphan: true
+          commit_message: 'deploy: ${{ github.sha }}'
