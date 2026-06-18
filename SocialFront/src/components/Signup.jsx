@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useBranding } from '../context/BrandingContext';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
@@ -21,9 +20,15 @@ const FeaturePill = ({ emoji, label, delay = 0 }) => (
   </div>
 );
 
+const INSTITUTE_TYPES = [
+  'School', 'College', 'University', 'Coaching Center', 'Tuition Center',
+  'Skill Development Center', 'Computer Institute', 'Language Institute',
+  'Music / Dance Academy', 'Sports Academy', 'Vocational Training Center',
+  'Professional Training Institute',
+];
+
 const Signup = () => {
   const navigate = useNavigate();
-  const { branding } = useBranding();
   const isDesktop = !!window.electronAPI;
   const [form, setForm] = useState({
     institute_title: '',
@@ -59,11 +64,9 @@ const Signup = () => {
     },
   ];
 
-  const themeColor = branding?.theme?.color || form.theme_color || '#059669';
+  const themeColor = form.theme_color || '#059669';
   const darkTheme = '#064e3b';
 
-  const [orgTypes, setOrgTypes] = useState([]);
-  const [loadingTypes, setLoadingTypes] = useState(true);
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [serverOtp, setServerOtp] = useState('');
@@ -74,9 +77,6 @@ const Signup = () => {
 
   useEffect(() => {
     inputRef.current?.focus();
-    axios.get(`${BASE_URL}/api/org-categories`)
-      .then(res => { setOrgTypes(res.data); setLoadingTypes(false); })
-      .catch(() => { toast.error('Failed to load institute types'); setLoadingTypes(false); });
   }, []);
 
   const handleChange = (field) => (e) => setForm({ ...form, [field]: e.target.value });
@@ -240,21 +240,18 @@ const Signup = () => {
               boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
               animation: 'floatY 4s ease-in-out infinite',
             }}>
-              <img src={branding?.logo || '/pwa-512x512.png'} alt="Logo"
-                onError={(e) => (e.target.src = '/pwa-512x512.png')}
+              <img src="/pwa-512x512.png" alt="Instify"
                 style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 12 }} />
             </div>
           </button>
 
           <h1 style={{ color: '#ffffff', fontSize: '2.25rem', fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1.15, margin: '0 0 12px', animation: 'fadeUp 0.5s ease 0.1s both' }}>
-            {branding?.institute || 'Instify'}
+            Instify
           </h1>
 
-          {branding?.tagline && (
-            <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '1rem', margin: '0 0 36px', lineHeight: 1.6, animation: 'fadeUp 0.5s ease 0.15s both' }}>
-              {branding.tagline}
+          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '1rem', margin: '0 0 36px', lineHeight: 1.6, animation: 'fadeUp 0.5s ease 0.15s both' }}>
+              Institutions Simplified
             </p>
-          )}
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginBottom: 40 }}>
             <FeaturePill emoji="👩‍🎓" label="Student Management" delay={0.2} />
@@ -287,47 +284,38 @@ const Signup = () => {
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#ffffff',
-        padding: '40px 32px',
+        padding: '24px 20px',
         minHeight: '100vh',
         boxShadow: '-4px 0 40px rgba(15,23,42,0.06)',
         overflowY: 'auto',
       }}>
 
         {/* Mobile logo */}
-        <div style={{ textAlign: 'center', marginBottom: 28, display: 'none' }} className="md-hidden-block">
+        <div style={{ textAlign: 'center', marginBottom: 16, display: 'none' }} className="md-hidden-block">
           <button onClick={handleLogoClick} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-            <img src={branding?.logo || '/pwa-512x512.png'} alt="Logo"
-              onError={(e) => (e.target.src = '/pwa-512x512.png')}
-              style={{ width: 72, height: 72, objectFit: 'contain', borderRadius: 16 }} />
+            <img src="/pwa-512x512.png" alt="Instify"
+              style={{ width: 60, height: 60, objectFit: 'contain', borderRadius: 14 }} />
           </button>
-          <h2 style={{ fontSize: '1.4rem', fontWeight: 800, margin: '10px 0 4px', letterSpacing: '-0.03em', color: themeColor }}>
-            {branding?.institute || 'Instify'}
+          <h2 style={{ fontSize: '1.3rem', fontWeight: 800, margin: '8px 0 2px', letterSpacing: '-0.03em', color: themeColor }}>
+            Instify
           </h2>
-          {branding?.tagline && <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0 }}>{branding.tagline}</p>}
+          <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>Institutions Simplified</p>
         </div>
 
         <div style={{ width: '100%', maxWidth: 360 }}>
           {/* Heading */}
-          <div style={{ marginBottom: 28 }}>
-            <div style={{
-              width: 48, height: 48, borderRadius: 14,
-              background: `linear-gradient(135deg, ${darkTheme}, ${themeColor})`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              marginBottom: 20, boxShadow: `0 8px 20px ${themeColor}35`,
-            }}>
-              <span style={{ fontSize: '1.4rem' }}>🏫</span>
-            </div>
-            <h2 style={{ fontSize: '1.65rem', fontWeight: 800, margin: '0 0 6px', letterSpacing: '-0.04em', color: '#0f172a' }}>
-              {otpSent ? 'Verify OTP' : 'Register Institute'}
+          <div style={{ marginBottom: 18 }}>
+            <h2 style={{ fontSize: '1.55rem', fontWeight: 800, margin: '0 0 6px', letterSpacing: '-0.04em', color: '#0f172a' }}>
+              {otpSent ? 'Verify OTP' : 'Create Account'}
             </h2>
-            <p style={{ fontSize: '0.9rem', color: '#64748b', margin: 0, lineHeight: 1.6 }}>
-              {otpSent ? `OTP sent to +91 ${form.institute_call_number}` : 'Start your 14-day free trial'}
+            <p style={{ fontSize: '0.88rem', color: '#64748b', margin: 0, lineHeight: 1.5 }}>
+              {otpSent ? `OTP sent to +91 ${form.institute_call_number}` : 'Register your institute on Instify'}
             </p>
           </div>
 
 
 
-          <form onSubmit={otpSent ? handleSignup : handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <form onSubmit={otpSent ? handleSignup : handleSendOtp} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {!otpSent ? (
               <>
                 <div>
@@ -348,11 +336,7 @@ const Signup = () => {
                     onFocus={() => setFocusField('institute_type')} onBlur={() => setFocusField(null)}
                     style={{ ...inputStyle('institute_type'), appearance: 'none', cursor: 'pointer' }}>
                     <option value="">Select institute type</option>
-                    {loadingTypes ? (
-                      <option disabled>Loading...</option>
-                    ) : (
-                      orgTypes.map(t => <option key={t._id} value={t.category}>{t.category}</option>)
-                    )}
+                    {INSTITUTE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </div>
 
