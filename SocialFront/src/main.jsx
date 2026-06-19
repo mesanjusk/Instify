@@ -54,9 +54,17 @@ root.render(
   </React.StrictMode>
 );
 
-// vite-plugin-pwa (autoUpdate) registers the Workbox service worker automatically.
-// We only need to request notification permission here.
 if ('serviceWorker' in navigator) {
+  // Auto-reload when a new service worker takes over so stale chunk hashes
+  // (e.g. AddAdmission-VTAAeT4M.js) never cause "Failed to fetch module" errors.
+  let swRefreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!swRefreshing) {
+      swRefreshing = true;
+      window.location.reload();
+    }
+  });
+
   window.addEventListener('load', () => {
     navigator.serviceWorker.ready.then(() => {
       if (Notification && Notification.permission === 'default') {
