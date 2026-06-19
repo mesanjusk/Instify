@@ -60,12 +60,28 @@ jobs:
           VITE_BASE_PATH: /Instify
           VITE_ROUTER_BASENAME: /Instify
 
-      # Inject a vercel.json into the dist so Vercel's GitHub integration
-      # skips re-deploying the gh-pages branch (it has no SocialFront/ dir).
+      # Stop Vercel from deploying the gh-pages branch.
+      # Vercel's Root Directory for this project is "SocialFront", so it reads
+      # vercel.json from SocialFront/ on whatever branch it deploys.
+      # On gh-pages that dir doesn't exist → build fails with "Root Directory not found".
+      #
+      # Fix: inject a minimal SocialFront/ stub into dist before pushing so:
+      #   1. Vercel finds its Root Directory (SocialFront/) ✓
+      #   2. vercel.json inside that dir tells Vercel to skip gh-pages builds ✓
+      #   3. A no-op build command prevents any actual build attempt ✓
       - name: Prevent Vercel from re-deploying gh-pages
         run: |
+          # vercel.json at dist root (becomes repo root on gh-pages) — belt
           echo '{"github":{"deploymentEnabled":{"gh-pages":false}}}' \
             > SocialFront/dist/vercel.json
+
+          # Stub SocialFront/ inside dist (becomes /SocialFront/ on gh-pages) — suspenders
+          # Vercel finds its Root Directory, reads vercel.json, and cancels the deploy.
+          mkdir -p SocialFront/dist/SocialFront
+          printf '{"name":"gh-pages-stub","version":"0.0.1","private":true}' \
+            > SocialFront/dist/SocialFront/package.json
+          printf '{"buildCommand":"exit 0","outputDirectory":".","github":{"deploymentEnabled":{"gh-pages":false}}}' \
+            > SocialFront/dist/SocialFront/vercel.json
 
       # Push built dist/ to the gh-pages branch
       - name: Deploy to GitHub Pages
