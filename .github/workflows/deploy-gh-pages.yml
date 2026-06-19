@@ -60,6 +60,13 @@ jobs:
           VITE_BASE_PATH: /Instify
           VITE_ROUTER_BASENAME: /Instify
 
+      # Inject a vercel.json into the dist so Vercel's GitHub integration
+      # skips re-deploying the gh-pages branch (it has no SocialFront/ dir).
+      - name: Prevent Vercel from re-deploying gh-pages
+        run: |
+          echo '{"github":{"deploymentEnabled":{"gh-pages":false}}}' \
+            > SocialFront/dist/vercel.json
+
       # Push built dist/ to the gh-pages branch
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
