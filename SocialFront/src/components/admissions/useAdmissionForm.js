@@ -56,6 +56,7 @@ const useAdmissionForm = (initialForm = {}) => {
   const [exams, setExams] = useState([]);
   const [batches, setBatches] = useState([]);
   const [paymentModes, setPaymentModes] = useState([]);
+  const [loadingDropdowns, setLoadingDropdowns] = useState(false);
 
   const [installmentPlan, setInstallmentPlan] = useState([]);
 
@@ -634,11 +635,14 @@ const handleEdit = async (data) => {
   };
 
   useEffect(() => {
-    fetchCourses();
-    fetchEducations();
-    fetchExams();
-    fetchBatches();
-    fetchPaymentModes();
+    setLoadingDropdowns(true);
+    Promise.allSettled([
+      fetchCourses(),
+      fetchEducations(),
+      fetchExams(),
+      fetchBatches(),
+      fetchPaymentModes(),
+    ]).finally(() => setLoadingDropdowns(false));
     fetchAdmissions();
   }, []);
 
@@ -659,6 +663,7 @@ const handleEdit = async (data) => {
     exams,
     batches,
     paymentModes,
+    loadingDropdowns,
     installmentPlan,
     editingId,
     themeColor,
