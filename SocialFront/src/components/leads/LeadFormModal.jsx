@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
-import BASE_URL from '../../config';
+import apiClient from '../../apiClient';
 import {
   Box, Card, CardContent, Stack, Typography, TextField, Button,
   IconButton, Divider, FormControl, InputLabel, Select, MenuItem,
@@ -37,7 +36,7 @@ const LeadFormModal = ({ onClose, onSuccess, institute_uuid }) => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const res = await axios.get(`${BASE_URL}/api/courses`);
+        const res = await apiClient.get('/api/courses');
         setCourses(Array.isArray(res.data) ? res.data : []);
       } catch {
         toast.error('Failed to load courses');
@@ -91,7 +90,7 @@ const LeadFormModal = ({ onClose, onSuccess, institute_uuid }) => {
     }
     setLoading(true);
     try {
-      await axios.post(`${BASE_URL}/api/leads`, {
+      await apiClient.post('/api/leads', {
         institute_uuid,
         course: studentData.course,
         studentData,
