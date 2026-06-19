@@ -47,7 +47,7 @@ const AdmissionPaymentInstallmentTab = ({ form, handleChange, installmentPlan, p
 
     <FormControl fullWidth size="small">
       <InputLabel>Payment Mode</InputLabel>
-      <Select value={form.paidBy} onChange={handleChange('paidBy')} label="Payment Mode">
+      <Select value={form.paidBy} onChange={handleChange('paidBy')} label="Payment Mode" MenuProps={{ sx: { zIndex: 1500 } }}>
         <MenuItem value=""><em>Select Payment Mode</em></MenuItem>
         {paymentModes.map(p => (
           <MenuItem key={p._id} value={p.uuid}>{p.Account_name}</MenuItem>

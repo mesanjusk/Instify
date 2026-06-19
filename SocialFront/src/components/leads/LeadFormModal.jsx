@@ -215,6 +215,7 @@ const LeadFormModal = ({ onClose, onSuccess, institute_uuid }) => {
                       value={studentData.course}
                       onChange={(e) => setStudentData({ ...studentData, course: e.target.value })}
                       label="Course"
+                      MenuProps={{ sx: { zIndex: 1500 } }}
                     >
                       <MenuItem value="">
                         <em>{coursesLoading ? 'Loading…' : courses.length === 0 ? 'No courses found' : 'Select Course'}</em>

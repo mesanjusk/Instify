@@ -114,7 +114,7 @@ const AdmissionCourseBatchTab = ({
 
       <FormControl fullWidth size="small">
         <InputLabel>Education</InputLabel>
-        <Select value={form.education} onChange={handleChange('education')} label="Education">
+        <Select value={form.education} onChange={handleChange('education')} label="Education" MenuProps={{ sx: { zIndex: 1500 } }}>
           <MenuItem value="">
             <em>{loading ? 'Loading…' : 'Select Education'}</em>
           </MenuItem>
@@ -143,6 +143,7 @@ const AdmissionCourseBatchTab = ({
             setForm(prev => ({ ...prev, course: e.target.value, fees: courseFee, total, balance }));
           }}
           label="Course"
+          MenuProps={{ sx: { zIndex: 1500 } }}
         >
           <MenuItem value="">
             <em>
@@ -164,7 +165,7 @@ const AdmissionCourseBatchTab = ({
 
       <FormControl fullWidth size="small">
         <InputLabel>Batch</InputLabel>
-        <Select value={form.batchTime} onChange={handleChange('batchTime')} label="Batch">
+        <Select value={form.batchTime} onChange={handleChange('batchTime')} label="Batch" MenuProps={{ sx: { zIndex: 1500 } }}>
           <MenuItem value="">
             <em>
               {loading ? 'Loading…' : batches.length === 0 ? 'No batches found' : 'Select Batch'}
@@ -185,7 +186,7 @@ const AdmissionCourseBatchTab = ({
 
       <FormControl fullWidth size="small">
         <InputLabel>Exam / Event</InputLabel>
-        <Select value={form.examEvent} onChange={handleChange('examEvent')} label="Exam / Event">
+        <Select value={form.examEvent} onChange={handleChange('examEvent')} label="Exam / Event" MenuProps={{ sx: { zIndex: 1500 } }}>
           <MenuItem value="">
             <em>
               {loading ? 'Loading…' : exams.length === 0 ? 'No exams found' : 'Select Exam'}
