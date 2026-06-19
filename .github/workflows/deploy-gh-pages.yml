@@ -12,9 +12,11 @@ on:
   push:
     branches:
       - main
+      - 'claude/**'
     paths:
       - 'SocialFront/**'
       - '.github/workflows/deploy-gh-pages.yml'
+      - '.github/workflows/auto-merge.yml'
   workflow_dispatch:
 
 concurrency:

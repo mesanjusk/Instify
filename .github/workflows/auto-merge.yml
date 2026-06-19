@@ -46,7 +46,7 @@ jobs:
           git checkout main
 
           if git merge --no-ff "origin/$BRANCH" \
-               --message "chore: auto-merge $BRANCH into main [skip ci]"; then
+               --message "chore: auto-merge $BRANCH into main"; then
             git push origin main
             echo "✅ Merged $BRANCH → main"
           else
