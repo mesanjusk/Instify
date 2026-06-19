@@ -1,4 +1,9 @@
 {
+  "github": {
+    "deploymentEnabled": {
+      "gh-pages": false
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",

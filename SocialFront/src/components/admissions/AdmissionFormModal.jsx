@@ -16,7 +16,7 @@ const AdmissionFormModal = ({ onClose, onSuccess, editingData, leadData, student
   const {
     form, setForm, tab, setTab, handleChange, handleSubmit,
     installmentPlan, courses, educations, exams, batches,
-    paymentModes, editingId, handleEdit, themeColor,
+    paymentModes, loadingDropdowns, editingId, handleEdit, themeColor,
   } = useAdmissionForm({});
 
   useEffect(() => {
@@ -120,6 +120,7 @@ const AdmissionFormModal = ({ onClose, onSuccess, editingData, leadData, student
                   exams={exams}
                   batches={batches}
                   setForm={setForm}
+                  loading={loadingDropdowns}
                 />
               )}
               {tab === 2 && (
