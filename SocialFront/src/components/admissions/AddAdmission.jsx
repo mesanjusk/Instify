@@ -48,7 +48,9 @@ const [studentData, setStudentData] = useState(null);
 
   // 🔁 Build mapping
   useEffect(() => {
-    apiClient.get('/api/students')
+    const uuid = localStorage.getItem('institute_uuid');
+
+    apiClient.get('/api/students', { params: { institute_uuid: uuid } })
       .then(res => {
         const map = {};
         (res.data?.data || []).forEach(s => {
@@ -57,7 +59,7 @@ const [studentData, setStudentData] = useState(null);
         setStudentsMap(map);
       }).catch(() => {});
 
-    apiClient.get('/api/courses')
+    apiClient.get('/api/courses', { params: { institute_uuid: uuid } })
       .then(res => {
         const map = {};
         (res.data || []).forEach(c => {
@@ -65,8 +67,6 @@ const [studentData, setStudentData] = useState(null);
         });
         setCoursesMap(map);
       }).catch(() => {});
-
-    const uuid = localStorage.getItem('institute_uuid');
     apiClient.get(`/api/institute/${uuid}`)
       .then(res => {
         const i = res.data.result;

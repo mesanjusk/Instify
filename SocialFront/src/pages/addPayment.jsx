@@ -69,10 +69,10 @@ export default function AddPayment() {
     if (!accountGroupUUID) return;
     const fetchAccounts = async () => {
       try {
-        const res = await apiClient.get(`/api/account/GetAccountList`);
+        const res = await apiClient.get(`/api/account/GetAccountList`, { params: { institute_uuid } });
         if (res.data.success) {
           const accounts = res.data.result.filter(
-            item => item.Account_group === accountGroupUUID && item.institute_uuid === institute_uuid
+            item => item.Account_group === accountGroupUUID
           );
           setAllAccounts(accounts);
         }
@@ -86,11 +86,9 @@ export default function AddPayment() {
   useEffect(() => {
     const fetchPaymentModes = async () => {
       try {
-        const res = await apiClient.get(`/api/account/GetAccountList`);
+        const res = await apiClient.get(`/api/account/GetAccountList`, { params: { institute_uuid } });
         const options = (res.data?.result || []).filter(
-          (item) =>
-            (item.Account_name === 'Bank' || item.Account_name === 'Cash') &&
-            item.institute_uuid === institute_uuid
+          (item) => item.Account_name === 'Bank' || item.Account_name === 'Cash'
         );
         setPaymentModes(options);
       } catch (err) {
