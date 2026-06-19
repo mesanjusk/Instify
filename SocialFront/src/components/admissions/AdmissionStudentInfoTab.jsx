@@ -1,104 +1,123 @@
 import React from 'react';
+import {
+  TextField, FormControl, FormLabel, RadioGroup,
+  FormControlLabel, Radio, Checkbox, Stack, Grid,
+} from '@mui/material';
 
 const AdmissionStudentInfoTab = ({ form, handleChange }) => (
-  <>
-    <input
-      placeholder="First Name"
-      value={form.firstName}
-      onChange={handleChange('firstName')}
-      className="border p-2"
+  <Stack spacing={2}>
+    <Grid container spacing={1.5}>
+      <Grid item xs={4}>
+        <TextField
+          label="First Name"
+          value={form.firstName}
+          onChange={handleChange('firstName')}
+          size="small"
+          fullWidth
+          required
+        />
+      </Grid>
+      <Grid item xs={4}>
+        <TextField
+          label="Middle Name"
+          value={form.middleName}
+          onChange={handleChange('middleName')}
+          size="small"
+          fullWidth
+        />
+      </Grid>
+      <Grid item xs={4}>
+        <TextField
+          label="Last Name"
+          value={form.lastName}
+          onChange={handleChange('lastName')}
+          size="small"
+          fullWidth
+        />
+      </Grid>
+    </Grid>
+
+    <TextField
+      label="Date of Birth"
+      type="date"
+      value={form.dob?.substring(0, 10) || ''}
+      onChange={handleChange('dob')}
+      size="small"
+      fullWidth
+      InputLabelProps={{ shrink: true }}
       required
     />
-    <input
-      placeholder="Middle Name"
-      value={form.middleName}
-      onChange={handleChange('middleName')}
-      className="border p-2"
-    />
-    <input
-      placeholder="Last Name"
-      value={form.lastName}
-      onChange={handleChange('lastName')}
-      className="border p-2"
-    />
-    <div className="flex items-center gap-4">
-      <input
-        type="date"
-        value={form.dob?.substring(0, 10)}
-        onChange={handleChange('dob')}
-        className="border p-2 flex-1"
-        required
-      />
-      <label className="text-sm font-medium">Date of Birth</label>
-    </div>
-    <div className="flex gap-4">
-      <label>
-        <input
-          type="radio"
-          name="gender"
-          value="Male"
-          checked={form.gender === 'Male'}
-          onChange={handleChange('gender')}
-        />
-        {' '}Male
-      </label>
-      <label>
-        <input
-          type="radio"
-          name="gender"
-          value="Female"
-          checked={form.gender === 'Female'}
-          onChange={handleChange('gender')}
-        />
-        {' '}Female
-      </label>
-    </div>
 
-    <input
-      placeholder="Mobile (Self)"
-      value={form.mobileSelf}
-      onChange={handleChange('mobileSelf')}
-      inputMode="numeric"
-      pattern="[0-9]{10}"
-      maxLength={10}
-      className="border p-2"
-    />
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: '#374151', cursor: 'pointer', marginTop: -6 }}>
-      <input
-        type="checkbox"
-        checked={!!form.mobileSelfWhatsapp}
-        onChange={(e) => handleChange('mobileSelfWhatsapp')({ target: { value: e.target.checked } })}
-        style={{ accentColor: '#059669', width: 15, height: 15 }}
-      />
-      Student consents to receive WhatsApp notifications on this number
-    </label>
+    <FormControl component="fieldset">
+      <FormLabel component="legend" sx={{ fontSize: '0.85rem', mb: 0.5 }}>Gender</FormLabel>
+      <RadioGroup row value={form.gender} onChange={handleChange('gender')}>
+        <FormControlLabel value="Male" control={<Radio size="small" />} label="Male" />
+        <FormControlLabel value="Female" control={<Radio size="small" />} label="Female" />
+      </RadioGroup>
+    </FormControl>
 
-    <input
-      placeholder="Mobile (Parent)"
-      value={form.mobileParent}
-      onChange={handleChange('mobileParent')}
-      inputMode="numeric"
-      pattern="[0-9]{10}"
-      maxLength={10}
-      className="border p-2"
-    />
-    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: '#374151', cursor: 'pointer', marginTop: -6 }}>
-      <input
-        type="checkbox"
-        checked={!!form.mobileParentWhatsapp}
-        onChange={(e) => handleChange('mobileParentWhatsapp')({ target: { value: e.target.checked } })}
-        style={{ accentColor: '#059669', width: 15, height: 15 }}
+    <Stack spacing={0.5}>
+      <TextField
+        label="Mobile (Self)"
+        value={form.mobileSelf}
+        onChange={handleChange('mobileSelf')}
+        inputProps={{ inputMode: 'numeric', pattern: '[0-9]{10}', maxLength: 10 }}
+        size="small"
+        fullWidth
       />
-      Parent consents to receive WhatsApp notifications on this number
-    </label>
+      <FormControlLabel
+        control={
+          <Checkbox
+            size="small"
+            checked={!!form.mobileSelfWhatsapp}
+            onChange={(e) => handleChange('mobileSelfWhatsapp')({ target: { value: e.target.checked } })}
+            sx={{ p: 0.5 }}
+          />
+        }
+        label={
+          <span style={{ fontSize: '0.78rem', color: '#374151' }}>
+            Student consents to receive WhatsApp notifications
+          </span>
+        }
+      />
+    </Stack>
 
-    <input
-      placeholder="Address"
+    <Stack spacing={0.5}>
+      <TextField
+        label="Mobile (Parent)"
+        value={form.mobileParent}
+        onChange={handleChange('mobileParent')}
+        inputProps={{ inputMode: 'numeric', pattern: '[0-9]{10}', maxLength: 10 }}
+        size="small"
+        fullWidth
+      />
+      <FormControlLabel
+        control={
+          <Checkbox
+            size="small"
+            checked={!!form.mobileParentWhatsapp}
+            onChange={(e) => handleChange('mobileParentWhatsapp')({ target: { value: e.target.checked } })}
+            sx={{ p: 0.5 }}
+          />
+        }
+        label={
+          <span style={{ fontSize: '0.78rem', color: '#374151' }}>
+            Parent consents to receive WhatsApp notifications
+          </span>
+        }
+      />
+    </Stack>
+
+    <TextField
+      label="Address"
       value={form.address}
       onChange={handleChange('address')}
-      className="border p-2"
+      size="small"
+      fullWidth
+      multiline
+      rows={2}
     />
-  </>
+  </Stack>
 );
 
 export default AdmissionStudentInfoTab;
