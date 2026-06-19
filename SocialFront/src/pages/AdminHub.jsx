@@ -1,6 +1,7 @@
-import { Box, Card, CardContent, Stack, Typography } from '@mui/material';
+import { Box, Divider, List, ListItem, ListItemButton, Paper, Typography } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CorporateFareIcon from '@mui/icons-material/CorporateFare';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import PaymentIcon from '@mui/icons-material/Payment';
@@ -18,41 +19,70 @@ import BalanceIcon from '@mui/icons-material/Balance';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
 
-function AdminCard({ icon, label, desc, color, onClick }) {
+function SectionHeader({ label }) {
   return (
-    <Card
-      onClick={onClick}
-      sx={{
-        cursor: 'pointer',
-        transition: 'transform 0.15s, box-shadow 0.15s',
-        '&:active': { transform: 'scale(0.97)' },
-        '&:hover': { boxShadow: `0 4px 20px ${color}22`, transform: 'translateY(-1px)' },
-      }}
+    <Typography
+      variant="caption"
+      color="text.secondary"
+      fontWeight={700}
+      sx={{ textTransform: 'uppercase', letterSpacing: 0.8, px: 0.5, mb: 0.5, display: 'block' }}
     >
-      <CardContent sx={{ p: { xs: 1.75, md: 2 }, '&:last-child': { pb: { xs: 1.75, md: 2 } } }}>
-        <Stack direction="row" spacing={1.5} alignItems="center">
+      {label}
+    </Typography>
+  );
+}
+
+function AdminListItem({ icon, label, desc, color, onClick, isLast }) {
+  return (
+    <>
+      <ListItem disablePadding>
+        <ListItemButton
+          onClick={onClick}
+          sx={{ px: 2, py: 1.25, gap: 2, '&:active': { bgcolor: 'action.selected' } }}
+        >
           <Box
             sx={{
-              width: { xs: 40, md: 44 }, height: { xs: 40, md: 44 },
-              borderRadius: 2.5, flexShrink: 0,
-              bgcolor: `${color}15`,
+              width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+              bgcolor: `${color}18`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color,
             }}
           >
             {icon}
           </Box>
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="subtitle2" fontWeight={700} noWrap sx={{ fontSize: { xs: '0.82rem', md: '0.875rem' } }}>
+          <Box sx={{ flex: 1 }}>
+            <Typography variant="body2" fontWeight={600} sx={{ lineHeight: 1.3 }}>
               {label}
             </Typography>
-            <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: { xs: '0.72rem', md: '0.75rem' } }}>
+            <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.4 }}>
               {desc}
             </Typography>
           </Box>
-        </Stack>
-      </CardContent>
-    </Card>
+          <ChevronRightIcon sx={{ color: 'text.disabled', fontSize: 20, flexShrink: 0 }} />
+        </ListItemButton>
+      </ListItem>
+      {!isLast && <Divider component="li" sx={{ mx: 2 }} />}
+    </>
+  );
+}
+
+function AdminGroup({ title, items, go }) {
+  return (
+    <Box mb={2.5}>
+      <SectionHeader label={title} />
+      <Paper elevation={0} sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+        <List disablePadding>
+          {items.map((m, i) => (
+            <AdminListItem
+              key={m.path}
+              {...m}
+              onClick={() => go(m.path)}
+              isLast={i === items.length - 1}
+            />
+          ))}
+        </List>
+      </Paper>
+    </Box>
   );
 }
 
@@ -62,78 +92,68 @@ export default function AdminHub() {
   const { user } = useApp();
   const go = (path) => navigate(`/${username}/${path}`);
 
-  const items = [
-    { icon: <CorporateFareIcon />,         label: 'Institute Profile',    desc: 'Edit logo, name, branding',        color: '#1a7a4a', path: 'instituteProfile' },
-    { icon: <ManageAccountsIcon />,        label: 'Users & Staff',        desc: 'Manage roles and accounts',         color: '#d4a017', path: 'user' },
-    { icon: <BusinessIcon />,             label: 'Institutes',           desc: 'All institutes (superadmin)',        color: '#0891b2', path: 'institutes' },
-    { icon: <PaymentIcon />,              label: 'Payment Modes',        desc: 'Cash, UPI, bank settings',           color: '#10b981', path: 'paymentmode' },
-    { icon: <CategoryIcon />,             label: 'Course Categories',    desc: 'Categorise your courses',            color: '#f59e0b', path: 'coursesCategory' },
-    { icon: <SchoolIcon />,              label: 'Education Types',      desc: 'UG, PG, Diploma etc.',               color: '#d97706', path: 'education' },
-    { icon: <AccountBalanceIcon />,       label: 'Org Categories',       desc: 'Organisation structure',             color: '#25a066', path: 'orgcategories' },
-    { icon: <AccountBalanceWalletIcon />, label: 'Accounts',             desc: 'Chart of accounts / ledger',         color: '#059669', path: 'addAccount' },
-    { icon: <BarChartIcon />,            label: 'Transactions',         desc: 'Full transaction ledger',            color: '#0a1a0f', path: 'allTransaction3' },
-    { icon: <BarChartIcon />,            label: 'Balance Report',       desc: 'Account-wise balances',              color: '#374151', path: 'allBalance' },
-    { icon: <QrCodeIcon />,              label: 'UPI Payment',          desc: 'UPI QR & collection link',           color: '#d4a017', path: 'upi-payment' },
-    { icon: <UploadFileIcon />,          label: 'CSV Import',           desc: 'Bulk import students/leads',         color: '#0284c7', path: 'csv-import' },
-    { icon: <DownloadIcon />,            label: 'Bulk Download',        desc: 'Export ZIP of records',              color: '#64748b', path: 'bulk-download' },
-    { icon: <PeopleOutlineIcon />,       label: 'HR & Payroll',         desc: 'Employees, salary & payslips',       color: '#d4a017', path: 'employees' },
-    { icon: <BalanceIcon />,             label: 'Trial Balance',        desc: 'All accounts Dr/Cr summary',         color: '#1a7a4a', path: 'trial-balance' },
-    { icon: <ShowChartIcon />,           label: 'Profit & Loss',        desc: 'Income vs expense statement',        color: '#10b981', path: 'profit-loss' },
-  ];
-
   const isSuperAdmin = user?.role === 'super_admin';
   const isOwner = user?.role === 'owner';
 
-  // Filter items by role — "Institutes" only for super_admin/owner
-  const visibleItems = items.filter(m => {
-    if (m.path === 'institutes') return isSuperAdmin || isOwner;
-    return true;
-  // For super_admin, point "Institutes" directly to tools dashboard
-  }).map(m => {
-    if (m.path === 'institutes' && isSuperAdmin) return { ...m, path: 'tools' };
-    return m;
-  });
-
-  const superAdminItems = isSuperAdmin ? [
-    { icon: <SupervisorAccountIcon />, label: 'Super Admin', desc: 'Manage all institutes & plans', color: '#7c3aed', path: 'tools' },
-  ] : [];
+  const groups = [
+    ...(isSuperAdmin ? [{
+      title: 'Super Admin',
+      items: [
+        { icon: <SupervisorAccountIcon />, label: 'Super Admin Panel', desc: 'Manage all institutes & plans', color: '#7c3aed', path: 'tools' },
+      ],
+    }] : []),
+    {
+      title: 'Institute Settings',
+      items: [
+        { icon: <CorporateFareIcon />,  label: 'Institute Profile', desc: 'Edit logo, name, branding',       color: '#1a7a4a', path: 'instituteProfile' },
+        { icon: <ManageAccountsIcon />, label: 'Users & Staff',     desc: 'Manage roles and accounts',       color: '#d4a017', path: 'user' },
+        ...(isSuperAdmin || isOwner
+          ? [{ icon: <BusinessIcon />, label: 'Institutes', desc: 'All institutes (superadmin)', color: '#0891b2', path: isSuperAdmin ? 'tools' : 'institutes' }]
+          : []),
+      ],
+    },
+    {
+      title: 'Financial',
+      items: [
+        { icon: <PaymentIcon />,              label: 'Payment Modes', desc: 'Cash, UPI, bank settings',     color: '#10b981', path: 'paymentmode' },
+        { icon: <AccountBalanceWalletIcon />, label: 'Accounts',      desc: 'Chart of accounts / ledger',   color: '#059669', path: 'addAccount' },
+        { icon: <BarChartIcon />,             label: 'Transactions',  desc: 'Full transaction ledger',      color: '#374151', path: 'allTransaction3' },
+        { icon: <QrCodeIcon />,               label: 'UPI Payment',   desc: 'UPI QR & collection link',     color: '#d4a017', path: 'upi-payment' },
+      ],
+    },
+    {
+      title: 'Academic Config',
+      items: [
+        { icon: <CategoryIcon />,       label: 'Course Categories', desc: 'Categorise your courses',      color: '#f59e0b', path: 'coursesCategory' },
+        { icon: <SchoolIcon />,         label: 'Education Types',   desc: 'UG, PG, Diploma etc.',         color: '#d97706', path: 'education' },
+        { icon: <AccountBalanceIcon />, label: 'Org Categories',    desc: 'Organisation structure',        color: '#25a066', path: 'orgcategories' },
+      ],
+    },
+    {
+      title: 'Reports & Data',
+      items: [
+        { icon: <BalanceIcon />,    label: 'Trial Balance',  desc: 'All accounts Dr/Cr summary',      color: '#1a7a4a', path: 'trial-balance' },
+        { icon: <ShowChartIcon />,  label: 'Profit & Loss',  desc: 'Income vs expense statement',     color: '#10b981', path: 'profit-loss' },
+        { icon: <BarChartIcon />,   label: 'Balance Report', desc: 'Account-wise balances',           color: '#0891b2', path: 'allBalance' },
+        { icon: <PeopleOutlineIcon />, label: 'HR & Payroll',   desc: 'Employees, salary & payslips', color: '#d4a017', path: 'employees' },
+        { icon: <UploadFileIcon />, label: 'CSV Import',     desc: 'Bulk import students/leads',      color: '#0284c7', path: 'csv-import' },
+        { icon: <DownloadIcon />,   label: 'Bulk Download',  desc: 'Export ZIP of records',           color: '#64748b', path: 'bulk-download' },
+      ],
+    },
+  ];
 
   return (
     <Box>
       <Box mb={3}>
-        <Typography variant="h5" fontWeight={700} mb={0.5}>Administration</Typography>
+        <Typography variant="h6" fontWeight={700} mb={0.5}>Administration</Typography>
         <Typography variant="body2" color="text.secondary">
           Institute settings, users, accounts, and data management tools.
         </Typography>
       </Box>
 
-      {superAdminItems.length > 0 && (
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
-            Super Admin
-          </Typography>
-          <Box sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(5, 1fr)' },
-            gap: { xs: 1.25, md: 1.5 },
-            mt: 1,
-          }}>
-            {superAdminItems.map((m) => (
-              <AdminCard key={m.path} {...m} onClick={() => go(m.path)} />
-            ))}
-          </Box>
-        </Box>
-      )}
-
-      <Box sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(5, 1fr)' },
-        gap: { xs: 1.25, md: 1.5 },
-      }}>
-        {visibleItems.map((m) => (
-          <AdminCard key={m.path} {...m} onClick={() => go(m.path)} />
-        ))}
-      </Box>
+      {groups.map((g) => (
+        <AdminGroup key={g.title} title={g.title} items={g.items} go={go} />
+      ))}
     </Box>
   );
 }

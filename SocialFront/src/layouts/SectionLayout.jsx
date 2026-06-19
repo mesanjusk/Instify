@@ -21,8 +21,9 @@ export default function SectionLayout({ title, color = '#1a7a4a', subtitle, chil
         sx={{
           bgcolor: color,
           flexShrink: 0,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
           borderBottom: 'none',
+          borderRadius: '0 0 18px 18px',
         }}
       >
         <Toolbar sx={{ gap: 1, minHeight: { xs: 52, sm: 60 }, px: { xs: 1.5, sm: 2 } }}>
