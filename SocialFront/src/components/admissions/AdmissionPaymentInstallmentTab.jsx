@@ -1,76 +1,124 @@
+import React from 'react';
+import {
+  TextField, FormControl, InputLabel, Select, MenuItem,
+  Stack, Table, TableHead, TableRow, TableCell, TableBody,
+  Typography, Paper,
+} from '@mui/material';
+
 const AdmissionPaymentInstallmentTab = ({ form, handleChange, installmentPlan, paymentModes }) => (
-  <>
-    <div className="flex items-center gap-2 mb-2">
-      <label className="w-32 text-right">Fees</label>
-      <input placeholder="Fees" value={form.fees} type="number" className="border p-2 flex-1" readOnly />
-    </div>
-    <div className="flex items-center gap-2 mb-2">
-      <label className="w-32 text-right">Discount</label>
-      <input placeholder="Discount" value={form.discount} type="number" onChange={handleChange('discount')} className="border p-2 flex-1" />
-    </div>
-    <div className="flex items-center gap-2 mb-2">
-      <label className="w-32 text-right">Total</label>
-      <input placeholder="Total" value={form.total} type="number" className="border p-2 flex-1" readOnly />
-    </div>
-    <div className="flex items-center gap-2 mb-2">
-      <label className="w-32 text-right">Fee Paid</label>
-      <input placeholder="Fee Paid" value={form.feePaid} type="number" onChange={handleChange('feePaid')} className="border p-2 flex-1" />
-    </div>
-    <div className="flex items-center gap-2 mb-2">
-      <label className="w-32 text-right">Payment Mode</label>
-      <select value={form.paidBy} onChange={handleChange('paidBy')} className="border p-2 flex-1">
-        <option value="">-- Select Payment Mode --</option>
+  <Stack spacing={2.5}>
+    <TextField
+      label="Fees"
+      type="number"
+      value={form.fees}
+      size="small"
+      fullWidth
+      InputProps={{ readOnly: true }}
+    />
+
+    <TextField
+      label="Discount"
+      type="number"
+      value={form.discount}
+      onChange={handleChange('discount')}
+      size="small"
+      fullWidth
+      inputProps={{ min: 0 }}
+    />
+
+    <TextField
+      label="Total"
+      type="number"
+      value={form.total}
+      size="small"
+      fullWidth
+      InputProps={{ readOnly: true }}
+    />
+
+    <TextField
+      label="Fee Paid"
+      type="number"
+      value={form.feePaid}
+      onChange={handleChange('feePaid')}
+      size="small"
+      fullWidth
+      inputProps={{ min: 0 }}
+    />
+
+    <FormControl fullWidth size="small">
+      <InputLabel>Payment Mode</InputLabel>
+      <Select value={form.paidBy} onChange={handleChange('paidBy')} label="Payment Mode">
+        <MenuItem value=""><em>Select Payment Mode</em></MenuItem>
         {paymentModes.map(p => (
-          <option key={p._id} value={p.uuid}>{p.Account_name}</option>
+          <MenuItem key={p._id} value={p.uuid}>{p.Account_name}</MenuItem>
         ))}
-      </select>
-    </div>
-    <div className="flex items-center gap-2 mb-2">
-      <label className="w-32 text-right">Balance</label>
-      <input placeholder="Balance" value={form.balance} type="number" className="border p-2 flex-1" readOnly />
-    </div>
-    
-    <div className="flex items-center gap-2 mb-2">
-      <label className="w-32 text-right">Installments</label>
-      <input placeholder="Installments" value={form.installment} onChange={handleChange('installment')} type="number" min="1" className="border p-2 flex-1" />
-    </div>
-    <div className="flex items-center gap-2 mb-2">
-      <label className="w-32 text-right">EMI Start Date</label>
-      <input
-        type="date"
-        placeholder="EMI Start Date"
-        value={form.emiDate}
-        onChange={handleChange('emiDate')}
-        className="border p-2 flex-1"
-      />
-    </div>
-    <div className="flex items-center gap-2 mb-2">
-      <label className="w-32 text-right">EMI</label>
-      <input placeholder="EMI" value={form.emi} type="number" className="border p-2 flex-1" readOnly />
-    </div>
-      {installmentPlan.length > 0 && (
-      <div className="overflow-x-auto">
-      <table className="min-w-full border mt-2 text-sm">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="border px-2 py-1">#</th>
-            <th className="border px-2 py-1">Due Date</th>
-            <th className="border px-2 py-1">Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {installmentPlan.map(p => (
-            <tr key={p.installmentNo}>
-              <td className="border px-2 py-1 text-center truncate">{p.installmentNo}</td>
-              <td className="border px-2 py-1 truncate">{new Date(p.dueDate).toLocaleDateString()}</td>
-              <td className="border px-2 py-1 text-right truncate">{p.amount}</td>
-            </tr>
-          ))}
-        </tbody>
-        </table>
-      </div>
-      )}
-  </>
+      </Select>
+    </FormControl>
+
+    <TextField
+      label="Balance"
+      type="number"
+      value={form.balance}
+      size="small"
+      fullWidth
+      InputProps={{ readOnly: true }}
+    />
+
+    <TextField
+      label="Number of Installments"
+      type="number"
+      value={form.installment}
+      onChange={handleChange('installment')}
+      size="small"
+      fullWidth
+      inputProps={{ min: 1 }}
+    />
+
+    <TextField
+      label="EMI Start Date"
+      type="date"
+      value={form.emiDate}
+      onChange={handleChange('emiDate')}
+      size="small"
+      fullWidth
+      InputLabelProps={{ shrink: true }}
+    />
+
+    <TextField
+      label="EMI Amount"
+      type="number"
+      value={form.emi}
+      size="small"
+      fullWidth
+      InputProps={{ readOnly: true }}
+    />
+
+    {installmentPlan.length > 0 && (
+      <Paper variant="outlined" sx={{ overflow: 'hidden', borderRadius: 2 }}>
+        <Typography variant="subtitle2" sx={{ px: 2, pt: 1.5, pb: 1, fontWeight: 700, bgcolor: 'grey.50' }}>
+          Installment Schedule
+        </Typography>
+        <Table size="small">
+          <TableHead>
+            <TableRow sx={{ bgcolor: 'grey.100' }}>
+              <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem' }}>#</TableCell>
+              <TableCell sx={{ fontWeight: 700, fontSize: '0.78rem' }}>Due Date</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.78rem' }}>Amount</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {installmentPlan.map(p => (
+              <TableRow key={p.installmentNo} hover>
+                <TableCell sx={{ fontSize: '0.8rem' }}>{p.installmentNo}</TableCell>
+                <TableCell sx={{ fontSize: '0.8rem' }}>{new Date(p.dueDate).toLocaleDateString()}</TableCell>
+                <TableCell align="right" sx={{ fontSize: '0.8rem' }}>₹{p.amount}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Paper>
+    )}
+  </Stack>
 );
 
 export default AdmissionPaymentInstallmentTab;

@@ -1,0 +1,51 @@
+name: Deploy Backend to Render
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Auto-deploys SocialBackend to Render on every push to main.
+# Only runs when backend files actually change.
+#
+# Required GitHub Secrets (Settings → Secrets → Actions):
+#   RENDER_DEPLOY_HOOK_URL — from Render dashboard:
+#     Service → Settings → Deploy Hooks → Create Deploy Hook
+# ─────────────────────────────────────────────────────────────────────────────
+on:
+  push:
+    branches:
+      - main
+      - 'claude/**'
+    paths:
+      - 'SocialBackend/**'
+      - 'render.yaml'
+      - '.github/workflows/deploy-render.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: render-prod
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Render Production Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check Render secret
+        id: check
+        env:
+          _HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$_HOOK" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "⚠️  RENDER_DEPLOY_HOOK_URL is not set — skipping Render deploy."
+            echo "   Add RENDER_DEPLOY_HOOK_URL in:"
+            echo "   GitHub → mesanjusk/Instify → Settings → Secrets → Actions"
+            echo "   Get the hook URL from: Render Dashboard → Service → Settings → Deploy Hooks"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger Render Deploy
+        if: steps.check.outputs.skip == 'false'
+        run: |
+          RESPONSE=$(curl -sf -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}")
+          echo "✅ Render deploy triggered: $RESPONSE"
