@@ -17,10 +17,21 @@ const AdmissionCourseBatchTab = ({
   batches: propBatches,
 }) => {
   const institute_uuid = localStorage.getItem('institute_uuid');
-  const [courses, setCourses] = useState([]);
-  const [educations, setEducations] = useState([]);
-  const [exams, setExams] = useState([]);
-  const [batches, setBatches] = useState([]);
+  const [courses, setCourses] = useState([
+    { _id: 'test-c1', Course_uuid: 'test-c1', name: '⚡ TEST Course A', courseFees: 5000 },
+    { _id: 'test-c2', Course_uuid: 'test-c2', name: '⚡ TEST Course B', courseFees: 8000 },
+  ]);
+  const [educations, setEducations] = useState([
+    { _id: 'test-e1', education: '⚡ TEST HSC' },
+    { _id: 'test-e2', education: '⚡ TEST Graduation' },
+  ]);
+  const [exams, setExams] = useState([
+    { _id: 'test-x1', exam: '⚡ TEST Exam Jan' },
+  ]);
+  const [batches, setBatches] = useState([
+    { _id: 'test-b1', name: '⚡ TEST Morning 7am' },
+    { _id: 'test-b2', name: '⚡ TEST Evening 5pm' },
+  ]);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState(false);
   const abortRef = useRef(null);
