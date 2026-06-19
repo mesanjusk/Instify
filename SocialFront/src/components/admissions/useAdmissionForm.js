@@ -84,7 +84,7 @@ useEffect(() => {
 
   const fetchCourses = async () => {
     try {
-      const res = await apiClient.get('/api/courses');
+      const res = await apiClient.get('/api/courses', { params: { institute_uuid } });
       setCourses(Array.isArray(res.data) ? res.data : []);
     } catch {
       toast.error('Failed to load courses');
@@ -104,7 +104,7 @@ useEffect(() => {
 
   const fetchExams = async () => {
     try {
-      const res = await apiClient.get('/api/exams');
+      const res = await apiClient.get('/api/exams', { params: { institute_uuid } });
       setExams(Array.isArray(res.data) ? res.data : []);
     } catch {
       toast.error('Failed to load exam events');
@@ -113,7 +113,7 @@ useEffect(() => {
 
   const fetchBatches = async () => {
     try {
-      const res = await apiClient.get('/api/batches');
+      const res = await apiClient.get('/api/batches', { params: { institute_uuid } });
       setBatches(Array.isArray(res.data) ? res.data : []);
     } catch {
       toast.error('Failed to load batches');
