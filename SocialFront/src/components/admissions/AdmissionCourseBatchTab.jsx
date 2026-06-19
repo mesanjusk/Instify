@@ -125,7 +125,21 @@ const AdmissionCourseBatchTab = ({
     <Stack spacing={2.5}>
       {/* DEBUG BANNER — remove after confirming deploy */}
       <Box sx={{ bgcolor: '#ef4444', color: '#fff', p: 1, borderRadius: 1, fontSize: 11, textAlign: 'center' }}>
-        🔴 DEBUG v3 | uuid: {institute_uuid ? institute_uuid.slice(0,8)+'…' : 'MISSING'} | courses:{courses.length} batches:{batches.length} exams:{exams.length}
+        🔴 DEBUG v4 | uuid: {institute_uuid ? institute_uuid.slice(0,8)+'…' : 'MISSING'} | courses:{courses.length} batches:{batches.length} exams:{exams.length}
+        {courses.length > 0 && (
+          <Box sx={{ mt: 0.5 }}>
+            {courses.map((c, i) => (
+              <div key={i}>C{i+1}: name="{c.name}" uuid="{c.Course_uuid?.slice(0,6)}" _id="{String(c._id)?.slice(0,6)}"</div>
+            ))}
+          </Box>
+        )}
+        {batches.length > 0 && (
+          <Box sx={{ mt: 0.5 }}>
+            {batches.map((b, i) => (
+              <div key={i}>B{i+1}: name="{b.name}" timing="{b.timing}"</div>
+            ))}
+          </Box>
+        )}
       </Box>
       {fetchError && (
         <Box sx={{ textAlign: 'center' }}>
