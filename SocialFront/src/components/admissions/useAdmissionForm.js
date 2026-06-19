@@ -139,7 +139,7 @@ useEffect(() => {
       setPaymentModes(options);
     } catch (err) {
       console.error('Payment mode fetch error:', err);
-      alert('Failed to load payment modes');
+      toast.error('Failed to load payment modes');
     }
   };
 
