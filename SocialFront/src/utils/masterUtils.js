@@ -18,11 +18,11 @@ export const fetchAndStoreMasters = async () => {
       axios.get(`${BASE_URL}/api/batches`, { params: { institute_uuid } }),
     ]);
 
-    const courseList = courses.data.data || [];
-    const educationList = educations.data.data || [];
-    const examList = exams.data.data || [];
-    const paymentModeList = paymentModes.data.data || [];
-    const batchList = batches.data.data || [];
+    const courseList = Array.isArray(courses.data) ? courses.data : (courses.data?.data || []);
+    const educationList = Array.isArray(educations.data) ? educations.data : (educations.data?.data || []);
+    const examList = Array.isArray(exams.data) ? exams.data : (exams.data?.data || []);
+    const paymentModeList = Array.isArray(paymentModes.data) ? paymentModes.data : (paymentModes.data?.data || []);
+    const batchList = Array.isArray(batches.data) ? batches.data : (batches.data?.data || []);
 
     localStorage.setItem('courses', JSON.stringify(courseList));
     localStorage.setItem('educations', JSON.stringify(educationList));

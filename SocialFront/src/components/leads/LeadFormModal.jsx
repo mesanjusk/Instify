@@ -11,6 +11,7 @@ import { Close, PersonAdd, TrendingUp } from '@mui/icons-material';
 const LeadFormModal = ({ onClose, onSuccess, institute_uuid }) => {
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState([]);
+  const [coursesLoading, setCoursesLoading] = useState(false);
   const [tab, setTab] = useState(0);
 
   const [studentData, setStudentData] = useState({
@@ -33,15 +34,20 @@ const LeadFormModal = ({ onClose, onSuccess, institute_uuid }) => {
     }],
   });
 
+  const fetchCourses = async () => {
+    setCoursesLoading(true);
+    try {
+      const res = await apiClient.get('/api/courses');
+      setCourses(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error('[LeadFormModal] courses fetch failed:', err?.message);
+      toast.error('Failed to load courses');
+    } finally {
+      setCoursesLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const res = await apiClient.get('/api/courses');
-        setCourses(Array.isArray(res.data) ? res.data : []);
-      } catch {
-        toast.error('Failed to load courses');
-      }
-    };
     fetchCourses();
   }, []);
 
@@ -210,12 +216,24 @@ const LeadFormModal = ({ onClose, onSuccess, institute_uuid }) => {
                       onChange={(e) => setStudentData({ ...studentData, course: e.target.value })}
                       label="Course"
                     >
-                      <MenuItem value=""><em>Select Course</em></MenuItem>
+                      <MenuItem value="">
+                        <em>{coursesLoading ? 'Loading…' : courses.length === 0 ? 'No courses found' : 'Select Course'}</em>
+                      </MenuItem>
+                      {coursesLoading && (
+                        <MenuItem disabled>
+                          <CircularProgress size={14} sx={{ mr: 1 }} />Loading…
+                        </MenuItem>
+                      )}
                       {courses.map((course) => (
                         <MenuItem key={course._id} value={course.Course_uuid}>{course.name}</MenuItem>
                       ))}
                     </Select>
                   </FormControl>
+                  {!coursesLoading && courses.length === 0 && (
+                    <Button size="small" onClick={fetchCourses} sx={{ alignSelf: 'flex-start', color: '#ef4444', textTransform: 'none' }}>
+                      Retry loading courses
+                    </Button>
+                  )}
 
                   <TextField
                     label="Follow Up Date"
