@@ -20,8 +20,28 @@ export default class ErrorBoundary extends React.Component {
     this.setState({ hasError: false, error: null });
   };
 
+  handleHardReload = async () => {
+    // Clear all SW caches so stale chunk hashes don't survive the reload
+    try {
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      }
+    } catch (_) {
+      // ignore — still reload even if cache clearing failed
+    }
+    window.location.reload();
+  };
+
   render() {
     if (this.state.hasError) {
+      const isChunkError = this.state.error?.message?.includes('dynamically imported module')
+        || this.state.error?.message?.includes('Failed to fetch');
+
       return (
         <Box
           sx={{
@@ -40,7 +60,9 @@ export default class ErrorBoundary extends React.Component {
                 Something went wrong
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                An unexpected error occurred in this section of the app.
+                {isChunkError
+                  ? 'A new version of the app is available. Click Reload App to update.'
+                  : 'An unexpected error occurred in this section of the app.'}
               </Typography>
             </Box>
             {this.state.error?.message && (
@@ -59,7 +81,7 @@ export default class ErrorBoundary extends React.Component {
               <Button
                 variant="contained"
                 startIcon={<Refresh />}
-                onClick={() => window.location.reload()}
+                onClick={this.handleHardReload}
                 sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#145c38' } }}
               >
                 Reload App
