@@ -5,8 +5,7 @@ import AdmissionStudentInfoTab from './AdmissionStudentInfoTab';
 import AdmissionCourseBatchTab from './AdmissionCourseBatchTab';
 import AdmissionPaymentInstallmentTab from './AdmissionPaymentInstallmentTab';
 import toast from 'react-hot-toast';
-import axios from 'axios';
-import BASE_URL from '../../config';
+import apiClient from '../../apiClient';
 import {
   Box, Card, CardContent, Stack, Typography, Tabs, Tab,
   Button, IconButton, Divider,
@@ -45,11 +44,8 @@ const AdmissionFormModal = ({ onClose, onSuccess, editingData, leadData, student
   const handleNext = async () => {
     if (tab === 0) {
       try {
-        const res = await axios.get(`${BASE_URL}/api/students/check-mobile`, {
-          params: {
-            institute_uuid: localStorage.getItem('institute_uuid'),
-            mobileSelf: form.mobileSelf,
-          },
+        const res = await apiClient.get('/api/students/check-mobile', {
+          params: { mobileSelf: form.mobileSelf },
         });
         if (res.data.exists && !form.student_uuid) {
           toast.error('Mobile number already exists in student records');

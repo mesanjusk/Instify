@@ -6,7 +6,6 @@ import toast from 'react-hot-toast';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
-import BASE_URL from '../../config';
 import { getThemeColor } from '../../utils/storageUtils';
 
 const useAdmissionForm = (initialForm = {}) => {
@@ -68,7 +67,7 @@ const useAdmissionForm = (initialForm = {}) => {
 
 const fetchAccountGroups = async () => {
   try {
-    const res = await apiClient.get(`${BASE_URL}/api/accountgroup/GetAccountgroupList`);
+    const res = await apiClient.get('/api/accountgroup/GetAccountgroupList');
     const data = res.data?.result;
 
     if (Array.isArray(data)) {
@@ -91,7 +90,7 @@ useEffect(() => {
 
   const fetchCourses = async () => {
     try {
-      const res = await apiClient.get(`${BASE_URL}/api/courses`);
+      const res = await apiClient.get('/api/courses');
       setCourses(Array.isArray(res.data) ? res.data : []);
     } catch {
       toast.error('Failed to load courses');
@@ -102,7 +101,7 @@ useEffect(() => {
 
   const fetchEducations = async () => {
     try {
-      const res = await apiClient.get(`${BASE_URL}/api/education`);
+      const res = await apiClient.get('/api/education');
       setEducations(Array.isArray(res.data) ? res.data : []);
     } catch {
       toast.error('Failed to load education options');
@@ -111,7 +110,7 @@ useEffect(() => {
 
   const fetchExams = async () => {
     try {
-      const res = await apiClient.get(`${BASE_URL}/api/exams`);
+      const res = await apiClient.get('/api/exams');
       setExams(Array.isArray(res.data) ? res.data : []);
     } catch {
       toast.error('Failed to load exam events');
@@ -120,17 +119,16 @@ useEffect(() => {
 
   const fetchBatches = async () => {
     try {
-      const res = await apiClient.get(`${BASE_URL}/api/batches`);
+      const res = await apiClient.get('/api/batches');
       setBatches(res.data || []);
     } catch {
       toast.error('Failed to load batches');
     }
   };
 
-  
   const fetchPaymentModes = async () => {
     try {
-      const res = await apiClient.get(`${BASE_URL}/api/account/GetAccountList`);
+      const res = await apiClient.get('/api/account/GetAccountList');
       const options = (res.data?.result || []).filter(
         (item) =>
           (item.Account_name === 'Bank' || item.Account_name === 'Cash') &&
@@ -194,7 +192,7 @@ useEffect(() => {
   const fetchAdmissions = async () => {
     if (!institute_uuid) return;
     try {
-      const res = await apiClient.get(`${BASE_URL}/api/admissions`, {
+      const res = await apiClient.get(`/api/admissions`, {
         params: { institute_uuid },
       });
       const { data } = res.data;
@@ -239,7 +237,7 @@ useEffect(() => {
   const handleBlur = async (field, value) => {
   if (field === 'mobileSelf' && /^\d{10}$/.test(value)) {
     try {
-      const res = await apiClient.get(`${BASE_URL}/api/students/check-mobile`, {
+      const res = await apiClient.get(`/api/students/check-mobile`, {
         params: {
           institute_uuid,
           mobileSelf: value,
@@ -273,7 +271,7 @@ useEffect(() => {
   if (discount > fees) return toast.error('Discount cannot exceed fees');
   if (feePaid > total) return toast.error('Fee paid cannot exceed total');
 
-const checkDuplicate = await apiClient.get(`${BASE_URL}/api/students/check-mobile`, {
+const checkDuplicate = await apiClient.get(`/api/students/check-mobile`, {
   params: {
     institute_uuid,
     mobileSelf: form.mobileSelf,
@@ -301,9 +299,9 @@ if (checkDuplicate.data.exists && !form.student_uuid) {
 
     let studentResponse;
     if (editingId && form.student_uuid) {
-      studentResponse = await apiClient.put(`${BASE_URL}/api/students/${form.student_uuid}`, studentPayload);
+      studentResponse = await apiClient.put(`/api/students/${form.student_uuid}`, studentPayload);
     } else {
-      studentResponse = await apiClient.post(`${BASE_URL}/api/students`, studentPayload);
+      studentResponse = await apiClient.post(`/api/students`, studentPayload);
     }
 
     const studentData = studentResponse.data.data;
@@ -328,10 +326,10 @@ if (checkDuplicate.data.exists && !form.student_uuid) {
 
     let admissionResponse;
     if (editingId) {
-      admissionResponse = await apiClient.put(`${BASE_URL}/api/admissions/${editingId}`, admissionPayload);
+      admissionResponse = await apiClient.put(`/api/admissions/${editingId}`, admissionPayload);
       toast.success('Admission updated successfully');
     } else {
-      admissionResponse = await apiClient.post(`${BASE_URL}/api/admissions`, admissionPayload);
+      admissionResponse = await apiClient.post(`/api/admissions`, admissionPayload);
       toast.success('Admission added successfully');
     }
 
@@ -352,7 +350,7 @@ if (checkDuplicate.data.exists && !form.student_uuid) {
       installmentPlan,
       paidBy: form.paidBy,
     };
-    await apiClient.post(`${BASE_URL}/api/fees`, feesPayload);
+    await apiClient.post(`/api/fees`, feesPayload);
 
     const leadPayload = {
   institute_uuid,
@@ -376,7 +374,7 @@ if (checkDuplicate.data.exists && !form.student_uuid) {
   },
 };
 
-    await apiClient.post(`${BASE_URL}/api/leads`, leadPayload);
+    await apiClient.post(`/api/leads`, leadPayload);
 
     const accountGroup = accountGroups.find(group => group.Account_group === 'ACCOUNT');
     if (!accountGroup || !accountGroup.Account_group_uuid) {
@@ -390,13 +388,13 @@ if (checkDuplicate.data.exists && !form.student_uuid) {
       Account_group: accountGroup.Account_group_uuid,
       Mobile_number: form.mobileSelf,
     };
-    await apiClient.post(`${BASE_URL}/api/account/addAccount`, accountPayload);
+    await apiClient.post(`/api/account/addAccount`, accountPayload);
 
     // ✅ Fetch account list ONCE
     let accList = [];
     try {
       const accountRes = await apiClient.get(
-        `${BASE_URL}/api/account/GetAccountList`,
+        `/api/account/GetAccountList`,
         { params: { institute_uuid } }
       );
       accList = accountRes.data.result || [];
@@ -443,7 +441,7 @@ if (checkDuplicate.data.exists && !form.student_uuid) {
             institute_uuid,
           };
 
-          await apiClient.post(`${BASE_URL}/api/transaction/addTransaction`, txPayload);
+          await apiClient.post(`/api/transaction/addTransaction`, txPayload);
         }
       } catch (e) {
         toast.error('Failed to create transaction entry for fees paid');
@@ -490,7 +488,7 @@ if (checkDuplicate.data.exists && !form.student_uuid) {
             institute_uuid,
           };
 
-          await apiClient.post(`${BASE_URL}/api/transaction/addTransaction`, receivableTxPayload);
+          await apiClient.post(`/api/transaction/addTransaction`, receivableTxPayload);
         }
       } catch (e) {
         toast.error('Failed to create transaction entry for total fees receivable');
@@ -549,7 +547,7 @@ const handleEdit = async (data) => {
 
   // Step 2: Fetch Fees data by admission_uuid
   try {
-    const feeRes = await apiClient.get(`${BASE_URL}/api/fees/admission/${data.uuid}`);
+    const feeRes = await apiClient.get(`/api/fees/admission/${data.uuid}`);
     const feeData = feeRes.data?.data;
 
     if (feeData) {
@@ -577,7 +575,7 @@ const handleEdit = async (data) => {
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this admission?')) return;
     try {
-      await apiClient.delete(`${BASE_URL}/api/admission/${id}`);
+      await apiClient.delete(`/api/admission/${id}`);
       toast.success('Deleted');
       fetchAdmissions();
     } catch {
