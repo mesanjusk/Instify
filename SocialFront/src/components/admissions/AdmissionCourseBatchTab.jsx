@@ -16,6 +16,7 @@ const AdmissionCourseBatchTab = ({
   exams: propExams,
   batches: propBatches,
 }) => {
+  const institute_uuid = localStorage.getItem('institute_uuid');
   const [courses, setCourses] = useState([]);
   const [educations, setEducations] = useState([]);
   const [exams, setExams] = useState([]);
@@ -32,11 +33,12 @@ const AdmissionCourseBatchTab = ({
     setLoading(true);
     setFetchError(false);
 
+    const params = { institute_uuid };
     const [coursesRes, educationsRes, examsRes, batchesRes] = await Promise.allSettled([
-      apiClient.get('/api/courses', { signal: controller.signal }),
+      apiClient.get('/api/courses', { params, signal: controller.signal }),
       apiClient.get('/api/education', { signal: controller.signal }),
-      apiClient.get('/api/exams', { signal: controller.signal }),
-      apiClient.get('/api/batches', { signal: controller.signal }),
+      apiClient.get('/api/exams', { params, signal: controller.signal }),
+      apiClient.get('/api/batches', { params, signal: controller.signal }),
     ]);
 
     if (controller.signal.aborted) return;

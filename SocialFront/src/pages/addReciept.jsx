@@ -54,7 +54,7 @@ export default function AddReceipt() {
     }, []);
 
     useEffect(() => {
-        apiClient.get(`/api/account/GetAccountList`)
+        apiClient.get(`/api/account/GetAccountList`, { params: { institute_uuid } })
             .then(res => {
                 if (res.data.success) {
                     setAllAccountOptions(res.data.result);
@@ -70,11 +70,9 @@ export default function AddReceipt() {
     useEffect(() => {
         const fetchPaymentModes = async () => {
             try {
-                const res = await apiClient.get(`/api/account/GetAccountList`);
+                const res = await apiClient.get(`/api/account/GetAccountList`, { params: { institute_uuid } });
                 const options = (res.data?.result || []).filter(
-                    (item) =>
-                        (item.Account_name === 'Bank' || item.Account_name === 'Cash') &&
-                        item.institute_uuid === institute_uuid
+                    (item) => item.Account_name === 'Bank' || item.Account_name === 'Cash'
                 );
                 setPaymentOptions(options);
             } catch (err) {
