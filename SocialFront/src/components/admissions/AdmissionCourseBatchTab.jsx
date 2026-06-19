@@ -17,21 +17,10 @@ const AdmissionCourseBatchTab = ({
   batches: propBatches,
 }) => {
   const institute_uuid = localStorage.getItem('institute_uuid');
-  const [courses, setCourses] = useState([
-    { _id: 'test-c1', Course_uuid: 'test-c1', name: '⚡ TEST Course A', courseFees: 5000 },
-    { _id: 'test-c2', Course_uuid: 'test-c2', name: '⚡ TEST Course B', courseFees: 8000 },
-  ]);
-  const [educations, setEducations] = useState([
-    { _id: 'test-e1', education: '⚡ TEST HSC' },
-    { _id: 'test-e2', education: '⚡ TEST Graduation' },
-  ]);
-  const [exams, setExams] = useState([
-    { _id: 'test-x1', exam: '⚡ TEST Exam Jan' },
-  ]);
-  const [batches, setBatches] = useState([
-    { _id: 'test-b1', name: '⚡ TEST Morning 7am' },
-    { _id: 'test-b2', name: '⚡ TEST Evening 5pm' },
-  ]);
+  const [courses, setCourses] = useState([]);
+  const [educations, setEducations] = useState([]);
+  const [exams, setExams] = useState([]);
+  const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState(false);
   const abortRef = useRef(null);
@@ -43,8 +32,6 @@ const AdmissionCourseBatchTab = ({
 
     setLoading(true);
     setFetchError(false);
-
-    console.log('[CourseBatchTab] institute_uuid =', institute_uuid);
 
     const params = { institute_uuid };
     const [coursesRes, educationsRes, examsRes, batchesRes] = await Promise.allSettled([
@@ -59,37 +46,24 @@ const AdmissionCourseBatchTab = ({
     let anyFailed = false;
 
     if (coursesRes.status === 'fulfilled') {
-      const data = coursesRes.value.data;
-      console.log('[CourseBatchTab] courses:', data);
-      setCourses(Array.isArray(data) ? data : []);
+      setCourses(Array.isArray(coursesRes.value.data) ? coursesRes.value.data : []);
     } else {
-      console.error('[CourseBatchTab] courses FAILED:', coursesRes.reason?.response?.data || coursesRes.reason?.message);
       anyFailed = true;
     }
 
     if (educationsRes.status === 'fulfilled') {
-      const data = educationsRes.value.data;
-      console.log('[CourseBatchTab] educations:', data);
-      setEducations(Array.isArray(data) ? data : []);
-    } else {
-      console.error('[CourseBatchTab] educations FAILED:', educationsRes.reason?.response?.data || educationsRes.reason?.message);
+      setEducations(Array.isArray(educationsRes.value.data) ? educationsRes.value.data : []);
     }
 
     if (examsRes.status === 'fulfilled') {
-      const data = examsRes.value.data;
-      console.log('[CourseBatchTab] exams:', data);
-      setExams(Array.isArray(data) ? data : []);
+      setExams(Array.isArray(examsRes.value.data) ? examsRes.value.data : []);
     } else {
-      console.error('[CourseBatchTab] exams FAILED:', examsRes.reason?.response?.data || examsRes.reason?.message);
       anyFailed = true;
     }
 
     if (batchesRes.status === 'fulfilled') {
-      const data = batchesRes.value.data;
-      console.log('[CourseBatchTab] batches:', data);
-      setBatches(Array.isArray(data) ? data : []);
+      setBatches(Array.isArray(batchesRes.value.data) ? batchesRes.value.data : []);
     } else {
-      console.error('[CourseBatchTab] batches FAILED:', batchesRes.reason?.response?.data || batchesRes.reason?.message);
       anyFailed = true;
     }
 
@@ -123,24 +97,6 @@ const AdmissionCourseBatchTab = ({
 
   return (
     <Stack spacing={2.5}>
-      {/* DEBUG BANNER — remove after confirming deploy */}
-      <Box sx={{ bgcolor: '#ef4444', color: '#fff', p: 1, borderRadius: 1, fontSize: 11, textAlign: 'center' }}>
-        🔴 DEBUG v4 | uuid: {institute_uuid ? institute_uuid.slice(0,8)+'…' : 'MISSING'} | courses:{courses.length} batches:{batches.length} exams:{exams.length}
-        {courses.length > 0 && (
-          <Box sx={{ mt: 0.5 }}>
-            {courses.map((c, i) => (
-              <div key={i}>C{i+1}: name="{c.name}" uuid="{c.Course_uuid?.slice(0,6)}" _id="{String(c._id)?.slice(0,6)}"</div>
-            ))}
-          </Box>
-        )}
-        {batches.length > 0 && (
-          <Box sx={{ mt: 0.5 }}>
-            {batches.map((b, i) => (
-              <div key={i}>B{i+1}: name="{b.name}" timing="{b.timing}"</div>
-            ))}
-          </Box>
-        )}
-      </Box>
       {fetchError && (
         <Box sx={{ textAlign: 'center' }}>
           <Button
@@ -198,8 +154,10 @@ const AdmissionCourseBatchTab = ({
               <CircularProgress size={14} sx={{ mr: 1 }} />Loading…
             </MenuItem>
           )}
-          {courses.map(c => (
-            <MenuItem key={c._id} value={c.Course_uuid}>{c.name}</MenuItem>
+          {courses.map((c, i) => (
+            <MenuItem key={c._id || c.Course_uuid || i} value={c.Course_uuid || c._id}>
+              {c.name || c.title || 'Unnamed Course'}
+            </MenuItem>
           ))}
         </Select>
       </FormControl>
@@ -217,8 +175,8 @@ const AdmissionCourseBatchTab = ({
               <CircularProgress size={14} sx={{ mr: 1 }} />Loading…
             </MenuItem>
           )}
-          {batches.map(b => (
-            <MenuItem key={b._id} value={b.name || b.timing || ''}>
+          {batches.map((b, i) => (
+            <MenuItem key={b._id || b.Batch_uuid || i} value={b.name || b.timing || ''}>
               {b.name || b.timing || 'Unnamed Batch'}
             </MenuItem>
           ))}
@@ -238,8 +196,10 @@ const AdmissionCourseBatchTab = ({
               <CircularProgress size={14} sx={{ mr: 1 }} />Loading…
             </MenuItem>
           )}
-          {exams.map(e => (
-            <MenuItem key={e._id} value={e.exam}>{e.exam}</MenuItem>
+          {exams.map((e, i) => (
+            <MenuItem key={e._id || i} value={e.exam || e._id}>
+              {e.exam || 'Unnamed Exam'}
+            </MenuItem>
           ))}
         </Select>
       </FormControl>
