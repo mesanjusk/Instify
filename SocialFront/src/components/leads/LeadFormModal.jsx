@@ -37,7 +37,7 @@ const LeadFormModal = ({ onClose, onSuccess, institute_uuid }) => {
   const fetchCourses = async () => {
     setCoursesLoading(true);
     try {
-      const res = await apiClient.get('/api/courses');
+      const res = await apiClient.get('/api/courses', { params: { institute_uuid } });
       setCourses(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('[LeadFormModal] courses fetch failed:', err?.message);
