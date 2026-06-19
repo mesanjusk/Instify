@@ -3,8 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import AdmissionFormModal from "./AdmissionFormModal";
 import ReceiptModal from "./ReceiptModal";
 import jsPDF from 'jspdf';
-import axios from 'axios';
-import BASE_URL from '../../config';
+import apiClient from '../../apiClient';
 
 const AddAdmission = () => {
   const [showModal, setShowModal] = useState(true);
@@ -29,14 +28,14 @@ const [studentData, setStudentData] = useState(null);
   if (!lead_uuid) return;
 
   try {
-    const { data } = await axios.get(`${BASE_URL}/api/leads/${lead_uuid}`);
+    const { data } = await apiClient.get(`/api/leads/${lead_uuid}`);
     const lead = data.data;
     setLeadData(lead);
 
     if (lead?.student_uuid) {
-      const studentRes = await axios.get(`${BASE_URL}/api/students/${lead.student_uuid}`);
+      const studentRes = await apiClient.get(`/api/students/${lead.student_uuid}`);
       const student = studentRes.data?.data;
-      setStudentData(student); 
+      setStudentData(student);
     }
   } catch (err) {
     console.error("❌ Error fetching lead/student data:", err);
@@ -49,25 +48,26 @@ const [studentData, setStudentData] = useState(null);
 
   // 🔁 Build mapping
   useEffect(() => {
-    axios.get(`${BASE_URL}/api/students?institute_uuid=${localStorage.getItem('institute_uuid')}`)
+    apiClient.get('/api/students')
       .then(res => {
         const map = {};
-        res.data.data.forEach(s => {
+        (res.data?.data || []).forEach(s => {
           map[s.uuid || s._id] = `${s.firstName || ''} ${s.lastName || ''}`.trim();
         });
         setStudentsMap(map);
-      });
+      }).catch(() => {});
 
-    axios.get(`${BASE_URL}/api/courses`)
+    apiClient.get('/api/courses')
       .then(res => {
         const map = {};
-        res.data.forEach(c => {
+        (res.data || []).forEach(c => {
           map[c.uuid || c._id] = c.name || c.title;
         });
         setCoursesMap(map);
-      });
+      }).catch(() => {});
 
-    axios.get(`${BASE_URL}/api/institute/${localStorage.getItem('institute_uuid')}`)
+    const uuid = localStorage.getItem('institute_uuid');
+    apiClient.get(`/api/institute/${uuid}`)
       .then(res => {
         const i = res.data.result;
         setInstitute({
@@ -76,9 +76,9 @@ const [studentData, setStudentData] = useState(null);
           phone: i.institute_call_number,
           gst: i.gst,
           logo: (i.theme && i.theme.logo) || i.institute_logo,
-          brandColor: (i.theme && i.theme.color) || "#1E40AF"
+          brandColor: (i.theme && i.theme.color) || '#1E40AF',
         });
-      });
+      }).catch(() => {});
   }, []);
 
   const handlePrint = () => {
