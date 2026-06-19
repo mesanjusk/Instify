@@ -21,57 +21,71 @@ import MagicLogin from './pages/MagicLogin';
 import PublicForm from './pages/PublicForm';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 
+// When a JS chunk fetch fails (stale PWA cache), reload the page once so the
+// service worker can serve the fresh hashes from the new deploy.
+const lazyWithRetry = (importFn) =>
+  lazy(() =>
+    importFn().catch(() => {
+      if (!sessionStorage.getItem('chunk-reloaded')) {
+        sessionStorage.setItem('chunk-reloaded', '1');
+        window.location.reload();
+        return new Promise(() => {}); // hold until reload completes
+      }
+      return { default: () => null };
+    })
+  );
+
 // Lazy-load all heavy feature pages — split into separate chunks
-const AcademicHub = lazy(() => import('./pages/AcademicHub'));
-const AdminHub = lazy(() => import('./pages/AdminHub'));
-const User = lazy(() => import('./pages/User'));
-const ImageUploader = lazy(() => import('./components/ImageUploader'));
-const Enquiry = lazy(() => import('./pages/Enquiry'));
-const Courses = lazy(() => import('./pages/Courses'));
-const Batches = lazy(() => import('./pages/Batches'));
-const OrgCategories = lazy(() => import('./pages/OrgCategories'));
-const Education = lazy(() => import('./pages/Education'));
-const Exam = lazy(() => import('./pages/Exam'));
-const PaymentMode = lazy(() => import('./pages/PaymentMode'));
-const InstituteProfile = lazy(() => import('./pages/instituteProfile'));
-const Owner = lazy(() => import('./pages/Owner'));
-const CoursesCategory = lazy(() => import('./pages/CoursesCategory'));
-const Leads = lazy(() => import('./reports/Leads'));
-const AllAdmission = lazy(() => import('./reports/allAdmission'));
-const AddLead = lazy(() => import('./pages/AddLead'));
-const AddNew = lazy(() => import('./components/admissions/AddAdmission'));
-const Followup = lazy(() => import('./pages/Followup'));
-const WhatsAppAdminPage = lazy(() => import('./pages/WhatsAppAdminPage'));
-const AddReciept = lazy(() => import('./pages/addReciept'));
-const AddPayment = lazy(() => import('./pages/addPayment'));
-const AllLeadByAdmission = lazy(() => import('./reports/allLeadByAdmission'));
-const AddAttendance = lazy(() => import('./pages/AddAttendance'));
-const AllAttendance = lazy(() => import('./reports/allAttendance'));
-const AllBatches = lazy(() => import('./reports/allBatches'));
-const AllBalance = lazy(() => import('./reports/allBalance'));
-const AddAccount = lazy(() => import('./pages/AddAccount'));
-const AllExams = lazy(() => import('./reports/allExams'));
-const Institutes = lazy(() => import('./pages/Institutes'));
-const Students = lazy(() => import('./pages/Students'));
-const Fees = lazy(() => import('./pages/Fees'));
-const ToolsPanel = lazy(() => import('./pages/ToolsPanel'));
-const AllTransaction3 = lazy(() => import('./reports/allTransaction3'));
-const WhatsAppIntegrationSettingsPage = lazy(() => import('./modules/whatsapp/pages/WhatsAppIntegrationSettingsPage'));
-const BaileysWhatsApp = lazy(() => import('./pages/BaileysWhatsApp'));
-const CanvasEditor = lazy(() => import('./pages/CanvasEditor'));
-const UpiPayment = lazy(() => import('./pages/UpiPayment'));
-const CsvImport = lazy(() => import('./pages/CsvImport'));
-const AcademicBulkImport = lazy(() => import('./pages/AcademicBulkImport'));
-const BulkDownload = lazy(() => import('./pages/BulkDownload'));
-const Employees = lazy(() => import('./pages/Employees'));
-const TrialBalance = lazy(() => import('./pages/TrialBalance'));
-const ProfitLoss = lazy(() => import('./pages/ProfitLoss'));
-const FunnelReport = lazy(() => import('./pages/FunnelReport'));
-const Forms = lazy(() => import('./pages/Forms'));
-const FormResponses = lazy(() => import('./pages/FormResponses'));
-const IDCardStudentSelfEdit = lazy(() => import('./pages/IDCardStudentSelfEdit'));
-const IDCardPrint = lazy(() => import('./pages/IDCardPrint'));
-const Greetings = lazy(() => import('./pages/Greetings'));
+const AcademicHub = lazyWithRetry(() => import('./pages/AcademicHub'));
+const AdminHub = lazyWithRetry(() => import('./pages/AdminHub'));
+const User = lazyWithRetry(() => import('./pages/User'));
+const ImageUploader = lazyWithRetry(() => import('./components/ImageUploader'));
+const Enquiry = lazyWithRetry(() => import('./pages/Enquiry'));
+const Courses = lazyWithRetry(() => import('./pages/Courses'));
+const Batches = lazyWithRetry(() => import('./pages/Batches'));
+const OrgCategories = lazyWithRetry(() => import('./pages/OrgCategories'));
+const Education = lazyWithRetry(() => import('./pages/Education'));
+const Exam = lazyWithRetry(() => import('./pages/Exam'));
+const PaymentMode = lazyWithRetry(() => import('./pages/PaymentMode'));
+const InstituteProfile = lazyWithRetry(() => import('./pages/instituteProfile'));
+const Owner = lazyWithRetry(() => import('./pages/Owner'));
+const CoursesCategory = lazyWithRetry(() => import('./pages/CoursesCategory'));
+const Leads = lazyWithRetry(() => import('./reports/Leads'));
+const AllAdmission = lazyWithRetry(() => import('./reports/allAdmission'));
+const AddLead = lazyWithRetry(() => import('./pages/AddLead'));
+const AddNew = lazyWithRetry(() => import('./components/admissions/AddAdmission'));
+const Followup = lazyWithRetry(() => import('./pages/Followup'));
+const WhatsAppAdminPage = lazyWithRetry(() => import('./pages/WhatsAppAdminPage'));
+const AddReciept = lazyWithRetry(() => import('./pages/addReciept'));
+const AddPayment = lazyWithRetry(() => import('./pages/addPayment'));
+const AllLeadByAdmission = lazyWithRetry(() => import('./reports/allLeadByAdmission'));
+const AddAttendance = lazyWithRetry(() => import('./pages/AddAttendance'));
+const AllAttendance = lazyWithRetry(() => import('./reports/allAttendance'));
+const AllBatches = lazyWithRetry(() => import('./reports/allBatches'));
+const AllBalance = lazyWithRetry(() => import('./reports/allBalance'));
+const AddAccount = lazyWithRetry(() => import('./pages/AddAccount'));
+const AllExams = lazyWithRetry(() => import('./reports/allExams'));
+const Institutes = lazyWithRetry(() => import('./pages/Institutes'));
+const Students = lazyWithRetry(() => import('./pages/Students'));
+const Fees = lazyWithRetry(() => import('./pages/Fees'));
+const ToolsPanel = lazyWithRetry(() => import('./pages/ToolsPanel'));
+const AllTransaction3 = lazyWithRetry(() => import('./reports/allTransaction3'));
+const WhatsAppIntegrationSettingsPage = lazyWithRetry(() => import('./modules/whatsapp/pages/WhatsAppIntegrationSettingsPage'));
+const BaileysWhatsApp = lazyWithRetry(() => import('./pages/BaileysWhatsApp'));
+const CanvasEditor = lazyWithRetry(() => import('./pages/CanvasEditor'));
+const UpiPayment = lazyWithRetry(() => import('./pages/UpiPayment'));
+const CsvImport = lazyWithRetry(() => import('./pages/CsvImport'));
+const AcademicBulkImport = lazyWithRetry(() => import('./pages/AcademicBulkImport'));
+const BulkDownload = lazyWithRetry(() => import('./pages/BulkDownload'));
+const Employees = lazyWithRetry(() => import('./pages/Employees'));
+const TrialBalance = lazyWithRetry(() => import('./pages/TrialBalance'));
+const ProfitLoss = lazyWithRetry(() => import('./pages/ProfitLoss'));
+const FunnelReport = lazyWithRetry(() => import('./pages/FunnelReport'));
+const Forms = lazyWithRetry(() => import('./pages/Forms'));
+const FormResponses = lazyWithRetry(() => import('./pages/FormResponses'));
+const IDCardStudentSelfEdit = lazyWithRetry(() => import('./pages/IDCardStudentSelfEdit'));
+const IDCardPrint = lazyWithRetry(() => import('./pages/IDCardPrint'));
+const Greetings = lazyWithRetry(() => import('./pages/Greetings'));
 
 function PageLoader() {
   return (
