@@ -70,15 +70,8 @@ const fetchAccountGroups = async () => {
   try {
     const res = await apiClient.get('/api/accountgroup/GetAccountgroupList');
     const data = res.data?.result;
-
-    if (Array.isArray(data)) {
-      setAccountGroups(data);
-    } else {
-      toast.error("Invalid account group data");
-      setAccountGroups([]);
-    }
+    setAccountGroups(Array.isArray(data) ? data : []);
   } catch (err) {
-    toast.error('Failed to load account groups');
     console.error('Error fetching account groups:', err);
   }
 };
@@ -121,7 +114,7 @@ useEffect(() => {
   const fetchBatches = async () => {
     try {
       const res = await apiClient.get('/api/batches');
-      setBatches(res.data || []);
+      setBatches(Array.isArray(res.data) ? res.data : []);
     } catch {
       toast.error('Failed to load batches');
     }
