@@ -44,6 +44,8 @@ const AdmissionCourseBatchTab = ({
     setLoading(true);
     setFetchError(false);
 
+    console.log('[CourseBatchTab] institute_uuid =', institute_uuid);
+
     const params = { institute_uuid };
     const [coursesRes, educationsRes, examsRes, batchesRes] = await Promise.allSettled([
       apiClient.get('/api/courses', { params, signal: controller.signal }),
@@ -58,32 +60,36 @@ const AdmissionCourseBatchTab = ({
 
     if (coursesRes.status === 'fulfilled') {
       const data = coursesRes.value.data;
+      console.log('[CourseBatchTab] courses:', data);
       setCourses(Array.isArray(data) ? data : []);
     } else {
-      console.error('[CourseBatchTab] courses fetch failed:', coursesRes.reason?.message);
+      console.error('[CourseBatchTab] courses FAILED:', coursesRes.reason?.response?.data || coursesRes.reason?.message);
       anyFailed = true;
     }
 
     if (educationsRes.status === 'fulfilled') {
       const data = educationsRes.value.data;
+      console.log('[CourseBatchTab] educations:', data);
       setEducations(Array.isArray(data) ? data : []);
     } else {
-      console.error('[CourseBatchTab] educations fetch failed:', educationsRes.reason?.message);
+      console.error('[CourseBatchTab] educations FAILED:', educationsRes.reason?.response?.data || educationsRes.reason?.message);
     }
 
     if (examsRes.status === 'fulfilled') {
       const data = examsRes.value.data;
+      console.log('[CourseBatchTab] exams:', data);
       setExams(Array.isArray(data) ? data : []);
     } else {
-      console.error('[CourseBatchTab] exams fetch failed:', examsRes.reason?.message);
+      console.error('[CourseBatchTab] exams FAILED:', examsRes.reason?.response?.data || examsRes.reason?.message);
       anyFailed = true;
     }
 
     if (batchesRes.status === 'fulfilled') {
       const data = batchesRes.value.data;
+      console.log('[CourseBatchTab] batches:', data);
       setBatches(Array.isArray(data) ? data : []);
     } else {
-      console.error('[CourseBatchTab] batches fetch failed:', batchesRes.reason?.message);
+      console.error('[CourseBatchTab] batches FAILED:', batchesRes.reason?.response?.data || batchesRes.reason?.message);
       anyFailed = true;
     }
 
@@ -117,6 +123,10 @@ const AdmissionCourseBatchTab = ({
 
   return (
     <Stack spacing={2.5}>
+      {/* DEBUG BANNER — remove after confirming deploy */}
+      <Box sx={{ bgcolor: '#ef4444', color: '#fff', p: 1, borderRadius: 1, fontSize: 11, textAlign: 'center' }}>
+        🔴 DEBUG v3 | uuid: {institute_uuid ? institute_uuid.slice(0,8)+'…' : 'MISSING'} | courses:{courses.length} batches:{batches.length} exams:{exams.length}
+      </Box>
       {fetchError && (
         <Box sx={{ textAlign: 'center' }}>
           <Button
