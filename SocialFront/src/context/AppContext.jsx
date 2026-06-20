@@ -28,6 +28,13 @@ export const AppProvider = ({ children }) => {
           storage.setItem('institute_uuid', instiObj.institute_uuid);
       } else {
         console.warn('⚠️ [AppContext] No stored user or institute found in storage.');
+        // Fallback: if only the raw institute_uuid key exists (e.g. from AppLoader / Register),
+        // construct a minimal institute object so downstream components work.
+        const rawUuid = storage.getItem('institute_uuid');
+        if (rawUuid) {
+          const fallbackInsti = { institute_uuid: rawUuid };
+          setInstitute(fallbackInsti);
+        }
       }
     } catch (err) {
       console.error('❌ [AppContext] Failed parsing user/institute:', err);

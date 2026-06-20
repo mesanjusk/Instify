@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import LeadFormModal from '../components/leads/LeadFormModal';
+import { useApp } from '../context/AppContext';
 
 const AddLead = () => {
   const [showModal, setShowModal] = useState(true);
   const navigate = useNavigate();
   const { username } = useParams();
+  const { institute_uuid } = useApp();
 
   const handleClose = () => {
     setShowModal(false);
-    navigate(`/${username}/leads`); // navigate back to leads page
+    navigate(`/${username}/leads`);
   };
 
   if (!showModal) return null;
@@ -17,10 +19,8 @@ const AddLead = () => {
   return (
     <LeadFormModal
       onClose={handleClose}
-      onSuccess={() => {
-        // optional toast or refresh logic
-      }}
-      institute_uuid={localStorage.getItem('institute_uuid')} // pass institute_uuid correctly
+      onSuccess={() => {}}
+      institute_uuid={institute_uuid}
     />
   );
 };
