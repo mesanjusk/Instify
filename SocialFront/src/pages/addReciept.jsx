@@ -70,14 +70,25 @@ export default function AddReceipt() {
     useEffect(() => {
         const fetchPaymentModes = async () => {
             try {
-                const res = await apiClient.get(`/api/account/GetAccountList`, { params: { institute_uuid } });
-                const options = (res.data?.result || []).filter(
-                    (item) => item.Account_name === 'Bank' || item.Account_name === 'Cash'
-                );
-                setPaymentOptions(options);
+                const res = await apiClient.get(`/api/paymentmode`);
+                const modes = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
+                // Map paymentmode records to a shape compatible with the submit handler
+                setPaymentOptions(modes.map(m => ({
+                    uuid: m.uuid || m._id,
+                    Account_name: m.mode,
+                    account_uuid: m.uuid || m._id,
+                })));
             } catch (err) {
-                toast.error('Failed to load payment modes');
-                console.error('Payment mode fetch error:', err);
+                // fallback: filter Cash/Bank from accounts
+                try {
+                    const res2 = await apiClient.get(`/api/account/GetAccountList`, { params: { institute_uuid } });
+                    const options = (res2.data?.result || []).filter(
+                        (item) => item.Account_name === 'Bank' || item.Account_name === 'Cash' || item.Account_name === 'Online'
+                    );
+                    setPaymentOptions(options);
+                } catch {
+                    toast.error('Failed to load payment modes');
+                }
             }
         };
         fetchPaymentModes();
@@ -138,7 +149,7 @@ export default function AddReceipt() {
 
             const journal = [
                 { Account_id: accounts, Type: 'Debit', Amount: Number(amount) },
-                { Account_id: Group.account_uuid || group, Type: 'Credit', Amount: Number(amount) }
+                { Account_id: Group.uuid || group, Type: 'Credit', Amount: Number(amount) }
             ];
 
             const payload = {

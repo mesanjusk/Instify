@@ -88,8 +88,13 @@ useEffect(() => {
   const handleLogout = () => {
     const confirmed = window.confirm("Are you sure you want to log out?");
     if (confirmed) {
-      localStorage.removeItem("user");
-      navigate("/");
+      // Clear all auth data so Safari doesn't restore the session
+      ['user', 'institute', 'authToken', 'refreshToken', 'institute_uuid',
+       'institute_id', 'institute_title', 'theme_color', 'name', 'user_type',
+       'login_username', 'center_code', 'trialExpiresAt'].forEach(k => localStorage.removeItem(k));
+      if (window.logoutHandler) window.logoutHandler();
+      // Use href for full page reload — avoids Safari SPA cache issue
+      window.location.href = '/';
     }
   };
 

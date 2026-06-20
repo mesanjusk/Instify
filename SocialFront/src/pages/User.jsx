@@ -110,33 +110,27 @@ const User = () => {
         // Step 1: Register user
         const res = await apiClient.post(`/api/auth/register`, dataToSend);
 
-        if (res.data === 'exist') {
-          toast.error('User already exists');
+        if (res.status === 409 || res.data?.success === false) {
+          toast.error(res.data?.message || 'User already exists');
           return;
-        } else if (res.data === 'notexist') {
-          toast.success('User added');
+        }
 
-          // Step 2: Get "ACCOUNT" group UUID
+        toast.success('User added');
+
+        // Step 2: Get "ACCOUNT" group UUID
+        try {
           const groupRes = await apiClient.get(`/api/accountgroup/GetAccountgroupList`);
-          const accountGroup = groupRes.data.result.find(g => g.Account_group === "ACCOUNT");
-
-          if (!accountGroup) {
-            toast.error('ACCOUNT group not found');
-            return;
+          const accountGroup = groupRes.data.result?.find(g => g.Account_group === "ACCOUNT");
+          if (accountGroup) {
+            await apiClient.post(`/api/account/addAccount`, {
+              Account_name: form.name,
+              Mobile_number: form.mobile,
+              Account_group: accountGroup.Account_group_uuid,
+              institute_uuid: orgId
+            });
           }
-
-          // Step 3: Create account linked to this user
-          await apiClient.post(`/api/account/addAccount`, {
-            Account_name: form.name,
-            Mobile_number: form.mobile,
-            Account_group: accountGroup.Account_group_uuid,
-            institute_uuid: orgId
-          });
-
-          toast.success('Account also created');
-        } else {
-          toast.error('Unexpected user registration response');
-          return;
+        } catch {
+          // non-critical — user was already saved
         }
       }
 
