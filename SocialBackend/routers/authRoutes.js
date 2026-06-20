@@ -262,7 +262,7 @@ router.post('/register',
   [
     body('name').notEmpty().withMessage('name is required'),
     body('mobile').notEmpty().withMessage('mobile is required'),
-    body('password').isLength({ min: 6 }).withMessage('password must be at least 6 characters'),
+    body('password').isLength({ min: 4 }).withMessage('password must be at least 4 characters'),
     body('role').notEmpty().withMessage('role is required'),
     body('institute_uuid').notEmpty().withMessage('institute_uuid is required'),
   ],
