@@ -10,7 +10,7 @@ const Record = require('../models/Record');
 router.post('/',
   [
     body('institute_uuid').notEmpty().withMessage('institute_uuid is required'),
-    body('student_uuid').notEmpty().withMessage('student_uuid is required'),
+    body('studentData.mobileSelf').notEmpty().withMessage('studentData.mobileSelf is required'),
   ],
   validate,
   leadController.createLead
