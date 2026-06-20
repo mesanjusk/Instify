@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
 import toast from 'react-hot-toast';
 import { FaWhatsapp } from 'react-icons/fa';
+import { useApp } from '../context/AppContext';
 
 import {
   Add,
@@ -51,6 +52,7 @@ import {
 import { useMetadata } from '../context/MetadataContext';
 
 const Followup = () => {
+  const { institute_uuid: ctxInstituteUuid } = useApp();
   const initialForm = {
     enquiryDate: '', firstName: '', middleName: '',
     lastName: '', dob: '', gender: '', mobileSelf: '', mobileSelfWhatsapp: false,
@@ -78,7 +80,7 @@ const Followup = () => {
   const [viewMode, setViewMode] = useState('card');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const institute_uuid = localStorage.getItem('institute_uuid');
+  const institute_uuid = ctxInstituteUuid || localStorage.getItem('institute_uuid');
   const today = new Date().toISOString().substring(0, 10);
 
   const todaysFollowups = enquiries.filter(e => {
@@ -255,6 +257,11 @@ const Followup = () => {
     fetchEnquiries();
     refreshMeta();
   }, []);
+
+  // Re-trigger metadata load when institute_uuid becomes available from context
+  useEffect(() => {
+    if (institute_uuid) refreshMeta();
+  }, [institute_uuid]);
 
   const filtered = enquiries.filter(e =>
     e.studentData?.firstName?.toLowerCase().includes(search.toLowerCase()) ||

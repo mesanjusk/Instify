@@ -309,6 +309,8 @@ const User = () => {
                 required
                 fullWidth
                 size="small"
+                inputProps={{ minLength: 4 }}
+                helperText="Minimum 4 characters"
               />
               <TextField
                 label="Mobile No."
