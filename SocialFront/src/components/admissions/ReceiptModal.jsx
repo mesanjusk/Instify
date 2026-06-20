@@ -69,13 +69,14 @@ const ReceiptModal = ({ data, institute = {}, onPrint, onClose }) => {
         ref={receiptRef}
         className="bg-white text-black rounded-lg shadow-xl relative"
         style={{
-          width: "420pt", // ~5.8 in
-          height: "450pt", // ~8.3 in
+          width: "min(420pt, 95vw)",
+          maxHeight: "90vh",
           margin: "auto",
-          padding: "36pt", // 0.5 inch all sides
+          padding: "24pt",
           fontFamily: "Inter, Segoe UI, Arial, sans-serif",
           boxSizing: "border-box",
-          overflow: "auto"
+          overflowY: "auto",
+          overflowX: "hidden",
         }}
       >
         {/* Header: Logo + Institute Info */}

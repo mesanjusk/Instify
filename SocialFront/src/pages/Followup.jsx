@@ -120,18 +120,38 @@ const Followup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!institute_uuid) return toast.error("Missing institute UUID");
-    const payload = {
-      ...form,
-      institute_uuid: institute_uuid,
-      type: 'enquiry'
-    };
 
     try {
       if (editingId) {
-        await apiClient.put(`/api/leads/${editingId}`, payload);
+        await apiClient.put(`/api/leads/${editingId}/edit`, {
+          studentData: {
+            firstName: form.firstName,
+            lastName: form.lastName,
+            mobileSelf: form.mobileSelf,
+            course: form.course,
+          },
+          course: form.course,
+        });
         toast.success('Lead updated');
       } else {
-        await apiClient.post(`/api/leads`, payload);
+        await apiClient.post(`/api/leads`, {
+          institute_uuid,
+          studentData: {
+            firstName: form.firstName,
+            lastName: form.lastName,
+            mobileSelf: form.mobileSelf,
+            course: form.course,
+          },
+          course: form.course,
+          followupDate: form.followUpDate,
+          referredBy: form.referredBy || '',
+          followups: [{
+            date: form.followUpDate || new Date().toISOString().split('T')[0],
+            status: 'follow-up',
+            remark: form.remarks || '',
+            createdBy: localStorage.getItem('name') || 'System',
+          }],
+        });
         toast.success('Lead added');
       }
       setForm(initialForm);
@@ -286,28 +306,12 @@ const Followup = () => {
             )
           }}
         />
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
           <Tooltip title="Export PDF">
-            <Button
-              variant="contained"
-              color="error"
-              size="small"
-              onClick={exportPDF}
-              startIcon={<PictureAsPdf />}
-            >
-              PDF
-            </Button>
+            <Button variant="contained" color="error" size="small" onClick={exportPDF} startIcon={<PictureAsPdf />}>PDF</Button>
           </Tooltip>
           <Tooltip title="Export Excel">
-            <Button
-              variant="contained"
-              color="success"
-              size="small"
-              onClick={exportExcel}
-              startIcon={<FileDownload />}
-            >
-              Excel
-            </Button>
+            <Button variant="contained" color="success" size="small" onClick={exportExcel} startIcon={<FileDownload />}>Excel</Button>
           </Tooltip>
           <Button variant="contained" size="small" onClick={handleAdd} startIcon={<Add />} sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' } }}>Add Enquiry</Button>
           <Tooltip title="Card view"><IconButton size="small" onClick={() => setViewMode('card')} sx={{ bgcolor: viewMode === 'card' ? '#1a7a4a' : 'grey.200', color: viewMode === 'card' ? '#fff' : 'text.secondary', borderRadius: 1 }}><GridView fontSize="small" /></IconButton></Tooltip>

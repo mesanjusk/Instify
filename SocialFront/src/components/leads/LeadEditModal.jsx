@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import apiClient from '../../apiClient';
 import toast from 'react-hot-toast';
-import BASE_URL from '../../config';
 
 const LeadEditModal = ({ lead, courses, onClose, onSuccess }) => {
   const [studentData, setStudentData] = useState({
@@ -16,7 +15,7 @@ const LeadEditModal = ({ lead, courses, onClose, onSuccess }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.put(`${BASE_URL}/api/leads/${lead.Lead_uuid}/edit`, {
+      await apiClient.put(`/api/leads/${lead.Lead_uuid}/edit`, {
         ...lead,
         studentData,
         course: studentData.course,
