@@ -24,6 +24,9 @@ if (missing.length) {
 
 const app = express();
 
+// Trust the first proxy (Render, Vercel, nginx) so rate limiters use the real client IP
+app.set('trust proxy', 1);
+
 // Base origins always allowed regardless of env var
 const baseOrigins = [
   'http://localhost:5173',
@@ -108,13 +111,13 @@ mongoose.connect(process.env.MONGO_URI, {
   console.error('❌ MongoDB connection error:', err.message);
 });
 
-// Rate limiter for auth endpoints (max 10 attempts per 15 min per IP)
+// Rate limiter for auth endpoints — per real client IP (trust proxy must be set above)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 50,
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: 'Too many attempts — try again in 15 minutes' },
+  message: { message: 'Too many login attempts — try again in 15 minutes' },
 });
 
 // ✅ Health check (DB-aware)
