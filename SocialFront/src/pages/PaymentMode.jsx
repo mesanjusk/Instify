@@ -36,7 +36,7 @@ const PaymentMode = () => {
   const fetchData = async () => {
     try {
       const res = await apiClient.get(`/api/paymentmode`);
-      setList(res.data || []);
+      setList(Array.isArray(res.data.data) ? res.data.data : []);
     } catch {
       toast.error('Failed to fetch payment modes');
     }
