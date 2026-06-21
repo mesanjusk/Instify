@@ -122,14 +122,9 @@ useEffect(() => {
 
   const fetchPaymentModes = async () => {
     try {
-      const res = await apiClient.get('/api/account/GetAccountList');
-      const options = (res.data?.result || []).filter(
-        (item) =>
-          (item.Account_name === 'Bank' || item.Account_name === 'Cash') &&
-          item.institute_uuid === institute_uuid
-      );
-
-      setPaymentModes(options);
+      const res = await apiClient.get('/api/paymentmode', { params: { institute_uuid } });
+      const modes = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
+      setPaymentModes(modes);
     } catch (err) {
       console.error('Payment mode fetch error:', err);
       toast.error('Failed to load payment modes');
@@ -265,15 +260,13 @@ useEffect(() => {
   if (discount > fees) return toast.error('Discount cannot exceed fees');
   if (feePaid > total) return toast.error('Fee paid cannot exceed total');
 
-const checkDuplicate = await apiClient.get(`/api/students/check-mobile`, {
-  params: {
-    institute_uuid,
-    mobileSelf: form.mobileSelf,
-  },
-});
-
-if (checkDuplicate.data.exists && !form.student_uuid) {
-  return toast.error('Mobile number already exists');
+if (!editingId) {
+  const checkDuplicate = await apiClient.get(`/api/students/check-mobile`, {
+    params: { institute_uuid, mobileSelf: form.mobileSelf },
+  });
+  if (checkDuplicate.data.exists && !form.student_uuid) {
+    return toast.error('Mobile number already exists');
+  }
 }
 
 
@@ -491,7 +484,25 @@ if (checkDuplicate.data.exists && !form.student_uuid) {
     }
 
     toast.success('All records saved successfully');
-    if (onSuccess) onSuccess(admissionData);
+    if (onSuccess) onSuccess({
+      ...admissionData,
+      learnerName: `${form.firstName} ${form.middleName ? form.middleName + ' ' : ''}${form.lastName}`.trim(),
+      courseName: form.course,
+      receiptDate: form.admissionDate,
+      receiptNumber: admissionData.uuid,
+      amount: feePaid,
+      amountWords: `₹${feePaid}`,
+      examEvent: form.examEvent,
+      installmentPlan,
+      firstName: form.firstName,
+      lastName: form.lastName,
+      feePaid,
+      fees,
+      discount,
+      total,
+      balance,
+      course: form.course,
+    });
     setForm(initialForm);
     setEditingId(null);
     setTab(0);

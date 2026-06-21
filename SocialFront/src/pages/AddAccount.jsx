@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
   Box,
   Card,
@@ -30,35 +31,27 @@ export default function AddAccount() {
         if (res.data.success) {
           setAccount_group(res.data.result);
         }
-      }).catch(err => {
-        alert('Error fetching accounts');
-        console.error(err);
-      });
+      }).catch(() => toast.error('Error fetching account groups'));
   }, []);
 
   async function submit(e) {
     e.preventDefault();
     try {
-      await apiClient.post(`/api/account/addAccount`, {
+      const res = await apiClient.post(`/api/account/addAccount`, {
         Account_name,
         Mobile_number,
         Account_group: selectedGroup,
-        institute_uuid: institute_uuid,
-      })
-        .then(res => {
-          if (res.data == 'exist') {
-            alert('Account already exists');
-          } else if (res.data == 'notexist') {
-            alert('Account added successfully');
-            navigate('/home');
-          }
-        })
-        .catch(e => {
-          alert('wrong details');
-          console.log(e);
-        });
+        institute_uuid,
+      });
+      if (res.data?.success) {
+        toast.success('Account added successfully');
+        navigate(-1);
+      } else {
+        toast.error(res.data?.message || 'Failed to add account');
+      }
     } catch (e) {
-      console.log(e);
+      const msg = e.response?.data?.message || 'Failed to add account';
+      toast.error(msg);
     }
   }
 

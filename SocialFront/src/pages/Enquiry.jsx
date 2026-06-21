@@ -60,8 +60,8 @@ const Enquiry = () => {
 
   const fetchEnquiries = async () => {
     try {
-      const res = await apiClient.get(`/api/record/enquiry`, {
-        params: { institute_uuid, page, limit }
+      const res = await apiClient.get(`/api/record/org/${institute_uuid}`, {
+        params: { type: 'enquiry', page, limit }
       });
       const { data, total: t, page: p, limit: l } = res.data;
       setEnquiries(Array.isArray(data) ? data : []);

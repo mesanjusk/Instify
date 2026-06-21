@@ -2,6 +2,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useMemo, useEffect } from 'react';
 import {
   AppBar, Avatar, Badge, Box, Breadcrumbs, Button, Card, CircularProgress,
+  Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle,
   IconButton, Stack, Toolbar, Tooltip, Typography, Link,
 } from '@mui/material';
 import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
@@ -48,6 +49,7 @@ export default function DashboardLayout() {
   const location = useLocation();
   const { user, institute, setUser, setInstitute } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   const [cloudDialogOpen, setCloudDialogOpen] = useState(false);
   const [syncStatus, setSyncStatus] = useState(null); // { state, message, lastSyncAt }
@@ -94,13 +96,14 @@ export default function DashboardLayout() {
     return new Date(expiryStr) < new Date();
   }, [user, institute]);
 
-  const handleLogout = () => {
-    if (window.confirm('Are you sure you want to log out?')) {
-      clearUserAndInstituteData();
-      setUser(null);
-      setInstitute(null);
-      navigate('/');
-    }
+  const handleLogout = () => setLogoutDialogOpen(true);
+
+  const confirmLogout = () => {
+    clearUserAndInstituteData();
+    setUser(null);
+    setInstitute(null);
+    setLogoutDialogOpen(false);
+    navigate('/');
   };
 
   return (
@@ -353,6 +356,17 @@ export default function DashboardLayout() {
           { label: 'Attendance', onClick: () => navigate(`/${username}/addAttendance`) },
         ]}
       />
+      {/* Logout confirmation dialog (Safari-safe — no window.confirm) */}
+      <Dialog open={logoutDialogOpen} onClose={() => setLogoutDialogOpen(false)}>
+        <DialogTitle>Log out?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>Are you sure you want to log out?</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLogoutDialogOpen(false)} color="inherit">Cancel</Button>
+          <Button onClick={confirmLogout} variant="contained" color="error">Log out</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
