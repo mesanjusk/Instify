@@ -73,7 +73,7 @@ const Students = () => {
 
   const handleEdit = (student) => {
     setForm({ firstName: student.firstName, middleName: student.middleName || '', lastName: student.lastName, dob: student.dob || '', gender: student.gender || '', mobileSelf: student.mobileSelf || '', institute_uuid });
-    setEditingId(student._id);
+    setEditingId(student.uuid);
     setDetailStudent(null);
     setShowModal(true);
   };
@@ -256,7 +256,7 @@ const Students = () => {
               <Typography variant="body2" color="text.secondary">Gender: {detailStudent.gender}</Typography>
             </DialogContent>
             <DialogActions sx={{ px: 2, pb: 2, gap: 1, flexWrap: 'wrap' }}>
-              <Button variant="contained" color="error" startIcon={<Delete />} onClick={() => handleDelete(detailStudent._id)} sx={{ textTransform: 'none' }}>Delete</Button>
+              <Button variant="contained" color="error" startIcon={<Delete />} onClick={() => handleDelete(detailStudent.uuid)} sx={{ textTransform: 'none' }}>Delete</Button>
               <Button variant="contained" startIcon={<Edit />} onClick={() => handleEdit(detailStudent)} sx={{ bgcolor: '#f59e0b', '&:hover': { bgcolor: '#d97706' }, textTransform: 'none' }}>Edit</Button>
               <Button variant="outlined" onClick={() => setDetailStudent(null)} sx={{ textTransform: 'none', ml: 'auto' }}>Close</Button>
             </DialogActions>

@@ -34,10 +34,10 @@ export const MetadataProvider = ({ children }) => {
         axios.get(`${BASE_URL}/api/paymentmode`, { params: { institute_uuid } }),
       ]);
 
-      setCourses(Array.isArray(coursesRes.data.data) ? coursesRes.data.data : []);
-      setEducations(Array.isArray(educationsRes.data.data) ? educationsRes.data.data : []);
-      setExams(Array.isArray(examsRes.data.data) ? examsRes.data.data : []);
-      setBatches(Array.isArray(batchesRes.data.data) ? batchesRes.data.data : []);
+      setCourses(Array.isArray(coursesRes.data) ? coursesRes.data : []);
+      setEducations(Array.isArray(educationsRes.data) ? educationsRes.data : []);
+      setExams(Array.isArray(examsRes.data) ? examsRes.data : []);
+      setBatches(Array.isArray(batchesRes.data) ? batchesRes.data : []);
       setPaymentModes(Array.isArray(paymentModesRes.data.data) ? paymentModesRes.data.data : []);
 
     } catch (err) {
