@@ -11,9 +11,10 @@ const AdmissionPaymentInstallmentTab = ({ form, handleChange, installmentPlan, p
       label="Fees"
       type="number"
       value={form.fees}
+      onChange={handleChange('fees')}
       size="small"
       fullWidth
-      InputProps={{ readOnly: true }}
+      inputProps={{ min: 0 }}
     />
 
     <TextField
@@ -49,8 +50,8 @@ const AdmissionPaymentInstallmentTab = ({ form, handleChange, installmentPlan, p
       <InputLabel>Payment Mode</InputLabel>
       <Select value={form.paidBy} onChange={handleChange('paidBy')} label="Payment Mode" MenuProps={{ sx: { zIndex: 1500 } }}>
         <MenuItem value=""><em>Select Payment Mode</em></MenuItem>
-        {paymentModes.map(p => (
-          <MenuItem key={p._id} value={p.uuid}>{p.Account_name}</MenuItem>
+        {paymentModes.map((p, i) => (
+          <MenuItem key={p._id || i} value={p.mode || p.Account_name}>{p.mode || p.Account_name}</MenuItem>
         ))}
       </Select>
     </FormControl>

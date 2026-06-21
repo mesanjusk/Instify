@@ -17,7 +17,7 @@ const ReceiptModal = ({ data, institute = {}, onPrint, onClose }) => {
     name: institute?.name || "",
     contact: institute?.contact || "",
     code: institute?.code || "",
-    logo: '/mnt/data/mkcl.png',
+    logo: institute?.logo || '',
   };
 
   // Data fields (fill with dummy if missing)
@@ -168,7 +168,7 @@ const ReceiptModal = ({ data, institute = {}, onPrint, onClose }) => {
          </div>
 
         {/* Actions (not shown on print or PDF) */}
-        <div className="flex justify-center gap-4 mt-8 no-print">
+        <div className="flex flex-wrap justify-center gap-3 mt-8 no-print">
           <button
             onClick={handlePrint}
             className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded"

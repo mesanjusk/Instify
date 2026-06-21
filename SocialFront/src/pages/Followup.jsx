@@ -122,6 +122,8 @@ const Followup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!institute_uuid) return toast.error("Missing institute UUID");
+    if (!form.firstName) return toast.error("First name is required");
+    if (!form.mobileSelf) return toast.error("Mobile number is required");
 
     try {
       if (editingId) {
@@ -160,8 +162,9 @@ const Followup = () => {
       setEditingId(null);
       setShowModal(false);
       fetchEnquiries();
-    } catch {
-      toast.error('Error submitting lead');
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Error submitting lead';
+      toast.error(msg);
     }
   };
 
