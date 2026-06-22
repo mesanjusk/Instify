@@ -10,6 +10,7 @@ import {
   Tooltip, InputAdornment, CircularProgress, Checkbox,
 } from '@mui/material';
 import { Add, Search, GridView, ViewList } from '@mui/icons-material';
+import AdmissionFormModal from '../components/admissions/AdmissionFormModal';
 
 const AllAdmission = () => {
   const [admissions, setAdmissions] = useState([]);
@@ -17,6 +18,8 @@ const AllAdmission = () => {
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState([]);
   const [selectedAdmission, setSelectedAdmission] = useState(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingAdmission, setEditingAdmission] = useState(null);
   const [viewMode, setViewMode] = useState('card');
   const [selectedUuids, setSelectedUuids] = useState(new Set());
   const [selectionMode, setSelectionMode] = useState(false);
@@ -115,6 +118,7 @@ const AllAdmission = () => {
   const allSelected = filteredAdmissions.length > 0 && selectedUuids.size === filteredAdmissions.length;
 
   return (
+    <>
     <Box>
       {/* Detail Dialog */}
       <Dialog open={!!selectedAdmission} onClose={() => setSelectedAdmission(null)} fullWidth maxWidth="xs">
@@ -130,7 +134,7 @@ const AllAdmission = () => {
             </DialogContent>
             <DialogActions sx={{ px: 2, pb: 2, gap: 1, flexWrap: 'wrap' }}>
               <Button variant="contained" color="error" onClick={() => handleDelete(selectedAdmission)} sx={{ textTransform: 'none' }}>Delete</Button>
-              <Button variant="contained" onClick={() => navigate(`/${username}/edit-admission/${selectedAdmission._id}`)} sx={{ bgcolor: '#f59e0b', '&:hover': { bgcolor: '#d97706' }, textTransform: 'none' }}>Edit</Button>
+              <Button variant="contained" onClick={() => { setEditingAdmission({ ...selectedAdmission, studentData: selectedAdmission.student }); setSelectedAdmission(null); setEditModalOpen(true); }} sx={{ bgcolor: '#f59e0b', '&:hover': { bgcolor: '#d97706' }, textTransform: 'none' }}>Edit</Button>
               <Button variant="outlined" onClick={() => setSelectedAdmission(null)} sx={{ textTransform: 'none', ml: 'auto' }}>Close</Button>
             </DialogActions>
           </>
@@ -302,6 +306,15 @@ const AllAdmission = () => {
         </Box>
       )}
     </Box>
+
+      {editModalOpen && editingAdmission && (
+        <AdmissionFormModal
+          editingData={editingAdmission}
+          onClose={() => { setEditModalOpen(false); setEditingAdmission(null); }}
+          onSuccess={() => { setEditModalOpen(false); setEditingAdmission(null); fetchAdmissions(); toast.success('Admission updated'); }}
+        />
+      )}
+    </>
   );
 };
 
