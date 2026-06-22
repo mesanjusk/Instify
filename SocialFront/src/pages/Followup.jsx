@@ -124,6 +124,8 @@ const Followup = () => {
     if (!institute_uuid) return toast.error("Missing institute UUID");
     if (!form.firstName) return toast.error("First name is required");
     if (!form.mobileSelf) return toast.error("Mobile number is required");
+    if (form.mobileSelf.length !== 10) return toast.error("Mobile number must be 10 digits");
+    if (!editingId && !form.followUpDate) return toast.error("Follow-Up Date is required");
 
     try {
       if (editingId) {
@@ -460,13 +462,12 @@ const Followup = () => {
                 </Select>
               </FormControl>
               <TextField
-                label="Follow-Up Date"
+                label="Follow-Up Date *"
                 type="date"
                 size="small"
                 value={form.followUpDate?.substring(0, 10) || ''}
                 onChange={handleChange('followUpDate')}
                 InputLabelProps={{ shrink: true }}
-                required
                 fullWidth
               />
               <TextField
