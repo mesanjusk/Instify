@@ -573,7 +573,7 @@ const handleEdit = async (data) => {
   }
 
   setForm(baseForm);
-  setEditingId(data._id);
+  setEditingId(data.uuid);
 };
 
 
