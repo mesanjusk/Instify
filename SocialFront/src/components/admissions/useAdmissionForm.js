@@ -59,6 +59,7 @@ const useAdmissionForm = (initialForm = {}) => {
   const [loadingDropdowns, setLoadingDropdowns] = useState(false);
 
   const [installmentPlan, setInstallmentPlan] = useState([]);
+  const [editingFeesId, setEditingFeesId] = useState(null);
 
   const themeColor = getThemeColor();
   const institute_uuid = localStorage.getItem('institute_uuid');
@@ -337,149 +338,151 @@ if (!editingId) {
       installmentPlan,
       paidBy: form.paidBy,
     };
-    await apiClient.post(`/api/fees`, feesPayload);
-
-    const leadPayload = {
-  institute_uuid,
-  student_uuid,
-  admission_uuid,
-  enquiryDate: form.admissionDate,
-  course: form.course,
-  referredBy: 'Self',
-  createdBy: 'System',
-  followups: [{
-    date: new Date().toISOString().substring(0, 10),
-    status: 'converted',
-    remark: '',
-    createdBy: 'System',
-  }],
-  studentData: {
-    mobileSelf: form.mobileSelf, 
-    firstName: form.firstName,
-    lastName: form.lastName,
-    course: form.course,
-  },
-};
-
-    await apiClient.post(`/api/leads`, leadPayload);
-
-    const accountGroup = accountGroups.find(group => group.Account_group === 'ACCOUNT');
-    if (!accountGroup || !accountGroup.Account_group_uuid) {
-  toast.error('ACCOUNT group UUID not found. Cannot create account.');
-  return;
-}
-
-    const accountPayload = {
-      institute_uuid,
-      Account_name: `${form.firstName} ${form.lastName}`.trim(),
-      Account_group: accountGroup.Account_group_uuid,
-      Mobile_number: form.mobileSelf,
-    };
-    await apiClient.post(`/api/account/addAccount`, accountPayload);
-
-    // ✅ Fetch account list ONCE
-    let accList = [];
-    try {
-      const accountRes = await apiClient.get(
-        `/api/account/GetAccountList`,
-        { params: { institute_uuid } }
-      );
-      accList = accountRes.data.result || [];
-    } catch (err) {
-      toast.error("Failed to fetch account list for transactions");
-      console.error("Account fetch error:", err);
+    if (editingId && editingFeesId) {
+      await apiClient.put(`/api/fees/${editingFeesId}`, feesPayload);
+    } else {
+      await apiClient.post(`/api/fees`, feesPayload);
     }
 
-    // ✅ Transaction 1: Receipt (feePaid)
-    if (feePaid > 0 && form.paidBy) {
-      try {
-        const studentAccount = accList.find(a =>
-          a.Account_name?.trim().toLowerCase() === `${form.firstName} ${form.lastName}`.trim().toLowerCase()
-          && a.Mobile_number === form.mobileSelf
-        );
+    if (!editingId) {
+      const leadPayload = {
+        institute_uuid,
+        student_uuid,
+        admission_uuid,
+        enquiryDate: form.admissionDate,
+        course: form.course,
+        referredBy: 'Self',
+        createdBy: 'System',
+        followups: [{
+          date: new Date().toISOString().substring(0, 10),
+          status: 'converted',
+          remark: '',
+          createdBy: 'System',
+        }],
+        studentData: {
+          mobileSelf: form.mobileSelf,
+          firstName: form.firstName,
+          lastName: form.lastName,
+          course: form.course,
+        },
+      };
+      await apiClient.post(`/api/leads`, leadPayload);
 
-        const paymentAcc = accList.find(a => a.Account_name === form.paidBy);
-        const paymentAccountUuid = paymentAcc ? paymentAcc.Account_uuid || paymentAcc.uuid : form.paidBy;
-
-        if (!studentAccount) {
-          toast.error('Could not find account for receipt entry');
-        } else {
-          const journal = [
-            {
-              Account_id: studentAccount.Account_uuid || studentAccount.uuid,
-              Type: 'Debit',
-              Amount: Number(feePaid),
-            },
-            {
-              Account_id: paymentAccountUuid,
-              Type: 'Credit',
-              Amount: Number(feePaid),
-            }
-          ];
-
-          const txPayload = {
-            Description: `Admission Fees Received for ${form.firstName} ${form.lastName}`,
-            Total_Credit: Number(feePaid),
-            Total_Debit: Number(feePaid),
-            Payment_mode: form.paidBy,
-            Created_by: 'System',
-            Transaction_date: form.admissionDate,
-            Journal_entry: journal,
-            institute_uuid,
-          };
-
-          await apiClient.post(`/api/transaction/addTransaction`, txPayload);
-        }
-      } catch (e) {
-        toast.error('Failed to create transaction entry for fees paid');
-        console.error('Transaction error:', e);
+      const accountGroup = accountGroups.find(group => group.Account_group === 'ACCOUNT');
+      if (!accountGroup || !accountGroup.Account_group_uuid) {
+        toast.error('ACCOUNT group UUID not found. Cannot create account.');
+        return;
       }
-    }
 
-    // ✅ Transaction 2: Fees Receivable (total - discount)
-    const receivableAmount = fees - discount;
-    if (receivableAmount > 0) {
+      const accountPayload = {
+        institute_uuid,
+        Account_name: `${form.firstName} ${form.lastName}`.trim(),
+        Account_group: accountGroup.Account_group_uuid,
+        Mobile_number: form.mobileSelf,
+      };
+      await apiClient.post(`/api/account/addAccount`, accountPayload);
+
+      let accList = [];
       try {
-        const studentAccount = accList.find(a =>
-          a.Account_name?.trim().toLowerCase() === `${form.firstName} ${form.lastName}`.trim().toLowerCase()
-          && a.Mobile_number === form.mobileSelf
+        const accountRes = await apiClient.get(
+          `/api/account/GetAccountList`,
+          { params: { institute_uuid } }
         );
+        accList = accountRes.data.result || [];
+      } catch (err) {
+        toast.error("Failed to fetch account list for transactions");
+        console.error("Account fetch error:", err);
+      }
 
-        const receivableAcc = accList.find(a => a.Account_name === "Fees Receivable");
-        const receivableAccountUuid = receivableAcc ? receivableAcc.Account_uuid || receivableAcc.uuid : null;
+      if (feePaid > 0 && form.paidBy) {
+        try {
+          const studentAccount = accList.find(a =>
+            a.Account_name?.trim().toLowerCase() === `${form.firstName} ${form.lastName}`.trim().toLowerCase()
+            && a.Mobile_number === form.mobileSelf
+          );
 
-        if (!studentAccount || !receivableAccountUuid) {
-          toast.error('Could not find account for fees receivable entry');
-        } else {
-          const receivableJournal = [
-            {
-              Account_id: receivableAccountUuid,
-              Type: 'Debit',
-              Amount: receivableAmount,
-            },
-            {
-              Account_id: studentAccount.Account_uuid || studentAccount.uuid,
-              Type: 'Credit',
-              Amount: receivableAmount,
-            }
-          ];
+          const paymentAcc = accList.find(a => a.Account_name === form.paidBy);
+          const paymentAccountUuid = paymentAcc ? paymentAcc.Account_uuid || paymentAcc.uuid : form.paidBy;
 
-          const receivableTxPayload = {
-            Description: `Total Admission Fees Receivable for ${form.firstName} ${form.lastName}`,
-            Total_Credit: receivableAmount,
-            Total_Debit: receivableAmount,
-            Payment_mode: 'Fees Receivable',
-            Created_by: 'System',
-            Transaction_date: form.admissionDate,
-            Journal_entry: receivableJournal,
-            institute_uuid,
-          };
+          if (!studentAccount) {
+            toast.error('Could not find account for receipt entry');
+          } else {
+            const journal = [
+              {
+                Account_id: studentAccount.Account_uuid || studentAccount.uuid,
+                Type: 'Debit',
+                Amount: Number(feePaid),
+              },
+              {
+                Account_id: paymentAccountUuid,
+                Type: 'Credit',
+                Amount: Number(feePaid),
+              }
+            ];
 
-          await apiClient.post(`/api/transaction/addTransaction`, receivableTxPayload);
+            const txPayload = {
+              Description: `Admission Fees Received for ${form.firstName} ${form.lastName}`,
+              Total_Credit: Number(feePaid),
+              Total_Debit: Number(feePaid),
+              Payment_mode: form.paidBy,
+              Created_by: 'System',
+              Transaction_date: form.admissionDate,
+              Journal_entry: journal,
+              institute_uuid,
+            };
+
+            await apiClient.post(`/api/transaction/addTransaction`, txPayload);
+          }
+        } catch (e) {
+          toast.error('Failed to create transaction entry for fees paid');
+          console.error('Transaction error:', e);
         }
-      } catch (e) {
-        toast.error('Failed to create transaction entry for total fees receivable');
-        console.error('Transaction error:', e);
+      }
+
+      const receivableAmount = fees - discount;
+      if (receivableAmount > 0) {
+        try {
+          const studentAccount = accList.find(a =>
+            a.Account_name?.trim().toLowerCase() === `${form.firstName} ${form.lastName}`.trim().toLowerCase()
+            && a.Mobile_number === form.mobileSelf
+          );
+
+          const receivableAcc = accList.find(a => a.Account_name === "Fees Receivable");
+          const receivableAccountUuid = receivableAcc ? receivableAcc.Account_uuid || receivableAcc.uuid : null;
+
+          if (!studentAccount || !receivableAccountUuid) {
+            toast.error('Could not find account for fees receivable entry');
+          } else {
+            const receivableJournal = [
+              {
+                Account_id: receivableAccountUuid,
+                Type: 'Debit',
+                Amount: receivableAmount,
+              },
+              {
+                Account_id: studentAccount.Account_uuid || studentAccount.uuid,
+                Type: 'Credit',
+                Amount: receivableAmount,
+              }
+            ];
+
+            const receivableTxPayload = {
+              Description: `Total Admission Fees Receivable for ${form.firstName} ${form.lastName}`,
+              Total_Credit: receivableAmount,
+              Total_Debit: receivableAmount,
+              Payment_mode: 'Fees Receivable',
+              Created_by: 'System',
+              Transaction_date: form.admissionDate,
+              Journal_entry: receivableJournal,
+              institute_uuid,
+            };
+
+            await apiClient.post(`/api/transaction/addTransaction`, receivableTxPayload);
+          }
+        } catch (e) {
+          toast.error('Failed to create transaction entry for total fees receivable');
+          console.error('Transaction error:', e);
+        }
       }
     }
 
@@ -505,6 +508,7 @@ if (!editingId) {
     });
     setForm(initialForm);
     setEditingId(null);
+    setEditingFeesId(null);
     setTab(0);
     setInstallmentPlan([]);
     fetchAdmissions();
@@ -566,6 +570,7 @@ const handleEdit = async (data) => {
       baseForm.paidBy = feeData.paidBy || '';
 
       setInstallmentPlan(feeData.installmentPlan || []);
+      setEditingFeesId(feeData.uuid || null);
     }
   } catch (err) {
     console.error("Failed to fetch fee details:", err);
