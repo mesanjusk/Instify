@@ -38,6 +38,25 @@ router.delete('/:uuid', async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
+// Get or upsert employee by user_uuid (links User → Employee)
+router.get('/by-user/:user_uuid', async (req, res) => {
+  try {
+    const emp = await Employee.findOne({ user_uuid: req.params.user_uuid });
+    res.json({ success: true, result: emp || null });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+router.put('/by-user/:user_uuid', async (req, res) => {
+  try {
+    const emp = await Employee.findOneAndUpdate(
+      { user_uuid: req.params.user_uuid },
+      { ...req.body, user_uuid: req.params.user_uuid },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    res.json({ success: true, result: emp });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
 // Process payroll for month/year
 router.post('/payroll/process', async (req, res) => {
   try {

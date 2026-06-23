@@ -11,6 +11,7 @@ const salaryComponentSchema = new mongoose.Schema({
 const employeeSchema = new mongoose.Schema({
   employee_uuid: { type: String, default: uuidv4, unique: true },
   institute_uuid: { type: String, required: true, index: true },
+  user_uuid: { type: String, default: null, index: true, sparse: true },
   firstName: { type: String, required: true },
   lastName: String,
   designation: String,
