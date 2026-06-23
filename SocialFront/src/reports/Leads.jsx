@@ -314,7 +314,7 @@ const Leads = () => {
             <Button size="small" variant="outlined" onClick={() => setSelectionMode(true)} sx={{ textTransform: 'none' }}>Select</Button>
           ) : (
             <>
-              <Button size="small" variant="outlined" onClick={() => allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(filtered.map(l => l._id)))} sx={{ textTransform: 'none' }}>
+              <Button size="small" variant="outlined" onClick={() => allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(filtered.map(l => l.Lead_uuid)))} sx={{ textTransform: 'none' }}>
                 {allSelected ? 'Deselect All' : 'Select All'}
               </Button>
               {selectedIds.size > 0 && (
@@ -349,20 +349,20 @@ const Leads = () => {
             return (
               <Card
                 key={lead._id}
-                onClick={() => selectionMode ? toggleSelect(lead._id) : setActionModal(lead)}
+                onClick={() => selectionMode ? toggleSelect(lead.Lead_uuid) : setActionModal(lead)}
                 sx={{
                   cursor: 'pointer',
                   position: 'relative',
                   transition: 'box-shadow 0.2s',
                   '&:hover': { boxShadow: 6 },
                   borderLeft: '4px solid #1a7a4a',
-                  outline: selectedIds.has(lead._id) ? '2px solid #1a7a4a' : 'none',
-                  bgcolor: selectedIds.has(lead._id) ? 'rgba(26,122,74,0.06)' : 'white',
+                  outline: selectedIds.has(lead.Lead_uuid) ? '2px solid #1a7a4a' : 'none',
+                  bgcolor: selectedIds.has(lead.Lead_uuid) ? 'rgba(26,122,74,0.06)' : 'white',
                 }}
               >
                 {selectionMode && (
                   <Box sx={{ position: 'absolute', top: 6, left: 6, zIndex: 1 }} onClick={ev => ev.stopPropagation()}>
-                    <Checkbox size="small" checked={selectedIds.has(lead._id)} onChange={() => toggleSelect(lead._id)} sx={{ p: 0 }} />
+                    <Checkbox size="small" checked={selectedIds.has(lead.Lead_uuid)} onChange={() => toggleSelect(lead.Lead_uuid)} sx={{ p: 0 }} />
                   </Box>
                 )}
                 <CardContent sx={{ pb: '12px !important', pl: selectionMode ? 4.5 : 2 }}>
@@ -416,7 +416,7 @@ const Leads = () => {
               <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
                 {selectionMode && (
                   <th style={{ padding: '10px 12px', width: 40 }}>
-                    <Checkbox size="small" checked={allSelected} onChange={() => allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(filtered.map(l => l._id)))} sx={{ p: 0 }} />
+                    <Checkbox size="small" checked={allSelected} onChange={() => allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(filtered.map(l => l.Lead_uuid)))} sx={{ p: 0 }} />
                   </th>
                 )}
                 <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Name</th>
@@ -431,14 +431,14 @@ const Leads = () => {
                 return (
                   <tr
                     key={lead._id}
-                    onClick={() => selectionMode ? toggleSelect(lead._id) : setActionModal(lead)}
-                    style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: selectedIds.has(lead._id) ? 'rgba(26,122,74,0.06)' : 'white' }}
-                    onMouseEnter={ev => { if (!selectedIds.has(lead._id)) ev.currentTarget.style.background = '#f9fafb'; }}
-                    onMouseLeave={ev => { ev.currentTarget.style.background = selectedIds.has(lead._id) ? 'rgba(26,122,74,0.06)' : 'white'; }}
+                    onClick={() => selectionMode ? toggleSelect(lead.Lead_uuid) : setActionModal(lead)}
+                    style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: selectedIds.has(lead.Lead_uuid) ? 'rgba(26,122,74,0.06)' : 'white' }}
+                    onMouseEnter={ev => { if (!selectedIds.has(lead.Lead_uuid)) ev.currentTarget.style.background = '#f9fafb'; }}
+                    onMouseLeave={ev => { ev.currentTarget.style.background = selectedIds.has(lead.Lead_uuid) ? 'rgba(26,122,74,0.06)' : 'white'; }}
                   >
                     {selectionMode && (
                       <td style={{ padding: '8px 12px' }} onClick={ev => ev.stopPropagation()}>
-                        <Checkbox size="small" checked={selectedIds.has(lead._id)} onChange={() => toggleSelect(lead._id)} sx={{ p: 0 }} />
+                        <Checkbox size="small" checked={selectedIds.has(lead.Lead_uuid)} onChange={() => toggleSelect(lead.Lead_uuid)} sx={{ p: 0 }} />
                       </td>
                     )}
                     <td style={{ padding: '8px 12px', fontWeight: 500, fontSize: 14 }}>
@@ -494,7 +494,7 @@ const Leads = () => {
               color="error"
               startIcon={<Delete />}
               fullWidth
-              onClick={() => { handleDelete(actionModal._id); setActionModal(null); }}
+              onClick={() => { handleDelete(actionModal.Lead_uuid || actionModal._id); setActionModal(null); }}
             >
               Delete
             </Button>
