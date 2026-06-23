@@ -481,8 +481,19 @@ function getLastQR(instituteId) {
   return sessions.get(instituteId)?.qrDataUrl ?? null;
 }
 
+/** Force-clear a stuck session from memory so startSession can run fresh.
+ *  Does NOT touch MongoDB or local auth files — those remain for reconnect. */
+function clearStuckSession(instituteId) {
+  const existing = sessions.get(instituteId);
+  if (existing) {
+    try { existing.sock?.ws?.terminate(); } catch (_) {}
+    sessions.delete(instituteId);
+  }
+}
+
 module.exports = {
   startSession, sendText, sendMedia, sendBulk,
   disconnectSession, getStatus, getLastQR,
+  clearStuckSession,
   autoReconnectSessions,
 };
