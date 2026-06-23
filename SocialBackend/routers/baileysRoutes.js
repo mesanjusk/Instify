@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const baileysService = require('../services/baileysService');
+const { clearStuckSession } = baileysService;
 const Message = require('../repositories/Message');
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
@@ -18,14 +19,44 @@ router.get('/session/:instituteId/qr', (req, res) => {
   res.setHeader('Connection', 'keep-alive');
   res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
-  sse(res, 'status', { status: 'connecting' });
-  baileysService.startSession(
-    instituteId,
-    (qrDataUrl) => sse(res, 'qr', { qr: qrDataUrl }),
-    (status) => { sse(res, 'status', { status }); if (status === 'connected') res.end(); }
-  ).catch((err) => { sse(res, 'error', { message: err.message }); res.end(); });
+
+  const currentStatus = baileysService.getStatus(instituteId);
+  const cachedQR      = baileysService.getLastQR(instituteId);
+
+  // Already connected — tell the client immediately
+  if (currentStatus === 'connected') {
+    sse(res, 'status', { status: 'connected' });
+    res.end();
+    return;
+  }
+
+  // QR already generated (e.g. auto-reconnect produced one) — send it straight away
+  if (cachedQR) {
+    sse(res, 'qr', { qr: cachedQR });
+  }
+
+  // If a session is stuck 'connecting' with no QR (started by autoReconnect with
+  // empty callbacks), clear it so startSession can run fresh with our SSE callbacks.
+  if ((currentStatus === 'connecting' || currentStatus === 'qr') && !cachedQR) {
+    clearStuckSession(instituteId);
+  }
+
+  sse(res, 'status', { status: currentStatus === 'connected' ? 'connected' : 'connecting' });
+
   const heartbeat = setInterval(() => res.write(': ping\n\n'), 30000);
   req.on('close', () => clearInterval(heartbeat));
+
+  baileysService.startSession(
+    instituteId,
+    (qrDataUrl) => { if (!res.writableEnded) sse(res, 'qr', { qr: qrDataUrl }); },
+    (status) => {
+      if (!res.writableEnded) sse(res, 'status', { status });
+      if (status === 'connected') { clearInterval(heartbeat); res.end(); }
+    }
+  ).catch((err) => {
+    if (!res.writableEnded) { sse(res, 'error', { message: err.message }); res.end(); }
+    clearInterval(heartbeat);
+  });
 });
 
 // Current status
