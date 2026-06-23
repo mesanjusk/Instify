@@ -146,6 +146,10 @@ const Leads = () => {
 
   const handleConvert = (lead) => {
     const sd = lead.studentData || {};
+    const rawCourse = lead.course || sd.course || '';
+    const courseObj = courses.find(c => c.Course_uuid === rawCourse || c.name === rawCourse);
+    const courseName = courseObj?.name || rawCourse;
+    const courseFee = Number(courseObj?.courseFees || 0);
     setAdmissionForm({
       ...admissionTemplate,
       firstName: sd.firstName || '',
@@ -157,7 +161,10 @@ const Leads = () => {
       mobileParent: sd.mobileParent || '',
       address: sd.address || '',
       education: sd.education || '',
-      course: getCourseName(lead.course || sd.course || ''),
+      course: courseName,
+      fees: courseFee,
+      total: courseFee,
+      balance: courseFee,
       admissionDate: new Date().toISOString().split('T')[0],
     });
     setEnquiryToDeleteId(lead.Lead_uuid);

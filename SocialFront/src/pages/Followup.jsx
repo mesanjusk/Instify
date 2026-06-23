@@ -115,6 +115,11 @@ const Followup = () => {
 
   const handleConvert = (e) => {
     const sd = e.studentData || {};
+    const rawCourse = e.course || sd.course || '';
+    // Resolve course UUID or name → course object for fee auto-fill
+    const courseObj = courses.find(c => c.Course_uuid === rawCourse || c.name === rawCourse);
+    const courseName = courseObj?.name || rawCourse;
+    const courseFee = Number(courseObj?.courseFees || 0);
     const fill = {
       ...admissionTemplate,
       firstName: sd.firstName || '',
@@ -126,7 +131,10 @@ const Followup = () => {
       mobileParent: sd.mobileParent || '',
       address: sd.address || '',
       education: sd.education || '',
-      course: e.course || sd.course || '',
+      course: courseName,
+      fees: courseFee,
+      total: courseFee,
+      balance: courseFee,
       admissionDate: new Date().toISOString().split('T')[0],
     };
     setAdmissionForm(fill);

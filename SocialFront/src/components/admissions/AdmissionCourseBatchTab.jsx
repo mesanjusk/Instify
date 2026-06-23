@@ -132,7 +132,14 @@ const AdmissionCourseBatchTab = ({
       <FormControl fullWidth size="small" required>
         <InputLabel>Course</InputLabel>
         <Select
-          value={form.course}
+          value={(() => {
+            // Support course stored as UUID or as name
+            const byUuid = courses.find(c => c.Course_uuid === form.course);
+            if (byUuid) return byUuid.Course_uuid;
+            const byName = courses.find(c => c.name === form.course);
+            if (byName) return byName.Course_uuid;
+            return form.course || '';
+          })()}
           onChange={(e) => {
             const selected = courses.find(c => c.Course_uuid === e.target.value);
             const courseFee = Number(selected?.courseFees || 0);
