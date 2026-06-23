@@ -40,7 +40,6 @@ const AcademicHub = lazyWithRetry(() => import('./pages/AcademicHub'));
 const AdminHub = lazyWithRetry(() => import('./pages/AdminHub'));
 const User = lazyWithRetry(() => import('./pages/User'));
 const ImageUploader = lazyWithRetry(() => import('./components/ImageUploader'));
-const Enquiry = lazyWithRetry(() => import('./pages/Enquiry'));
 const Courses = lazyWithRetry(() => import('./pages/Courses'));
 const Batches = lazyWithRetry(() => import('./pages/Batches'));
 const OrgCategories = lazyWithRetry(() => import('./pages/OrgCategories'));
@@ -178,7 +177,6 @@ export default function App() {
         <Route index element={<Dashboard />} />
         <Route path="user" element={<User />} />
         <Route path="batches" element={<Batches />} />
-        <Route path="enquiry" element={<Enquiry />} />
         <Route path="courses" element={<Courses />} />
         <Route path="students" element={<Students />} />
         <Route path="orgcategories" element={<OrgCategories />} />
