@@ -83,7 +83,7 @@ exports.getLeads = async (req, res) => {
   try {
     const { institute_uuid, filterBy, page = 1, limit = 50 } = req.query;
 
-    const match = {};
+    const match = { $or: [{ admission_uuid: { $exists: false } }, { admission_uuid: null }, { admission_uuid: '' }] };
     if (institute_uuid) match.institute_uuid = institute_uuid;
 
     if (filterBy === 'today') {
