@@ -2,57 +2,97 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import apiClient from '../apiClient';
 import toast, { Toaster } from 'react-hot-toast';
-import { FaPhoneAlt, FaWhatsapp } from 'react-icons/fa';
-import LeadStatusModal from "../components/leads/LeadStatusModal";
+import { FaWhatsapp } from 'react-icons/fa';
+import { useApp } from '../context/AppContext';
 import { saveRecords, getAllRecords } from '../db/dbService';
 
-const LEADS_PAGE_SIZE = 24;
+import {
+  PictureAsPdf,
+  FileDownload,
+  Delete,
+  SwapHoriz,
+  Close,
+  GridView,
+  ViewList,
+  PersonAdd,
+} from '@mui/icons-material';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
-const GridIcon = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-    <path d="M3 3h7v7H3V3zm11 0h7v7h-7V3zM3 14h7v7H3v-7zm11 0h7v7h-7v-7z"/>
-  </svg>
-);
-const ListIcon = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-    <path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"/>
-  </svg>
-);
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  Checkbox,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  FormControl,
+  FormControlLabel,
+  IconButton,
+  InputAdornment,
+  InputLabel,
+  MenuItem,
+  Radio,
+  RadioGroup,
+  Select,
+  Stack,
+  TextField,
+  Tooltip,
+  Typography,
+  Paper,
+} from '@mui/material';
+
+import { useMetadata } from '../context/MetadataContext';
+
+const STATUS_COLORS = {
+  'follow-up': 'warning',
+  'interested': 'success',
+  'not-interested': 'error',
+  'converted': 'info',
+  'new': 'default',
+};
 
 const Leads = () => {
+  const { institute_uuid: ctxInstituteUuid } = useApp();
+  const { username } = useParams();
+  const navigate = useNavigate();
+
+  const admissionTemplate = {
+    admissionDate: '', firstName: '', middleName: '', lastName: '', dob: '',
+    gender: '', mobileSelf: '', mobileParent: '', address: '', education: '',
+    course: '', batchTime: '', examEvent: '',
+    installment: '', fees: '', discount: '', total: '', feePaid: '',
+    paidBy: '', balance: ''
+  };
+
   const [leads, setLeads] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [selectedLead, setSelectedLead] = useState(null);
   const [viewMode, setViewMode] = useState('card');
-  const [selectedUuids, setSelectedUuids] = useState(new Set());
+  const [actionModal, setActionModal] = useState(null);
+  const [showAdmission, setShowAdmission] = useState(false);
+  const [admissionForm, setAdmissionForm] = useState(admissionTemplate);
+  const [enquiryToDeleteId, setEnquiryToDeleteId] = useState(null);
   const [selectionMode, setSelectionMode] = useState(false);
-  const navigate = useNavigate();
-  const { username } = useParams();
-  const [courses, setCourses] = useState([]);
-  const [leadsPage, setLeadsPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
-  const fetchCourses = async () => {
-    try {
-      const res = await apiClient.get(`/api/courses`);
-      setCourses(Array.isArray(res.data) ? res.data : []);
-    } catch (err) {
-      console.error('Error fetching courses:', err);
-    }
-  };
+  const { courses, educations, exams, batches, paymentModes, refresh: refreshMeta } = useMetadata();
+  const institute_uuid = ctxInstituteUuid || localStorage.getItem('institute_uuid');
 
   const fetchLeads = async () => {
     try {
       setLoading(true);
-      const institute_uuid = localStorage.getItem('institute_uuid');
-      const { data } = await apiClient.get(`/api/leads`, {
-        params: { institute_uuid },
-      });
+      const { data } = await apiClient.get(`/api/leads`, { params: { institute_uuid } });
       const list = Array.isArray(data?.data) ? data.data : [];
       setLeads(list);
       await saveRecords('leads', list, ['studentData']);
-    } catch (error) {
-      console.error('❌ Error fetching leads:', error.response?.data || error.message);
+    } catch {
       toast.error('Error fetching leads');
     } finally {
       setLoading(false);
@@ -66,69 +106,151 @@ const Leads = () => {
     };
     loadCached();
     fetchLeads();
-    fetchCourses();
+    refreshMeta();
   }, []);
 
-  const filteredLeads = useMemo(() =>
-    leads
-      .filter((lead) => {
-        if (!Array.isArray(lead.followups) || lead.followups.length === 0) return false;
-        const latestFollowup = [...lead.followups].sort(
-          (a, b) => new Date(b.date) - new Date(a.date)
-        )[0];
-        return latestFollowup?.status === 'follow-up';
-      })
-      .filter((lead) => {
-        const name = `${lead.studentData?.firstName || ''} ${lead.studentData?.lastName || ''}`.toLowerCase();
-        const mobile = lead.studentData?.mobileSelf || '';
-        return name.includes(search.toLowerCase()) || mobile.includes(search);
-      }),
+  useEffect(() => {
+    if (institute_uuid) refreshMeta();
+  }, [institute_uuid]);
+
+  const getCourseName = (uuid) => {
+    if (!uuid) return '';
+    const course = courses.find(c => c.Course_uuid === uuid || c.name === uuid);
+    return course?.name || uuid;
+  };
+
+  const filtered = useMemo(() =>
+    leads.filter(lead => {
+      const name = `${lead.studentData?.firstName || ''} ${lead.studentData?.lastName || ''}`.toLowerCase();
+      const mobile = lead.studentData?.mobileSelf || '';
+      return name.includes(search.toLowerCase()) || mobile.includes(search);
+    }),
     [leads, search]
   );
 
-  useEffect(() => { setLeadsPage(1); }, [search]);
-
-  const leadsTotalPages = Math.ceil(filteredLeads.length / LEADS_PAGE_SIZE);
-  const pagedLeads = filteredLeads.slice((leadsPage - 1) * LEADS_PAGE_SIZE, leadsPage * LEADS_PAGE_SIZE);
-
-  const handleWhatsApp = (mobile, name) => {
-    const message = `Hello ${name}, I am contacting you regarding your enquiry.`;
-    window.open(`https://wa.me/91${mobile}?text=${encodeURIComponent(message)}`, '_blank');
+  const getLatestStatus = (lead) => {
+    if (!Array.isArray(lead.followups) || lead.followups.length === 0) return 'new';
+    return [...lead.followups].sort((a, b) => new Date(b.date) - new Date(a.date))[0]?.status || 'new';
   };
 
-  const handleCall = (mobile) => {
-    window.open(`tel:${mobile}`);
+  const handleDelete = async (id) => {
+    if (!window.confirm('Delete this lead?')) return;
+    try {
+      await apiClient.delete(`/api/leads/${id}`);
+      toast.success('Deleted');
+      fetchLeads();
+    } catch {
+      toast.error('Delete failed');
+    }
   };
 
-  const getCourseName = (uuid) => {
-    const course = courses.find(c => c.Course_uuid === uuid);
-    return course?.name || 'Course N/A';
+  const handleConvert = (lead) => {
+    const sd = lead.studentData || {};
+    setAdmissionForm({
+      ...admissionTemplate,
+      firstName: sd.firstName || '',
+      middleName: sd.middleName || '',
+      lastName: sd.lastName || '',
+      dob: sd.dob ? String(sd.dob).substring(0, 10) : '',
+      gender: sd.gender || '',
+      mobileSelf: sd.mobileSelf || '',
+      mobileParent: sd.mobileParent || '',
+      address: sd.address || '',
+      education: sd.education || '',
+      course: getCourseName(lead.course || sd.course || ''),
+      admissionDate: new Date().toISOString().split('T')[0],
+    });
+    setEnquiryToDeleteId(lead.Lead_uuid);
+    setShowAdmission(true);
   };
 
-  const getLeadUuid = (lead) => lead.Lead_uuid || lead.uuid;
+  const handleAdmissionChange = (field) => (e) => {
+    const value = e.target.value;
+    let updated = { ...admissionForm, [field]: value };
+    const fees = Number(field === 'fees' ? value : updated.fees || 0);
+    const discount = Number(field === 'discount' ? value : updated.discount || 0);
+    const feePaid = Number(field === 'feePaid' ? value : updated.feePaid || 0);
+    updated.total = fees - discount;
+    updated.balance = updated.total - feePaid;
+    setAdmissionForm(updated);
+  };
 
-  const toggleSelect = (uuid) => {
-    setSelectedUuids(prev => {
+  const submitAdmission = async (e) => {
+    e.preventDefault();
+    if (!institute_uuid) return toast.error('Missing institute ID');
+    try {
+      await apiClient.post(`/api/record/convert/${enquiryToDeleteId}`, {
+        institute_uuid,
+        admissionData: {
+          admissionDate: admissionForm.admissionDate,
+          course: admissionForm.course,
+          batchTime: admissionForm.batchTime,
+          examEvent: admissionForm.examEvent,
+          installment: admissionForm.installment,
+          fees: Number(admissionForm.fees || 0),
+          discount: Number(admissionForm.discount || 0),
+          total: Number(admissionForm.total || 0),
+          feePaid: Number(admissionForm.feePaid || 0),
+          paidBy: admissionForm.paidBy,
+          balance: Number(admissionForm.balance || 0),
+          createdBy: localStorage.getItem('name') || 'admin',
+        },
+      });
+      toast.success('Converted to admission');
+      setAdmissionForm(admissionTemplate);
+      setShowAdmission(false);
+      fetchLeads();
+    } catch {
+      toast.error('Failed to convert to admission');
+    }
+  };
+
+  const exportPDF = () => {
+    if (!filtered.length) return toast.error('No data to export');
+    const doc = new jsPDF();
+    autoTable(doc, {
+      head: [['Name', 'Mobile', 'Course', 'Status']],
+      body: filtered.map(l => [
+        `${l.studentData?.firstName || ''} ${l.studentData?.lastName || ''}`,
+        l.studentData?.mobileSelf || '',
+        getCourseName(l.course),
+        getLatestStatus(l),
+      ]),
+    });
+    doc.save('leads.pdf');
+  };
+
+  const exportExcel = () => {
+    if (!filtered.length) return toast.error('No data to export');
+    const sheet = XLSX.utils.json_to_sheet(filtered.map(l => ({
+      Name: `${l.studentData?.firstName || ''} ${l.studentData?.lastName || ''}`,
+      Mobile: l.studentData?.mobileSelf || '',
+      Course: getCourseName(l.course),
+      Status: getLatestStatus(l),
+    })));
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book, sheet, 'Leads');
+    XLSX.writeFile(book, 'leads.xlsx');
+  };
+
+  const allSelected = filtered.length > 0 && selectedIds.size === filtered.length;
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
       const next = new Set(prev);
-      if (next.has(uuid)) next.delete(uuid);
-      else next.add(uuid);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
   };
 
-  const selectAll = () => setSelectedUuids(new Set(filteredLeads.map(getLeadUuid)));
-
-  const clearSelection = () => {
-    setSelectedUuids(new Set());
-    setSelectionMode(false);
-  };
+  const clearSelection = () => { setSelectedIds(new Set()); setSelectionMode(false); };
 
   const handleBulkDelete = async () => {
-    if (selectedUuids.size === 0) return;
-    if (!window.confirm(`Delete ${selectedUuids.size} lead(s)?`)) return;
+    if (!selectedIds.size) return;
+    if (!window.confirm(`Delete ${selectedIds.size} lead(s)?`)) return;
     try {
-      await apiClient.post(`/api/leads/bulk-delete`, { uuids: [...selectedUuids] });
-      toast.success(`Deleted ${selectedUuids.size} lead(s)`);
+      await apiClient.post(`/api/leads/bulk-delete`, { uuids: [...selectedIds] });
+      toast.success(`Deleted ${selectedIds.size} lead(s)`);
       clearSelection();
       fetchLeads();
     } catch {
@@ -136,224 +258,341 @@ const Leads = () => {
     }
   };
 
-  const allSelected = filteredLeads.length > 0 && selectedUuids.size === filteredLeads.length;
-
   return (
-    <div className="p-2">
+    <Box sx={{ minHeight: '100vh', p: { xs: 2, md: 3 }, bgcolor: '#f5f5f5' }}>
       <Toaster />
-      {selectedLead && (
-        <LeadStatusModal
-          lead={selectedLead}
-          onClose={() => setSelectedLead(null)}
-          refresh={fetchLeads}
-        />
-      )}
 
       {/* Toolbar */}
-      <div className="flex items-center gap-2 mb-4 w-full flex-wrap">
-        <input
-          type="text"
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'stretch', sm: 'center' }}
+        spacing={2}
+        mb={3}
+      >
+        <TextField
+          size="small"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={e => setSearch(e.target.value)}
           placeholder="Search by name or mobile"
-          className="border p-2 rounded flex-1 min-w-[150px]"
+          sx={{ maxWidth: { sm: 300 }, width: '100%' }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <PersonAdd fontSize="small" sx={{ color: '#1a7a4a' }} />
+              </InputAdornment>
+            ),
+          }}
         />
-        <button
-          onClick={() => navigate(`/${username}/add-lead`)}
-          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 flex-shrink-0"
-          aria-label="Add Lead"
-        >
-          +
-        </button>
-        <div className="flex border rounded overflow-hidden flex-shrink-0">
-          <button
-            onClick={() => setViewMode('card')}
-            className={`px-2 py-2 ${viewMode === 'card' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-            title="Card view"
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap alignItems="center">
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => navigate(`/${username}/add-lead`)}
+            sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#145c37' }, textTransform: 'none' }}
+            startIcon={<PersonAdd />}
           >
-            <GridIcon />
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`px-2 py-2 ${viewMode === 'list' ? 'bg-blue-500 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
-            title="List view"
-          >
-            <ListIcon />
-          </button>
-        </div>
-        {!selectionMode ? (
-          <button
-            onClick={() => setSelectionMode(true)}
-            className="px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 flex-shrink-0 text-sm"
-          >
-            Select
-          </button>
-        ) : (
-          <>
-            <button
-              onClick={() => allSelected ? setSelectedUuids(new Set()) : selectAll()}
-              className="px-3 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 flex-shrink-0 text-sm"
-            >
-              {allSelected ? 'Deselect All' : 'Select All'}
-            </button>
-            {selectedUuids.size > 0 && (
-              <button
-                onClick={handleBulkDelete}
-                className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 flex-shrink-0 text-sm"
-              >
-                Delete ({selectedUuids.size})
-              </button>
-            )}
-            <button
-              onClick={clearSelection}
-              className="px-3 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 flex-shrink-0 text-sm"
-            >
-              Cancel
-            </button>
-          </>
-        )}
-      </div>
-
-      {loading && <div>Loading leads...</div>}
-      {!loading && filteredLeads.length === 0 && <div>No leads found.</div>}
-
-      {!loading && filteredLeads.length > 0 && viewMode === 'card' && (
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3">
-          {pagedLeads.map((lead) => (
-            <div
-              key={lead._id || getLeadUuid(lead)}
-              className={`relative border rounded-lg p-3 shadow hover:shadow-md transition cursor-pointer flex flex-col justify-between ${selectedUuids.has(getLeadUuid(lead)) ? 'ring-2 ring-blue-500 bg-blue-50' : ''}`}
-              onClick={() => selectionMode ? toggleSelect(getLeadUuid(lead)) : setSelectedLead(lead)}
-            >
-              {selectionMode && (
-                <div className="absolute top-2 left-2" onClick={e => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    checked={selectedUuids.has(getLeadUuid(lead))}
-                    onChange={() => toggleSelect(getLeadUuid(lead))}
-                    className="w-4 h-4 cursor-pointer"
-                  />
-                </div>
+            Add Lead
+          </Button>
+          <Tooltip title="Export PDF">
+            <Button variant="contained" color="error" size="small" onClick={exportPDF} startIcon={<PictureAsPdf />}>PDF</Button>
+          </Tooltip>
+          <Tooltip title="Export Excel">
+            <Button variant="contained" color="success" size="small" onClick={exportExcel} startIcon={<FileDownload />}>Excel</Button>
+          </Tooltip>
+          <Tooltip title="Card view">
+            <IconButton size="small" onClick={() => setViewMode('card')} sx={{ bgcolor: viewMode === 'card' ? '#1a7a4a' : 'grey.200', color: viewMode === 'card' ? '#fff' : 'text.secondary', borderRadius: 1 }}>
+              <GridView fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="List view">
+            <IconButton size="small" onClick={() => setViewMode('list')} sx={{ bgcolor: viewMode === 'list' ? '#1a7a4a' : 'grey.200', color: viewMode === 'list' ? '#fff' : 'text.secondary', borderRadius: 1 }}>
+              <ViewList fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          {!selectionMode ? (
+            <Button size="small" variant="outlined" onClick={() => setSelectionMode(true)} sx={{ textTransform: 'none' }}>Select</Button>
+          ) : (
+            <>
+              <Button size="small" variant="outlined" onClick={() => allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(filtered.map(l => l._id)))} sx={{ textTransform: 'none' }}>
+                {allSelected ? 'Deselect All' : 'Select All'}
+              </Button>
+              {selectedIds.size > 0 && (
+                <Button size="small" variant="contained" color="error" onClick={handleBulkDelete} sx={{ textTransform: 'none' }}>
+                  Delete ({selectedIds.size})
+                </Button>
               )}
-              <div className={selectionMode ? 'ml-5' : ''}>
-                <h2 className="font-semibold text-lg text-gray-800">
-                  {lead.studentData?.firstName} {lead.studentData?.lastName}
-                </h2>
-                <p className="text-sm text-gray-600 mt-1">{getCourseName(lead.course)}</p>
-              </div>
-              {!selectionMode && (
-                <div className="flex justify-end items-center gap-2 mt-2">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleWhatsApp(lead.studentData?.mobileSelf, lead.studentData?.firstName); }}
-                    className="p-2 rounded-full bg-green-500 text-white hover:bg-green-600"
-                    title="WhatsApp"
-                  >
-                    <FaWhatsapp />
-                  </button>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleCall(lead.studentData?.mobileSelf); }}
-                    className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600"
-                    title="Call"
-                  >
-                    <FaPhoneAlt />
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+              <Button size="small" variant="outlined" color="inherit" onClick={clearSelection} sx={{ textTransform: 'none' }}>Cancel</Button>
+            </>
+          )}
+        </Stack>
+      </Stack>
+
+      {/* Count */}
+      {!loading && (
+        <Typography variant="body2" color="text.secondary" mb={2}>
+          {filtered.length} lead{filtered.length !== 1 ? 's' : ''}
+        </Typography>
       )}
 
-      {!loading && filteredLeads.length > 0 && viewMode === 'list' && (
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse bg-white">
-            <thead>
-              <tr className="bg-gray-50 border-b">
+      {loading && (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography color="text.secondary">Loading leads…</Typography>
+        </Paper>
+      )}
+
+      {/* Card view */}
+      {!loading && viewMode === 'card' && (
+        <Box sx={{ display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)', md: 'repeat(3,1fr)', lg: 'repeat(4,1fr)' } }}>
+          {filtered.map(lead => {
+            const status = getLatestStatus(lead);
+            return (
+              <Card
+                key={lead._id}
+                onClick={() => selectionMode ? toggleSelect(lead._id) : setActionModal(lead)}
+                sx={{
+                  cursor: 'pointer',
+                  position: 'relative',
+                  transition: 'box-shadow 0.2s',
+                  '&:hover': { boxShadow: 6 },
+                  borderLeft: '4px solid #1a7a4a',
+                  outline: selectedIds.has(lead._id) ? '2px solid #1a7a4a' : 'none',
+                  bgcolor: selectedIds.has(lead._id) ? 'rgba(26,122,74,0.06)' : 'white',
+                }}
+              >
                 {selectionMode && (
-                  <th className="px-4 py-3 w-10">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      onChange={() => allSelected ? setSelectedUuids(new Set()) : selectAll()}
-                      className="w-4 h-4 cursor-pointer"
-                    />
+                  <Box sx={{ position: 'absolute', top: 6, left: 6, zIndex: 1 }} onClick={ev => ev.stopPropagation()}>
+                    <Checkbox size="small" checked={selectedIds.has(lead._id)} onChange={() => toggleSelect(lead._id)} sx={{ p: 0 }} />
+                  </Box>
+                )}
+                <CardContent sx={{ pb: '12px !important', pl: selectionMode ? 4.5 : 2 }}>
+                  <Typography variant="subtitle1" fontWeight={700} noWrap>
+                    {lead.studentData?.firstName || ''} {lead.studentData?.lastName || ''}
+                  </Typography>
+                  <Stack direction="row" alignItems="center" spacing={1} mt={0.5}>
+                    <Typography
+                      component="a"
+                      href={`tel:${lead.studentData?.mobileSelf || ''}`}
+                      onClick={ev => ev.stopPropagation()}
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ textDecoration: 'none', '&:hover': { color: '#1a7a4a' } }}
+                    >
+                      {lead.studentData?.mobileSelf}
+                    </Typography>
+                    <IconButton
+                      component="a"
+                      href={`https://wa.me/91${lead.studentData?.mobileSelf}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={ev => ev.stopPropagation()}
+                      size="small"
+                      sx={{ color: '#25d366', p: 0.5 }}
+                    >
+                      <FaWhatsapp size={16} />
+                    </IconButton>
+                  </Stack>
+                  {getCourseName(lead.course) && (
+                    <Chip label={getCourseName(lead.course)} size="small" sx={{ mt: 1, mr: 0.5 }} />
+                  )}
+                  <Chip
+                    label={status}
+                    size="small"
+                    color={STATUS_COLORS[status] || 'default'}
+                    sx={{ mt: 1, textTransform: 'capitalize' }}
+                  />
+                </CardContent>
+              </Card>
+            );
+          })}
+        </Box>
+      )}
+
+      {/* List view */}
+      {!loading && viewMode === 'list' && (
+        <Box sx={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white' }}>
+            <thead>
+              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                {selectionMode && (
+                  <th style={{ padding: '10px 12px', width: 40 }}>
+                    <Checkbox size="small" checked={allSelected} onChange={() => allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(filtered.map(l => l._id)))} sx={{ p: 0 }} />
                   </th>
                 )}
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Name</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Course</th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600">Actions</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Name</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Mobile</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Course</th>
+                <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 13, fontWeight: 600, color: '#6b7280' }}>Status</th>
               </tr>
             </thead>
             <tbody>
-              {filteredLeads.map((lead) => (
-                <tr
-                  key={lead._id || getLeadUuid(lead)}
-                  className={`border-b hover:bg-gray-50 cursor-pointer ${selectedUuids.has(getLeadUuid(lead)) ? 'bg-blue-50' : ''}`}
-                  onClick={() => selectionMode ? toggleSelect(getLeadUuid(lead)) : setSelectedLead(lead)}
-                >
-                  {selectionMode && (
-                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        checked={selectedUuids.has(getLeadUuid(lead))}
-                        onChange={() => toggleSelect(getLeadUuid(lead))}
-                        className="w-4 h-4 cursor-pointer"
-                      />
+              {filtered.map(lead => {
+                const status = getLatestStatus(lead);
+                return (
+                  <tr
+                    key={lead._id}
+                    onClick={() => selectionMode ? toggleSelect(lead._id) : setActionModal(lead)}
+                    style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: selectedIds.has(lead._id) ? 'rgba(26,122,74,0.06)' : 'white' }}
+                    onMouseEnter={ev => { if (!selectedIds.has(lead._id)) ev.currentTarget.style.background = '#f9fafb'; }}
+                    onMouseLeave={ev => { ev.currentTarget.style.background = selectedIds.has(lead._id) ? 'rgba(26,122,74,0.06)' : 'white'; }}
+                  >
+                    {selectionMode && (
+                      <td style={{ padding: '8px 12px' }} onClick={ev => ev.stopPropagation()}>
+                        <Checkbox size="small" checked={selectedIds.has(lead._id)} onChange={() => toggleSelect(lead._id)} sx={{ p: 0 }} />
+                      </td>
+                    )}
+                    <td style={{ padding: '8px 12px', fontWeight: 500, fontSize: 14 }}>
+                      {lead.studentData?.firstName} {lead.studentData?.lastName}
                     </td>
-                  )}
-                  <td className="px-4 py-3 font-medium">{lead.studentData?.firstName} {lead.studentData?.lastName}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{getCourseName(lead.course)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleWhatsApp(lead.studentData?.mobileSelf, lead.studentData?.firstName); }}
-                        className="p-1.5 rounded-full bg-green-500 text-white hover:bg-green-600"
-                        title="WhatsApp"
-                      >
-                        <FaWhatsapp size={12} />
-                      </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleCall(lead.studentData?.mobileSelf); }}
-                        className="p-1.5 rounded-full bg-blue-500 text-white hover:bg-blue-600"
-                        title="Call"
-                      >
-                        <FaPhoneAlt size={12} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    <td style={{ padding: '8px 12px', fontSize: 13, color: '#6b7280' }}>
+                      {lead.studentData?.mobileSelf}
+                    </td>
+                    <td style={{ padding: '8px 12px', fontSize: 13, color: '#6b7280' }}>
+                      {getCourseName(lead.course) || '-'}
+                    </td>
+                    <td style={{ padding: '8px 12px' }}>
+                      <Chip label={status} size="small" color={STATUS_COLORS[status] || 'default'} sx={{ textTransform: 'capitalize' }} />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
-        </div>
+        </Box>
       )}
 
-      {/* Pagination (card view only) */}
-      {viewMode === 'card' && leadsTotalPages > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, flexWrap: 'wrap', gap: 8 }}>
-          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-            {(leadsPage - 1) * LEADS_PAGE_SIZE + 1}–{Math.min(leadsPage * LEADS_PAGE_SIZE, filteredLeads.length)} of {filteredLeads.length} leads
-          </span>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <button
-              disabled={leadsPage === 1}
-              onClick={() => setLeadsPage(p => p - 1)}
-              style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: leadsPage === 1 ? '#f8fafc' : '#fff', cursor: leadsPage === 1 ? 'default' : 'pointer', fontSize: '0.8rem' }}
-            >
-              ←
-            </button>
-            <span style={{ fontSize: '0.8rem', padding: '4px 8px', color: '#374151' }}>{leadsPage} / {leadsTotalPages}</span>
-            <button
-              disabled={leadsPage === leadsTotalPages}
-              onClick={() => setLeadsPage(p => p + 1)}
-              style={{ padding: '4px 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: leadsPage === leadsTotalPages ? '#f8fafc' : '#fff', cursor: leadsPage === leadsTotalPages ? 'default' : 'pointer', fontSize: '0.8rem' }}
-            >
-              →
-            </button>
-          </div>
-        </div>
+      {!loading && filtered.length === 0 && (
+        <Paper sx={{ p: 4, textAlign: 'center', mt: 2 }}>
+          <Typography color="text.secondary">No leads found.</Typography>
+        </Paper>
       )}
-    </div>
+
+      {/* Action Modal */}
+      <Dialog open={Boolean(actionModal)} onClose={() => setActionModal(null)} maxWidth="xs" fullWidth PaperProps={{ sx: { mx: 2 } }}>
+        <DialogTitle>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6" fontWeight={700}>
+              {actionModal?.studentData?.firstName} {actionModal?.studentData?.lastName}
+            </Typography>
+            <IconButton onClick={() => setActionModal(null)} size="small"><Close /></IconButton>
+          </Stack>
+        </DialogTitle>
+        <Divider />
+        <DialogContent>
+          <Stack spacing={1.5} pt={1}>
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={<SwapHoriz />}
+              fullWidth
+              onClick={() => { handleConvert(actionModal); setActionModal(null); }}
+            >
+              Convert to Admission
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              startIcon={<Delete />}
+              fullWidth
+              onClick={() => { handleDelete(actionModal._id); setActionModal(null); }}
+            >
+              Delete
+            </Button>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setActionModal(null)} color="inherit" fullWidth>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Convert to Admission Dialog */}
+      <Dialog open={showAdmission} onClose={() => setShowAdmission(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { mx: 2 } }} scroll="paper">
+        <DialogTitle>
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6" fontWeight={700} color="success.main">Convert to Admission</Typography>
+            <IconButton onClick={() => setShowAdmission(false)} size="small"><Close /></IconButton>
+          </Stack>
+        </DialogTitle>
+        <Divider />
+        <DialogContent>
+          <Box component="form" id="admission-form" onSubmit={submitAdmission}>
+            <Stack spacing={2} mt={1}>
+              <TextField label="Admission Date" type="date" size="small" value={admissionForm.admissionDate} onChange={handleAdmissionChange('admissionDate')} InputLabelProps={{ shrink: true }} fullWidth />
+              <TextField label="First Name" size="small" value={admissionForm.firstName} onChange={handleAdmissionChange('firstName')} fullWidth />
+              <TextField label="Middle Name" size="small" value={admissionForm.middleName} onChange={handleAdmissionChange('middleName')} fullWidth />
+              <TextField label="Last Name" size="small" value={admissionForm.lastName} onChange={handleAdmissionChange('lastName')} fullWidth />
+              <TextField label="Date of Birth" type="date" size="small" value={admissionForm.dob?.substring(0, 10) || ''} onChange={handleAdmissionChange('dob')} InputLabelProps={{ shrink: true }} fullWidth />
+              <FormControl>
+                <Typography variant="body2" mb={0.5}>Gender</Typography>
+                <RadioGroup row value={admissionForm.gender} onChange={handleAdmissionChange('gender')}>
+                  <FormControlLabel value="Male" control={<Radio size="small" />} label="Male" />
+                  <FormControlLabel value="Female" control={<Radio size="small" />} label="Female" />
+                </RadioGroup>
+              </FormControl>
+              <TextField label="Mobile (Self)" size="small" value={admissionForm.mobileSelf} onChange={handleAdmissionChange('mobileSelf')} inputProps={{ inputMode: 'numeric', maxLength: 10 }} fullWidth />
+              <TextField label="Mobile (Parent)" size="small" value={admissionForm.mobileParent} onChange={handleAdmissionChange('mobileParent')} inputProps={{ inputMode: 'numeric', maxLength: 10 }} fullWidth />
+              <TextField label="Address" size="small" value={admissionForm.address} onChange={handleAdmissionChange('address')} fullWidth />
+              <FormControl size="small" fullWidth>
+                <InputLabel>Education</InputLabel>
+                <Select value={admissionForm.education} label="Education" onChange={handleAdmissionChange('education')}>
+                  <MenuItem value="">-- Select Education --</MenuItem>
+                  {educations.map(e => <MenuItem key={e._id} value={e.education}>{e.education}</MenuItem>)}
+                </Select>
+              </FormControl>
+              <FormControl size="small" fullWidth>
+                <InputLabel>Course</InputLabel>
+                <Select
+                  value={admissionForm.course}
+                  label="Course"
+                  onChange={(e) => {
+                    const selectedCourse = courses.find(c => c.name === e.target.value);
+                    const courseFee = Number(selectedCourse?.courseFees || 0);
+                    const discount = Number(admissionForm.discount || 0);
+                    const feePaid = Number(admissionForm.feePaid || 0);
+                    const total = courseFee - discount;
+                    setAdmissionForm(prev => ({ ...prev, course: e.target.value, fees: courseFee, total, balance: total - feePaid }));
+                  }}
+                >
+                  <MenuItem value="">-- Select Course --</MenuItem>
+                  {courses.map(c => <MenuItem key={c._id} value={c.name}>{c.name}</MenuItem>)}
+                </Select>
+              </FormControl>
+              <FormControl size="small" fullWidth>
+                <InputLabel>Batch</InputLabel>
+                <Select value={admissionForm.batchTime} label="Batch" onChange={handleAdmissionChange('batchTime')}>
+                  <MenuItem value="">-- Select Batch --</MenuItem>
+                  {batches.map(b => <MenuItem key={b._id} value={b.time || b.batchTime || b.name || ''}>{b.time || b.batchTime || b.name || 'Unnamed Batch'}</MenuItem>)}
+                </Select>
+              </FormControl>
+              <FormControl size="small" fullWidth>
+                <InputLabel>Exam</InputLabel>
+                <Select value={admissionForm.examEvent} label="Exam" onChange={handleAdmissionChange('examEvent')}>
+                  <MenuItem value="">-- Select Exam --</MenuItem>
+                  {exams.map(e => <MenuItem key={e._id} value={e.exam}>{e.exam}</MenuItem>)}
+                </Select>
+              </FormControl>
+              <TextField label="Installment" size="small" value={admissionForm.installment} onChange={handleAdmissionChange('installment')} fullWidth />
+              <TextField label="Fees" type="number" size="small" value={admissionForm.fees} InputProps={{ readOnly: true }} fullWidth />
+              <TextField label="Discount" type="number" size="small" value={admissionForm.discount} onChange={handleAdmissionChange('discount')} fullWidth />
+              <TextField label="Total" type="number" size="small" value={admissionForm.total} InputProps={{ readOnly: true }} fullWidth />
+              <TextField label="Fee Paid" type="number" size="small" value={admissionForm.feePaid} onChange={handleAdmissionChange('feePaid')} fullWidth />
+              <FormControl size="small" fullWidth>
+                <InputLabel>Payment Mode</InputLabel>
+                <Select value={admissionForm.paidBy} label="Payment Mode" onChange={handleAdmissionChange('paidBy')}>
+                  <MenuItem value="">-- Select Payment Mode --</MenuItem>
+                  {paymentModes.map(p => <MenuItem key={p._id} value={p.mode}>{p.mode}</MenuItem>)}
+                </Select>
+              </FormControl>
+              <TextField label="Balance" type="number" size="small" value={admissionForm.balance} InputProps={{ readOnly: true }} fullWidth />
+            </Stack>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setShowAdmission(false)} color="inherit">Cancel</Button>
+          <Button type="submit" form="admission-form" variant="contained" color="success">Save</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 
