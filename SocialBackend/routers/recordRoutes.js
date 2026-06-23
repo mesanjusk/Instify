@@ -3,6 +3,7 @@ const router = express.Router();
 const Record = require('../models/Record');
 const Lead = require('../models/Lead');
 const Admission = require('../models/Admission');
+const Fees = require('../models/Fees');
 const { v4: uuidv4 } = require('uuid');
 
 // ✅ GET records (enquiry/admission/followup) for a specific institute with pagination
@@ -105,16 +106,14 @@ router.post('/convert/:uuid', async (req, res) => {
       return res.status(404).json({ error: 'Lead not found' });
     }
 
-    if (lead.admission_uuid) {
-      return res.status(400).json({ error: 'This lead has already been converted to admission' });
-    }
+    const course = admissionData.course || lead.course || 'N/A';
 
     const admission = new Admission({
       uuid: uuidv4(),
       institute_uuid,
       student_uuid: lead.student_uuid,
       admissionDate: admissionData.admissionDate || new Date(),
-      course: admissionData.course || lead.course || '',
+      course,
       batchTime: admissionData.batchTime || '',
       examEvent: admissionData.examEvent || '',
       createdBy: admissionData.createdBy || 'admin',
@@ -122,18 +121,38 @@ router.post('/convert/:uuid', async (req, res) => {
 
     await admission.save();
 
+    // Save fees record if fee data provided
+    const fees = Number(admissionData.fees || 0);
+    const feePaid = Number(admissionData.feePaid || 0);
+    if (fees > 0 || feePaid > 0) {
+      const feesRecord = new Fees({
+        uuid: uuidv4(),
+        institute_uuid,
+        student_uuid: lead.student_uuid,
+        admission_uuid: admission.uuid,
+        fees,
+        discount: Number(admissionData.discount || 0),
+        total: Number(admissionData.total || fees),
+        feePaid,
+        paidBy: admissionData.paidBy || '',
+        balance: Number(admissionData.balance || 0),
+        installment: admissionData.installment || '',
+      });
+      await feesRecord.save();
+    }
+
     lead.admission_uuid = admission.uuid;
     lead.followups.push({
       date: new Date(),
       status: 'converted',
-      note: `Converted to admission. Course: ${admission.course}`,
+      note: `Converted to admission. Course: ${course}`,
     });
     await lead.save();
 
     res.json({ success: true, message: 'Successfully converted to admission', admission });
   } catch (err) {
     console.error('Conversion failed:', err);
-    res.status(500).json({ error: 'Failed to convert to admission' });
+    res.status(500).json({ error: 'Failed to convert to admission', detail: err.message });
   }
 });
 
