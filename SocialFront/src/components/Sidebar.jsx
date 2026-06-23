@@ -114,7 +114,6 @@ export default function Sidebar({ username, open, onClose, variant = 'permanent'
       label: 'CRM',
       items: [
         { label: 'Leads', icon: <TrendingUpIcon fontSize="small" />, path: `/${username}/leads` },
-        { label: 'Enquiries', icon: <ForumIcon fontSize="small" />, path: `/${username}/enquiry` },
         { label: 'Follow-ups', icon: <EventNoteIcon fontSize="small" />, path: `/${username}/followup` },
         { label: 'Funnel Report', icon: <FunnelIcon fontSize="small" />, path: `/${username}/funnel-report` },
       ],

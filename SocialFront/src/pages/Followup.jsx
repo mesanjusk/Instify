@@ -5,10 +5,8 @@ import { FaWhatsapp } from 'react-icons/fa';
 import { useApp } from '../context/AppContext';
 
 import {
-  Add,
   PictureAsPdf,
   FileDownload,
-  Edit,
   Delete,
   Phone,
   SwapHoriz,
@@ -53,25 +51,17 @@ import { useMetadata } from '../context/MetadataContext';
 
 const Followup = () => {
   const { institute_uuid: ctxInstituteUuid } = useApp();
-  const initialForm = {
-    enquiryDate: '', firstName: '', middleName: '',
-    lastName: '', dob: '', gender: '', mobileSelf: '', mobileSelfWhatsapp: false,
-    mobileParent: '', mobileParentWhatsapp: false, address: '', education: '',
-    schoolName: '', referredBy: '', followUpDate: '', remarks: '', course: ''
-  };
 
   const admissionTemplate = {
-    ...initialForm,
-    admissionDate: '', batchTime: '', examEvent: '',
+    admissionDate: '', firstName: '', middleName: '', lastName: '', dob: '',
+    gender: '', mobileSelf: '', mobileParent: '', address: '', education: '',
+    course: '', batchTime: '', examEvent: '',
     installment: '', fees: '', discount: '', total: '', feePaid: '',
     paidBy: '', balance: ''
   };
 
-  const [form, setForm] = useState(initialForm);
   const [admissionForm, setAdmissionForm] = useState(admissionTemplate);
   const [enquiries, setEnquiries] = useState([]);
-  const [editingId, setEditingId] = useState(null);
-  const [showModal, setShowModal] = useState(false);
   const [showAdmission, setShowAdmission] = useState(false);
   const [enquiryToDeleteId, setEnquiryToDeleteId] = useState(null);
   const { courses, educations, exams, batches, paymentModes, refresh: refreshMeta } = useMetadata();
@@ -88,11 +78,6 @@ const Followup = () => {
     return followDate === today;
   });
 
-  const handleChange = (field) => (e) => {
-    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    setForm({ ...form, [field]: value });
-  };
-
   const handleAdmissionChange = (field) => (e) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     let updated = { ...admissionForm, [field]: value };
@@ -107,66 +92,13 @@ const Followup = () => {
     setAdmissionForm(updated);
   };
 
-  const fetchEnquiries = async () => {
+  const fetchLeads = async () => {
     try {
-      const res = await apiClient.get(`/api/leads`, {
-        params: { institute_uuid }
-      });
+      const res = await apiClient.get(`/api/leads`, { params: { institute_uuid } });
       const { data } = res.data;
       setEnquiries(Array.isArray(data) ? data : []);
     } catch {
-      toast.error('Failed to fetch enquiries');
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!institute_uuid) return toast.error("Missing institute UUID");
-    if (!form.firstName) return toast.error("First name is required");
-    if (!form.mobileSelf) return toast.error("Mobile number is required");
-    if (form.mobileSelf.length !== 10) return toast.error("Mobile number must be 10 digits");
-    if (!editingId && !form.followUpDate) return toast.error("Follow-Up Date is required");
-
-    try {
-      if (editingId) {
-        await apiClient.put(`/api/leads/${editingId}/edit`, {
-          studentData: {
-            firstName: form.firstName,
-            lastName: form.lastName,
-            mobileSelf: form.mobileSelf,
-            course: form.course,
-          },
-          course: form.course,
-        });
-        toast.success('Lead updated');
-      } else {
-        await apiClient.post(`/api/leads`, {
-          institute_uuid,
-          studentData: {
-            firstName: form.firstName,
-            lastName: form.lastName,
-            mobileSelf: form.mobileSelf,
-            course: form.course,
-          },
-          course: form.course,
-          followupDate: form.followUpDate,
-          referredBy: form.referredBy || '',
-          followups: [{
-            date: form.followUpDate || new Date().toISOString().split('T')[0],
-            status: 'follow-up',
-            remark: form.remarks || '',
-            createdBy: localStorage.getItem('name') || 'System',
-          }],
-        });
-        toast.success('Lead added');
-      }
-      setForm(initialForm);
-      setEditingId(null);
-      setShowModal(false);
-      fetchEnquiries();
-    } catch (err) {
-      const msg = err?.response?.data?.message || 'Error submitting lead';
-      toast.error(msg);
+      toast.error('Failed to fetch leads');
     }
   };
 
@@ -175,16 +107,10 @@ const Followup = () => {
     try {
       await apiClient.delete(`/api/leads/${id}`);
       toast.success('Deleted');
-      fetchEnquiries();
+      fetchLeads();
     } catch {
       toast.error('Delete failed');
     }
-  };
-
-  const handleEdit = (e) => {
-    setForm({ ...e });
-    setEditingId(e._id);
-    setShowModal(true);
   };
 
   const handleConvert = (e) => {
@@ -229,12 +155,6 @@ const Followup = () => {
     XLSX.writeFile(book, 'followups.xlsx');
   };
 
-  const handleAdd = () => {
-    setForm(initialForm);
-    setEditingId(null);
-    setShowModal(true);
-  };
-
   const submitAdmission = async (e) => {
     e.preventDefault();
     if (!institute_uuid) return toast.error("Missing institute ID");
@@ -262,14 +182,14 @@ const Followup = () => {
       toast.success('Admission saved and enquiry updated');
       setAdmissionForm(admissionTemplate);
       setShowAdmission(false);
-      fetchEnquiries();
+      fetchLeads();
     } catch (err) {
       toast.error('Failed to convert to admission');
     }
   };
 
   useEffect(() => {
-    fetchEnquiries();
+    fetchLeads();
     refreshMeta();
   }, []);
 
@@ -298,7 +218,7 @@ const Followup = () => {
       await apiClient.post(`/api/leads/bulk-delete`, { uuids: [...selectedIds] });
       toast.success(`Deleted ${selectedIds.size} lead(s)`);
       clearSelection();
-      fetchEnquiries();
+      fetchLeads();
     } catch {
       toast.error('Failed to delete');
     }
@@ -335,7 +255,6 @@ const Followup = () => {
           <Tooltip title="Export Excel">
             <Button variant="contained" color="success" size="small" onClick={exportExcel} startIcon={<FileDownload />}>Excel</Button>
           </Tooltip>
-          <Button variant="contained" size="small" onClick={handleAdd} startIcon={<Add />} sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' } }}>Add Enquiry</Button>
           <Tooltip title="Card view"><IconButton size="small" onClick={() => setViewMode('card')} sx={{ bgcolor: viewMode === 'card' ? '#1a7a4a' : 'grey.200', color: viewMode === 'card' ? '#fff' : 'text.secondary', borderRadius: 1 }}><GridView fontSize="small" /></IconButton></Tooltip>
           <Tooltip title="List view"><IconButton size="small" onClick={() => setViewMode('list')} sx={{ bgcolor: viewMode === 'list' ? '#1a7a4a' : 'grey.200', color: viewMode === 'list' ? '#fff' : 'text.secondary', borderRadius: 1 }}><ViewList fontSize="small" /></IconButton></Tooltip>
           {!selectionMode ? (
@@ -413,100 +332,6 @@ const Followup = () => {
           <Typography color="text.secondary">No follow-ups found.</Typography>
         </Paper>
       )}
-
-      {/* Add/Edit Lead Dialog */}
-      <Dialog
-        open={showModal}
-        onClose={() => { setShowModal(false); setForm(initialForm); setEditingId(null); }}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{ sx: { mx: 2 } }}
-      >
-        <DialogTitle>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6" fontWeight={700}>
-              {editingId ? 'Edit Enquiry' : 'Add Enquiry'}
-            </Typography>
-            <IconButton onClick={() => { setShowModal(false); setForm(initialForm); setEditingId(null); }} size="small">
-              <Close />
-            </IconButton>
-          </Stack>
-        </DialogTitle>
-        <Divider />
-        <DialogContent>
-          <Box component="form" id="lead-form" onSubmit={handleSubmit}>
-            <Stack spacing={2} mt={1}>
-              <TextField
-                label="First Name"
-                size="small"
-                value={form.firstName}
-                onChange={handleChange('firstName')}
-                fullWidth
-              />
-              <TextField
-                label="Last Name"
-                size="small"
-                value={form.lastName}
-                onChange={handleChange('lastName')}
-                fullWidth
-              />
-              <TextField
-                label="Mobile"
-                size="small"
-                value={form.mobileSelf}
-                onChange={handleChange('mobileSelf')}
-                inputProps={{ inputMode: 'numeric', pattern: '[0-9]{10}', maxLength: 10 }}
-                fullWidth
-              />
-              <FormControl size="small" fullWidth>
-                <InputLabel>Course</InputLabel>
-                <Select
-                  value={form.course}
-                  label="Course"
-                  onChange={handleChange('course')}
-                >
-                  <MenuItem value="">Select Course</MenuItem>
-                  {courses.map(c => (
-                    <MenuItem key={c._id} value={c.name}>{c.name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <TextField
-                label="Follow-Up Date *"
-                type="date"
-                size="small"
-                value={form.followUpDate?.substring(0, 10) || ''}
-                onChange={handleChange('followUpDate')}
-                InputLabelProps={{ shrink: true }}
-                fullWidth
-              />
-              <TextField
-                label="Remarks"
-                size="small"
-                value={form.remarks}
-                onChange={handleChange('remarks')}
-                fullWidth
-              />
-            </Stack>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            onClick={() => { setShowModal(false); setForm(initialForm); setEditingId(null); }}
-            color="inherit"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form="lead-form"
-            variant="contained"
-            sx={{ bgcolor: '#1a7a4a', '&:hover': { bgcolor: '#25a066' } }}
-          >
-            {editingId ? 'Update' : 'Add'}
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Convert to Admission Dialog */}
       <Dialog
@@ -769,18 +594,6 @@ const Followup = () => {
         <Divider />
         <DialogContent>
           <Stack spacing={1.5} pt={1}>
-            <Button
-              variant="contained"
-              color="warning"
-              startIcon={<Edit />}
-              fullWidth
-              onClick={() => {
-                handleEdit(actionModal);
-                setActionModal(null);
-              }}
-            >
-              Edit
-            </Button>
             <Button
               variant="contained"
               color="error"
