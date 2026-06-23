@@ -1,0 +1,16 @@
+{
+  "name": "React Dashboard",
+  "short_name": "Dashboard",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#5b5b5b",
+  "theme_color": "#5b5b5b",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    }
+  ]
+}

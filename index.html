@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8" />
+  <link rel="icon" href="/Instify/icon.svg" />
+  <link rel="apple-touch-icon" href="/Instify/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#1a7a4a" />
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Instify</title>
+  <!-- GitHub Pages SPA: restore path encoded by 404.html before React boots -->
+  <script>
+    (function () {
+      var s = window.location.search;
+      if (s.startsWith('?p=')) {
+        var p = decodeURIComponent(s.slice(3).split('&')[0]);
+        var h = (s.match(/[&?]h=([^&]*)/) || [])[1];
+        window.history.replaceState(
+          null, null,
+          window.location.pathname.replace(/\/$/, '') + p + (h ? decodeURIComponent(h) : '')
+        );
+      }
+    })();
+  </script>
+  <script type="module" crossorigin src="/Instify/assets/index-DsXVtk7e.js"></script>
+  <link rel="modulepreload" crossorigin href="/Instify/assets/react-vendor-7d3Ts2Iu.js">
+  <link rel="modulepreload" crossorigin href="/Instify/assets/pdf-zip-C8Vd6TgV.js">
+  <link rel="modulepreload" crossorigin href="/Instify/assets/mui-core-CDKofVRs.js">
+  <link rel="modulepreload" crossorigin href="/Instify/assets/mui-icons-PugwhGSz.js">
+  <link rel="modulepreload" crossorigin href="/Instify/assets/fabric-NyCXfjRK.js">
+  <link rel="stylesheet" crossorigin href="/Instify/assets/index-DBe0zQGA.css">
+<link rel="manifest" href="/Instify/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/Instify/registerSW.js"></script></head>
+
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
