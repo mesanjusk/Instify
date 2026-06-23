@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Record = require('../models/Record');
+const Lead = require('../models/Lead');
+const Admission = require('../models/Admission');
+const { v4: uuidv4 } = require('uuid');
 
 // ✅ GET records (enquiry/admission/followup) for a specific institute with pagination
 router.get('/org/:institute_id', async (req, res) => {
@@ -86,7 +89,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// ✅ Convert enquiry to admission
+// ✅ Convert lead (enquiry) to admission
 router.post('/convert/:uuid', async (req, res) => {
   try {
     const { uuid } = req.params;
@@ -96,29 +99,38 @@ router.post('/convert/:uuid', async (req, res) => {
       return res.status(400).json({ error: 'institute_uuid and admissionData are required' });
     }
 
-    const record = await Record.findOne({ uuid, institute_uuid });
+    const lead = await Lead.findOne({ Lead_uuid: uuid, institute_uuid });
 
-    if (!record) {
-      return res.status(404).json({ error: 'Enquiry not found' });
+    if (!lead) {
+      return res.status(404).json({ error: 'Lead not found' });
     }
 
-    if (record.type !== 'enquiry') {
-      return res.status(400).json({ error: 'Record is not an enquiry and cannot be converted' });
+    if (lead.admission_uuid) {
+      return res.status(400).json({ error: 'This lead has already been converted to admission' });
     }
 
-    if (record.convertedToAdmission) {
-      return res.status(400).json({ error: 'This enquiry has already been converted to admission' });
-    }
+    const admission = new Admission({
+      uuid: uuidv4(),
+      institute_uuid,
+      student_uuid: lead.student_uuid,
+      admissionDate: admissionData.admissionDate || new Date(),
+      course: admissionData.course || lead.course || '',
+      batchTime: admissionData.batchTime || '',
+      examEvent: admissionData.examEvent || '',
+      createdBy: admissionData.createdBy || 'admin',
+    });
 
-    // Perform conversion
-    record.type = 'admission';
-    record.convertedToAdmission = true;
-    record.admissionDetails = record.admissionDetails || [];
-    record.admissionDetails.push(admissionData);
+    await admission.save();
 
-    await record.save();
+    lead.admission_uuid = admission.uuid;
+    lead.followups.push({
+      date: new Date(),
+      status: 'converted',
+      note: `Converted to admission. Course: ${admission.course}`,
+    });
+    await lead.save();
 
-    res.json({ success: true, message: 'Successfully converted to admission', record });
+    res.json({ success: true, message: 'Successfully converted to admission', admission });
   } catch (err) {
     console.error('Conversion failed:', err);
     res.status(500).json({ error: 'Failed to convert to admission' });

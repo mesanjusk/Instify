@@ -188,13 +188,23 @@ const Followup = () => {
   };
 
   const handleConvert = (e) => {
+    const sd = e.studentData || {};
     const fill = {
       ...admissionTemplate,
-      ...e,
-      admissionDate: new Date().toISOString().split('T')[0]
+      firstName: sd.firstName || '',
+      middleName: sd.middleName || '',
+      lastName: sd.lastName || '',
+      dob: sd.dob ? String(sd.dob).substring(0, 10) : '',
+      gender: sd.gender || '',
+      mobileSelf: sd.mobileSelf || '',
+      mobileParent: sd.mobileParent || '',
+      address: sd.address || '',
+      education: sd.education || '',
+      course: e.course || sd.course || '',
+      admissionDate: new Date().toISOString().split('T')[0],
     };
     setAdmissionForm(fill);
-    setEnquiryToDeleteId(e.uuid);
+    setEnquiryToDeleteId(e.Lead_uuid);
     setShowAdmission(true);
   };
 
